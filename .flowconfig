@@ -1,0 +1,15 @@
+[options]
+server.max_workers=1
+sharedmemory.heap_size=4221225472
+include_warnings=true
+module.name_mapper='^@/\(.+\)$' -> '<PROJECT_ROOT>/src/\1'
+
+[libs]
+types
+
+[lints]
+untyped-import=off
+
+[ignore]
+.*/_uploadDiffs/.*
+.*/dist/.*

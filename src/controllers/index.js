@@ -1,0 +1,5 @@
+module.exports.authController = require('./auth.controller')
+module.exports.discussionController = require('./discussion.controller')
+module.exports.projectController = require('./project.controller')
+module.exports.repoController = require('./repo.controller')
+module.exports.userController = require('./user.controller')

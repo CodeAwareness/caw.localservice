@@ -1,0 +1,68 @@
+{
+  "root": true,
+  "env": {
+    "node": true,
+    "jest": true
+  },
+  "extends": ["plugin:flowtype/recommended",  "plugin:flowtype-errors/recommended", "standard", "plugin:jest/recommended", "plugin:security/recommended"],
+  "parser": "babel-eslint",
+  "parserOptions": {
+    "sourceType": "module",
+    "ecmaVersion": 11
+  },
+  "plugins": [
+    "flowtype",
+    "flowtype-errors"
+    ],
+    "rules": {
+      "flowtype/no-types-missing-file-annotation": 0,
+      "flowtype-errors/show-errors": 2,
+      "flowtype-errors/show-warnings": 1,
+      "array-callback-return": 0,
+      "comma-dangle": [ "error", "only-multiline" ],
+      "indent": [ "warn", 2, { "SwitchCase": 1 }],
+      "linebreak-style": ["error", "unix"],
+      "security/detect-non-literal-fs-filename": 0,
+      "quotes": [
+        "warn",
+        "single"
+      ],
+      "semi": [
+        "error",
+        "never"
+      ],
+      "no-var": [
+        "error"
+      ],
+      "no-console": [
+        "off"
+      ],
+      "no-unused-vars": [
+        "warn"
+      ],
+      "no-mixed-operators": 0,
+      "no-mixed-spaces-and-tabs": [ "warn" ],
+      "no-multi-spaces": 0,
+      "space-infix-ops": 0,
+      "space-before-function-paren": [
+        "warn",
+        {
+          "anonymous": "never",
+          "named": "never",
+          "asyncArrow": "always"
+        }
+      ],
+      "object-curly-spacing": [
+        "warn",
+        "always"
+      ],
+      "require-atomic-updates": 0,
+      "jest/expect-expect": [
+        "error",
+        {
+          "assertFunctionNames": ["expect", "request.**.expect"]
+        }
+      ],
+      "security/detect-object-injection": 0
+    }
+}
