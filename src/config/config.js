@@ -1,14 +1,16 @@
+/* @flow */
+
 const dotenv = require('dotenv')
 const packageRoot = require('pkg-dir')
 const path   = require('path')
 const mkdir  = require('mkdirp').sync
-const dirSync = require('tmp')
+const tmp = require('tmp')
 
 const Joi    = require('@hapi/joi')
 
 // Setting up a temporary folder to work in
 const { Peer8Store } = require('@/services/peer8.store')
-Peer8Store.tmpDir = dirSync({ prefix: 'peer8_', keep: true, unsafeCleanup: true }).name
+Peer8Store.tmpDir = tmp.dirSync({ prefix: 'peer8_', keep: true, unsafeCleanup: true }).name
 
 const API_ROOT = packageRoot.sync(__dirname)
 
@@ -30,7 +32,7 @@ if (error) {
   throw new Error(`Config validation error: ${error.message}`)
 }
 
-const PORT_LOCAL = envVars.PORT || 14048
+const PORT_LOCAL = envVars.PORT || 48048
 const API_URL = process.env.LOCAL ? `http://localhost:${PORT_LOCAL}/api/v1` : 'https://api.peer8.com/v1'
 
 module.exports = {

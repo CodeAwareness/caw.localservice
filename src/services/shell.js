@@ -35,13 +35,14 @@ const copyFile: any = catchAsync(async (source, dest) => {
   return cmd(command)
 })
 
-const unzip: any = catchAsync(async (fpath, dir) => {
-  logger.log('will unzip using shell cmd', fpath, dir)
+const unzip: any = catchAsync(async (filename, dir) => {
+  logger.log('will unzip using shell cmd', filename, dir)
   if (isWindows) {
+    // TODO: make sure we install at Peer8 folder or somehow get the user chosen folder from the installer
     const unzip = path.join(process.env.ProgramFiles, 'Peer8', '7za.exe')
-    return cmd(`${unzip} e ${fpath}`, dir)
+    return cmd(`${unzip} e ${filename}`, dir)
   } else {
-    return cmd(`unzip ${fpath}`, dir)
+    return cmd(`unzip ${filename}`, dir)
   }
 })
 
