@@ -18,3 +18,6 @@ coverage
 
 # Uploads
 _uploadDiffs
+
+# DB
+storage.sqlite

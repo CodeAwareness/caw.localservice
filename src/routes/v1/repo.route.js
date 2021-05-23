@@ -7,19 +7,19 @@ const repoController = require('@/controllers/repo.controller')
 const router: any = express.Router()
 
 router
-  .route('add')
+  .route('/add')
   .post(repoController.add)
 
 router
-  .route('remove')
+  .route('/remove')
   .post(repoController.remove)
 
 router
-  .route('add-submodules')
+  .route('/add-submodules')
   .post(repoController.addSubmodules)
 
 router
-  .route('remove-submodules')
+  .route('/remove-submodules')
   .post(repoController.removeSubmodules)
 
 router

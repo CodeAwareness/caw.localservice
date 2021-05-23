@@ -13,11 +13,8 @@ function auth(socket) {
   })
 }
 
-const wrap = middleware => (socket, next) => middleware(socket.request, {}, next)
-
 const wsEngine = {
   init: (app: any, wsIO: any) => {
-
     // initial mock until the real socket connects
     app.userSocket = { emit: () => {}, to: () => ({ emit: () => {} }), join: () => {} }
     app.repoSocket = { emit: () => {}, to: () => ({ emit: () => {} }), join: () => {} }

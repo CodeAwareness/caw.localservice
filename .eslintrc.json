@@ -63,6 +63,7 @@
           "assertFunctionNames": ["expect", "request.**.expect"]
         }
       ],
+      "security/detect-child-process": 0,
       "security/detect-object-injection": 0
     }
 }

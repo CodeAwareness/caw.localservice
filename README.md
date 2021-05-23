@@ -1,4 +1,8 @@
-# CodeAwareness system service
+# CodeAwareness client system service
+
+This is a service that needs to be wrapped and compiled specifically for Windows, MacOS, Linux.
+We could use node-windows, node-mac, and systemd to ensure proper launching, restarting and logging.
+We're also using node-ipc for communication with the editor plugins.
 
 ## Getting Started
 
@@ -55,13 +59,13 @@ This service is composed of the following components:
 
 ### Authorization
 
-ACTIONS: login, logout, refresh-tokens
+ACTIONS: login, logout
 
 NOTES:
 
-For the case of an editor where it's possible to run a web component, the registration and proper login are handled by the web component. We only need a mechanism to keep the token alive, and two methods for storing the tokens (login) and clearing them out (logout).
+When it's possible to run a web component as an editor plugin/extension/add-on, the registration and proper login are handled by the web component. We only need a mechanism to keep the token alive, and two methods for storing the tokens (login) and clearing them out (logout).
 
-In the case of editors like vim, we have to decide whether to reproduce the web component functionality inside the vim plugin, or write them inside the OS service instead. I've decided to keep it inside the plugin, simply because making a call to an external API is almost no different from communicating with a system socket. In addition, one OS service should be able to handle requests from multiple editors, and that makes things a lot more complicated for the OS service. Instead, making each editor instance responsible for their own authentication improves the security of the overall system and simplifies the logic of each component.
+In the case of editors like vim, I have to decide whether to reproduce the web component functionality inside the vim plugin, or write them inside the OS service instead. I've decided to keep it inside the plugin, simply because making a call to an external API is almost no different from communicating with a system socket. In addition, one OS service should be able to handle requests from multiple editors, and that makes things a lot more complicated for the OS service. Instead, making each editor instance responsible for their own authentication improves the security of the overall system and simplifies the logic of each component.
 
 ### Users
 

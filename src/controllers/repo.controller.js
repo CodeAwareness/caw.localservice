@@ -1,13 +1,12 @@
 /* @flow */
 
 const httpStatus = require('http-status')
-const { basename } = require('path')
+const { existsSync } = require('fs/promises')
+const path = require('path')
 
 const logger = require('@/config/logger')
 const catchAsync = require('@/utils/catchAsync')
 
-const path = require('path')
-const { existsSync, readdirSync } = require('fs/promises')
 const git = require('@/services/git')
 const { Peer8Store } = require('@/services/peer8.store')
 
@@ -28,7 +27,7 @@ const add: any = catchAsync(async (req, res) => {
       // TODO: Allow other versioning systems (gitlab, etc)
       // TODO: Check all remotes (check if ANY match)
       const root = folder
-      const name = basename(root)
+      const name = path.basename(root)
       // TODO: cleanup Peer8Store.projects with a timeout of inactivity or something
       const project = { name, origin, root, changes, contributors }
       Peer8Store.projects.push(project)
@@ -39,7 +38,7 @@ const add: any = catchAsync(async (req, res) => {
 
 const remove: any = catchAsync(async (req, res) => {
   const { folder } = req.body
-  const project = Peer8Store.projects.filter(m => m.name === basename(folder))[0]
+  const project = Peer8Store.projects.filter(m => m.name === path.basename(folder))[0]
   logger.info('SCM removeProject folder', folder, project)
   if (project) {
     Peer8Store.projects = Peer8Store.projects.filter(m => m.origin !== project.origin)
