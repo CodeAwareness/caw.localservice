@@ -211,6 +211,6 @@ const Peer8API = {
   API_URL,
 }
 
-export {
+module.exports = {
   Peer8API,
 }
