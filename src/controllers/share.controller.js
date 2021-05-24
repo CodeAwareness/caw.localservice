@@ -32,7 +32,8 @@ const getDiffs: any = catchAsync(async (req, res) => {
   const { extractDir } = await diffs.diffWithContributor({ ct, origin, userFile, wsFolder })
   const pptFilename = `${ct._id}.pptx`
   const peerFile = await share.buildPPTX({ extractDir, pptFilename })
-  res.send(peerFile)
+  const peerFile64 = await share.fileToBase64(peerFile)
+  res.send({ peerFile64 })
 })
 
 module.exports = {

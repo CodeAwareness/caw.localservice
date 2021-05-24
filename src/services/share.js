@@ -82,8 +82,13 @@ async function buildPPTX({ extractDir, pptFilename }) {
   return zipFile
 }
 
+async function fileToBase64(fpath) {
+  return fs.readFile(fpath, { encoding: 'base64' })
+}
+
 module.exports = {
   buildPPTX,
+  fileToBase64,
   receiveShared,
   splitIntoGroups,
   unmonitorFile,
