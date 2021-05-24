@@ -15,12 +15,6 @@ function gitExec(command, options = {}) {
   })
 }
 
-const git = {
-  gitBranches,
-  gitCommand,
-  gitRemotes,
-}
-
 function gitCommand(wsFolder, cmd) {
   const options = {
     env: Object.assign(process.env, { GIT_TERMINAL_PROMPT: '0' }),
@@ -70,6 +64,12 @@ function gitBranches(wsFolder) {
       const branches = lines.map(line => line.replace('* ', '')).filter(a => a)
       return { branch, branches }
     })
+}
+
+const git = {
+  gitBranches,
+  gitCommand,
+  gitRemotes,
 }
 
 module.exports = git

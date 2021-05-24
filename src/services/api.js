@@ -1,14 +1,13 @@
 /* @flow */
 
-import axios from 'axios'
-import FormData from 'form-data'
+const axios = require('axios')
+const FormData = require('form-data')
+const { createReadStream } = require('fs/promises')
 
-import { API_URL } from '../config'
-import { showInformationMessage } from '../vscode/vscode'
-import { createReadStream } from './fs'
-import git from './git'
+const { API_URL } = require('@/config/config')
+const git = require('@/services/git')
 
-import { Peer8Store } from './peer8.store'
+const { Peer8Store } = require('./peer8.store')
 
 const API_AUTH_LOGIN          = '/auth/login'
 const API_AUTH_REFRESH_TOKENS = '/auth/refresh-tokens'
@@ -127,7 +126,6 @@ function sendLatestSHA({ wsFolder, origin }) {
 function logout(reject, msg, err) {
   Peer8Store.user = ''
   Peer8Store.tokens = ''
-  showInformationMessage(`Disconnected from Peer8. ${msg}`)
 
   reject(err)
 }

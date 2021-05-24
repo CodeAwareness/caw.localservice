@@ -14,4 +14,8 @@ router
   .route('/accept')
   .post(shareController.receiveShared)
 
+router
+  .route('/pptContributors')
+  .post(shareController.pptContributors)
+
 module.exports = router

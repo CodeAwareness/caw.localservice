@@ -1,4 +1,5 @@
 const path = require('path')
+const fs = require('fs/promises')
 const exec = require('child_process')
 
 const { logger } = require('@/logger')
@@ -46,8 +47,13 @@ const unzip: any = catchAsync(async (filename, dir) => {
   }
 })
 
+const rmFile: any = catchAsync(async (fpath) => {
+  return fs.unlink(fpath)
+})
+
 const shell = {
   copyFile,
+  rmFile,
   unzip,
 }
 
