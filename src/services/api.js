@@ -123,7 +123,7 @@ function sendLatestSHA({ wsFolder, origin }) {
     .catch(console.error)
 }
 
-function logout(reject, msg, err) {
+function logout(reject: function, msg: string, err: Object) {
   Peer8Store.user = ''
   Peer8Store.tokens = ''
 
@@ -211,6 +211,4 @@ const Peer8API = {
   API_URL,
 }
 
-module.exports = {
-  Peer8API,
-}
+module.exports = Peer8API

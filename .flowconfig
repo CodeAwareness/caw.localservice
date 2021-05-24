@@ -3,6 +3,7 @@ server.max_workers=1
 sharedmemory.heap_size=4221225472
 include_warnings=true
 module.name_mapper='^@/\(.+\)$' -> '<PROJECT_ROOT>/src/\1'
+esproposal.optional_chaining=enable
 
 [libs]
 types

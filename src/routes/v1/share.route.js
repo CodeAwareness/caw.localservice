@@ -18,4 +18,8 @@ router
   .route('/pptContributors')
   .post(shareController.pptContributors)
 
+router
+  .route('/diffs')
+  .post(shareController.getDiffs)
+
 module.exports = router

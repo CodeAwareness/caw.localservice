@@ -47,6 +47,17 @@ const unzip: any = catchAsync(async (filename, dir) => {
   }
 })
 
+const zipToPPTX: any = catchAsync(async (fpath, dir) => {
+  logger.log('will zip using shell cmd', fpath, dir)
+  if (isWindows) {
+    // TODO: make sure we install at Peer8 folder or somehow get the user chosen folder from the installer
+    const zip = path.join(process.env.ProgramFiles, 'Peer8', '7za.exe')
+    return cmd(`${zip} a -r ${fpath}`, dir)
+  } else {
+    return cmd(`zip -r ${fpath} .`, dir)
+  }
+})
+
 const rmFile: any = catchAsync(async (fpath) => {
   return fs.unlink(fpath)
 })
@@ -55,6 +66,7 @@ const shell = {
   copyFile,
   rmFile,
   unzip,
+  zipToPPTX,
 }
 
 module.exports = shell
