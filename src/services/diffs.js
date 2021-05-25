@@ -11,13 +11,13 @@ const fs = require('fs')
 const { pipeline } = require('stream')
 // const replaceStream = require('replacestream' // doesn't work (!)
 
-const { EXTRACT_BRANCH_DIR, EXTRACT_LOCAL_DIR, EXTRACT_PEER_DIR, EXTRACT_REPO_DIR, MAX_NR_OF_SHA_TO_COMPARE, SYNC_THRESHOLD } = require('../config')
+const { EXTRACT_BRANCH_DIR, EXTRACT_LOCAL_DIR, EXTRACT_PEER_DIR, EXTRACT_REPO_DIR, MAX_NR_OF_SHA_TO_COMPARE, SYNC_THRESHOLD } = require('@/config/config')
 
 const logger = console
 
 const git = require('@/services/git')
 const shell = require('@/services/shell')
-const Peer8Store = require('@/services/peer8.store')
+const { Peer8Store } = require('@/services/peer8.store')
 const Peer8API = require('@/services/api')
 
 const PENDING_DIFFS = {}
@@ -31,14 +31,14 @@ const isWindows = !!process.env.ProgramFiles
  *   and create a git repo, while refreshing with changes made on the originals.
  ************************************************************************************/
 
-const tmpDir = Peer8Store.tmpDir.name
+const tmpDir = Peer8Store.tmpDir
 const emptyFile = path.join(tmpDir, 'empty.p8')
 const adhocDir = path.join(tmpDir, 'adhoc') // for adhoc sharing files and folders
 
 /************************************************************************************
  * Diffs active file with the same file in a local branch
  *
- * Open the VSCode standard diff window.
+ * Open the VSCode standard diff window...
  ************************************************************************************/
 function diffWithBranch(branch) {
   let peerFile
@@ -351,7 +351,7 @@ function shareFolder(folder, groups) {
 }
 
 // TODO: maybe use fs-extra instead
-export function copyFolder(source, dest) {
+function copyFolder(source, dest) {
   // TODO: OPTIMIZE: maybe use spawn instead of exec (more efficient since it doesn't spin up any shell)
   return new Promise((resolve, reject) => {
     let command
@@ -369,7 +369,7 @@ export function copyFolder(source, dest) {
   })
 }
 
-export function copyFile(source, dest) {
+function copyFile(source, dest) {
   return new Promise((resolve, reject) => {
     fs.copyFile(source, dest, error => error && (reject(error) || 1) || resolve())
   })
