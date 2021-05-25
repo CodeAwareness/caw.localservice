@@ -10,7 +10,7 @@ const Joi    = require('@hapi/joi')
 
 // Setting up a temporary folder to work in
 const { Peer8Store } = require('@/services/peer8.store')
-Peer8Store.tmpDir = tmp.dirSync({ prefix: 'peer8_', keep: true, unsafeCleanup: true }).name
+Peer8Store.tmpDir = tmp.dirSync({ prefix: 'peer8', keep: true, unsafeCleanup: true }).name
 
 const API_ROOT = packageRoot.sync(__dirname)
 
