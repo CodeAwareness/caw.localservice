@@ -11,7 +11,7 @@ const shell = require('@/services/shell')
 const diffs = require('@/services/diffs')
 const { Peer8Store } = require('@/services/peer8.store')
 
-async function splitIntoGroups({ activePath, fpath, groups }) {
+async function startSharing({ fpath, groups }) {
   const tmpDir = Peer8Store.tmpDir
   const extractDir = path.join(tmpDir, crypto.randomUUID())
   mkdirp.sync(extractDir)
@@ -23,7 +23,7 @@ async function splitIntoGroups({ activePath, fpath, groups }) {
   monitorFile({ extractDir, fpath })
   await diffs.sendAdhocDiffs(extractDir)
 
-  return links
+  return { extractDir, links, origin }
 }
 
 async function refreshDiffs({ extractDir, fpath }) {
@@ -90,6 +90,6 @@ module.exports = {
   buildPPTX,
   fileToBase64,
   receiveShared,
-  splitIntoGroups,
+  startSharing,
   unmonitorFile,
 }

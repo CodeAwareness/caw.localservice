@@ -30,9 +30,9 @@ const copyFile: any = catchAsync(async (source, dest) => {
   let command
   if (isWindows) {
     logger.info('FS: Windows system, trying xcopy source dest')
-    command = `xcopy /j /o /q ${source} ${dest}`
+    command = `xcopy /j /o /q "${source}" "${dest}"`
   } else {
-    command = `cp -r ${source} ${dest}`
+    command = `cp -r "${source}" "${dest}"`
   }
   return cmd(command)
 })

@@ -8,7 +8,7 @@ const router: any = express.Router()
 
 router
   .route('/start')
-  .post(shareController.splitIntoGroups)
+  .post(shareController.startSharing)
 
 router
   .route('/accept')

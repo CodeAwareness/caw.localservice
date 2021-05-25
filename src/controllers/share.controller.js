@@ -7,13 +7,12 @@ const diffs = require('@/services/diffs')
 const share = require('@/services/share')
 const catchAsync = require('@/utils/catchAsync')
 
-const splitIntoGroups: any = catchAsync(async (req, res) => {
+const startSharing: any = catchAsync(async (req, res) => {
   /**
    * links = [{ origin, invitationLinks }, {...}, ...]
    */
-  console.log('START SHARE', req.body)
-  const links = share.splitIntoGroups(req.body)
-  res.send(links)
+  const { extractDir, links, origin } = share.startSharing(req.body)
+  res.send({ wsFolder: extractDir, origin, links })
   // TODO: await shell.unzip(path.basename(zipFile), extractDir)
 })
 
@@ -41,5 +40,5 @@ module.exports = {
   getDiffs,
   receiveShared,
   pptContributors,
-  splitIntoGroups,
+  startSharing,
 }

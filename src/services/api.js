@@ -2,7 +2,7 @@
 
 const axios = require('axios')
 const FormData = require('form-data')
-const fs = require('fs/promises')
+const { createReadStream } = require('fs')
 
 const { API_URL } = require('@/config/config')
 const git = require('@/services/git')
