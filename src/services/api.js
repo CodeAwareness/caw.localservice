@@ -2,7 +2,7 @@
 
 const axios = require('axios')
 const FormData = require('form-data')
-const { createReadStream } = require('fs/promises')
+const fs = require('fs/promises')
 
 const { API_URL } = require('@/config/config')
 const git = require('@/services/git')
@@ -164,7 +164,7 @@ const sendDiffs = ({ zipFile, origin, cSHA, activePath }) => {
   zipForm.append('activePath', activePath)
   zipForm.append('origin', origin)
   zipForm.append('sha', cSHA)
-  zipForm.append('zipFile', createReadStream(zipFile), { filename: zipFile }) // !! the file HAS to be last appended to FormData
+  zipForm.append('zipFile', fs.createReadStream(zipFile), { filename: zipFile }) // !! the file HAS to be last appended to FormData
   return axiosAPI
     .post(API_REPO_CONTRIB, zipForm, { headers: zipForm.getHeaders() })
     .then(res => res.data)
@@ -176,8 +176,8 @@ const submitAuthBranch = ({ origin, sha, branch, commitDate }) => axiosAPI.post(
 
 const shareFile = ({ zipFile, groups }) => {
   const zipForm = new FormData()
-  zipForm.append('groups', groups)
-  zipForm.append('zipFile', createReadStream(zipFile), { filename: zipFile }) // !! the file HAS to be last appended to FormData
+  zipForm.append('groups', JSON.stringify(groups))
+  zipForm.append('zipFile', fs.createReadStream(zipFile), { filename: zipFile }) // !! the file HAS to be last appended to FormData
   return axiosAPI
     .post(API_SHARE_START, zipForm, { headers: zipForm.getHeaders() })
     .then(res => res.data)

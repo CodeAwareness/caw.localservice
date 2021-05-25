@@ -11,6 +11,7 @@ const splitIntoGroups: any = catchAsync(async (req, res) => {
   /**
    * links = [{ origin, invitationLinks }, {...}, ...]
    */
+  console.log('START SHARE', req.body)
   const links = share.splitIntoGroups(req.body)
   res.send(links)
   // TODO: await shell.unzip(path.basename(zipFile), extractDir)

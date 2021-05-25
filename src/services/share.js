@@ -11,7 +11,7 @@ const shell = require('@/services/shell')
 const diffs = require('@/services/diffs')
 const { Peer8Store } = require('@/services/peer8.store')
 
-async function splitIntoGroups({ fpath, groups }) {
+async function splitIntoGroups({ activePath, fpath, groups }) {
   const tmpDir = Peer8Store.tmpDir
   const extractDir = path.join(tmpDir, crypto.randomUUID())
   mkdirp.sync(extractDir)

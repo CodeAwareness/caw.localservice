@@ -1,8 +1,8 @@
 const path = require('path')
 const fs = require('fs/promises')
-const exec = require('child_process')
+const childProcess = require('child_process')
 
-const { logger } = require('@/logger')
+const logger = console
 const catchAsync = require('@/utils/catchAsync')
 
 const isWindows = !!process.env.ProgramFiles
@@ -15,9 +15,10 @@ function cmd(command, dir) {
   }
   if (dir) {
     options.cwd = isWindows && ['\\', '/'].includes(dir[0]) ? dir.substr(1).replace(/\//g, '\\') : dir
+    console.log('executing in folder', options.cwd)
   }
   return new Promise((resolve, reject) => {
-    exec(command, options, (error, stdout, stderr) => {
+    childProcess.exec(command, options, (error, stdout, stderr) => {
       // if (stderr) reject(stderr, error) // TODO: find a better solution to actually reject when needed;
       if (stderr) logger.log('shell exec warning or error', command, error, stderr)
       resolve(stdout)
