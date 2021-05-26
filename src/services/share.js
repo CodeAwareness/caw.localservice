@@ -16,7 +16,6 @@ async function startSharing({ fpath, groups }) {
   const extractDir = path.join(tmpDir, crypto.randomUUID())
   mkdirp.sync(extractDir)
   const zipFile = await copyToWorkspace({ fpath, extractDir })
-  await shell.copyFile(fpath, zipFile)
   const { origin, links } = await api.shareFile({ zipFile, groups })
   await diffs.unzip({ zipFile, extractDir })
   await diffs.initGit({ extractDir, origin })
@@ -34,9 +33,7 @@ async function refreshDiffs({ extractDir, fpath }) {
 }
 
 async function copyToWorkspace({ fpath, extractDir }) {
-  const filename = path.basename(fpath)
-  const zipFile = path.join(extractDir, `${filename}.zip`)
-  await shell.copyFile(fpath, zipFile)
+  const zipFile = await shell.copyFile(fpath, extractDir)
   return zipFile
 }
 

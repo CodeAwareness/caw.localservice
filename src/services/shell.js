@@ -26,15 +26,20 @@ function cmd(command, dir) {
   })
 }
 
-const copyFile: any = catchAsync(async (source, dest) => {
-  let command
+const copyFile: any = catchAsync(async (source, destDir) => {
+  let promise
+  const dest = path.join(destDir, 'repo.zip')
   if (isWindows) {
     logger.info('FS: Windows system, trying xcopy source dest')
-    command = `xcopy /j /o /q "${source}" "${dest}"`
+    const filename = path.basename(source)
+    promise = cmd(`xcopy "${source}" "${destDir}"`)
+      .then(() => {
+        cmd(`mv ${filename} repo.zip`, destDir)
+      })
   } else {
-    command = `cp -r "${source}" "${dest}"`
+    promise = cmd(`cp -r "${source}" "${dest}"`)
   }
-  return cmd(command)
+  return promise.then(() => dest)
 })
 
 const unzip: any = catchAsync(async (filename, dir) => {
