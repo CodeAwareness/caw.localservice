@@ -166,8 +166,14 @@ const sendDiffs = ({ zipFile, origin, cSHA, activePath }) => {
   zipForm.append('sha', cSHA)
   zipForm.append('zipFile', createReadStream(zipFile), { filename: zipFile }) // !! the file HAS to be last appended to FormData
   return axiosAPI
-    .post(API_REPO_CONTRIB, zipForm, { headers: zipForm.getHeaders() })
+    .post(API_REPO_CONTRIB, zipForm,
+      {
+        headers: zipForm.getHeaders(),
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity,
+      })
     .then(res => res.data)
+    .catch(err => console.error(err.response.status, err.response.statusText)) // TODO: error handling
 }
 
 const login = ({ email, password }) => axiosAPI.post(API_AUTH_LOGIN, { email, password })
@@ -179,8 +185,14 @@ const shareFile = ({ zipFile, groups }) => {
   zipForm.append('groups', JSON.stringify(groups))
   zipForm.append('zipFile', createReadStream(zipFile), { filename: zipFile }) // !! the file HAS to be last appended to FormData
   return axiosAPI
-    .post(API_SHARE_START, zipForm, { headers: zipForm.getHeaders() })
+    .post(API_SHARE_START, zipForm,
+      {
+        headers: zipForm.getHeaders(),
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity,
+      })
     .then(res => res.data)
+    .catch(err => console.error(err.response.status, err.response.statusText)) // TODO: error handling
 }
 
 const receiveShared = link => {

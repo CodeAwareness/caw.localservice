@@ -1,18 +1,15 @@
-const exec = require('child_process')
+const util = require('util')
+const exec = util.promisify(require('child_process').exec)
 
-const { logger } = require('@/logger')
+const logger = console
 
 const isWindows = !!process.env.ProgramFiles
 
-function gitExec(command, options = {}) {
-  // TODO: maybe use spawn instead of exec (more efficient since it doesn't spin up any shell)
-  return new Promise((resolve, reject) => {
-    exec(command, options, (error, stdout, stderr) => {
-      // if (stderr) reject(stderr, error) // TODO: find a better solution to actually reject when needed; we receive "error: cannot access example-submodule/null" in stderr, for submodule directories.
-      if (stderr) logger.log('git exec warning or error', command, error, stderr)
-      resolve(stdout)
-    })
-  })
+async function gitExec(command, options = {}) {
+  // TODO: maybe use spawn instead of exec (more efficient since it doesn't spin up any shell; also allows larger data to be returned)
+  const { stdout, stderr, error } = await exec(command, options)
+  if (stderr) logger.log('git exec warning or error (command, error, stderr)', command, error, stderr)
+  return stdout
 }
 
 function gitCommand(wsFolder, cmd) {
@@ -34,7 +31,7 @@ function gitCommand(wsFolder, cmd) {
     options.cwd = isWindows && ['\\', '/'].includes(wsFolder[0]) ? wsFolder.substr(1).replace(/\//g, '\\') : wsFolder
   }
 
-  logger.info('GIT exec', cmd, 'with options', options)
+  logger.info('GIT exec', cmd, 'in folder', options.cwd)
   return gitExec(cmd, options)
 }
 

@@ -669,7 +669,7 @@ function clear() {
   // TODO
 }
 
-async function unzip({ zipFile, extractDir }) {
+async function unzip(extractDir, zipFile) {
   console.log('unzip in ', extractDir)
   const filename = path.basename(zipFile)
   await shell.unzip(filename, extractDir)
@@ -684,7 +684,7 @@ async function sendAdhocDiffs(wsFolder) {
   }
   const wsName = path.basename(wsFolder)
   const diffDir = path.join(tmpDir, wsName)
-  const origin = await git.gitCommand(wsFolder, 'git config --get remote.origin.ur')
+  const origin = await git.gitCommand(wsFolder, 'git config --get remote.origin')
   const sha = await git.gitCommand(wsFolder, 'git rev-list --max-parents=0 HEAD')
   logger.log('DIFFS: sendDiffs (wsFolder, origin, sha)', wsFolder, origin, sha)
   mkdirp.sync(diffDir)

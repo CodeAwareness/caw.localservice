@@ -4,6 +4,7 @@ const path = require('path')
 const httpStatus = require('http-status')
 const catchAsync = require('@/utils/catchAsync')
 const Keyv = require('keyv')
+const { Peer8Store } = require('../services/peer8.store')
 
 const dbpath = path.join(process.cwd(), 'storage.sqlite')
 const keyv = new Keyv(`sqlite://${dbpath}`, { namespace: 'auth' })
@@ -14,6 +15,8 @@ const register: any = catchAsync(async (req, res) => {
 
 const login: any = catchAsync(async (req, res) => {
   const { user, tokens } = req.body
+  Peer8Store.tokens = tokens
+  Peer8Store.user = user
   await keyv.set('uid', user._id)
   await keyv.set('email', user.email)
   await keyv.set('lang', user.lang)

@@ -1,13 +1,13 @@
 const path = require('path')
 const fs = require('fs/promises')
-const childProcess = require('child_process')
+const util = require('util')
+const exec = util.promisify(require('child_process').exec)
 
 const logger = console
-const catchAsync = require('@/utils/catchAsync')
 
 const isWindows = !!process.env.ProgramFiles
 
-function cmd(command, dir) {
+async function cmd(command, dir) {
   // TODO: maybe use spawn instead of exec (more efficient since it doesn't spin up any shell)
   const options = {
     windowsHide: true,
@@ -15,45 +15,40 @@ function cmd(command, dir) {
   }
   if (dir) {
     options.cwd = isWindows && ['\\', '/'].includes(dir[0]) ? dir.substr(1).replace(/\//g, '\\') : dir
-    console.log('executing in folder', options.cwd)
+    console.log(`executing '${command}' in folder`, options.cwd)
   }
-  return new Promise((resolve, reject) => {
-    childProcess.exec(command, options, (error, stdout, stderr) => {
-      // if (stderr) reject(stderr, error) // TODO: find a better solution to actually reject when needed;
-      if (stderr) logger.log('shell exec warning or error', command, error, stderr)
-      resolve(stdout)
-    })
-  })
+  const { stdout, stderr } = await exec(command, options)
+  if (stderr) logger.log('shell exec warning or error', command, error, stderr)
+  return stdout
 }
 
-const copyFile: any = catchAsync(async (source, destDir) => {
-  let promise
+// TODO: SECURITY: sanitize input; attack vector: specially crafted file name can be maliciously added to the repo.
+const copyFile: any = async (source, destDir) => {
   const dest = path.join(destDir, 'repo.zip')
   if (isWindows) {
     logger.info('FS: Windows system, trying xcopy source dest')
     const filename = path.basename(source)
-    promise = cmd(`xcopy "${source}" "${destDir}"`)
-      .then(() => {
-        cmd(`mv ${filename} repo.zip`, destDir)
-      })
+    await cmd(`xcopy "${source}" "${destDir}"`)
+    await cmd(`Ren "${filename}" repo.zip`, destDir)
   } else {
-    promise = cmd(`cp -r "${source}" "${dest}"`)
+    await cmd(`cp -r "${source}" "${dest}"`)
   }
-  return promise.then(() => dest)
-})
+  return dest
+}
 
-const unzip: any = catchAsync(async (filename, dir) => {
+const unzip: any = async (filename, dir) => {
   logger.log('will unzip using shell cmd', filename, dir)
   if (isWindows) {
     // TODO: make sure we install at Peer8 folder or somehow get the user chosen folder from the installer
-    const unzip = path.join(process.env.ProgramFiles, 'Peer8', '7za.exe')
-    return cmd(`${unzip} e ${filename}`, dir)
+    // const cmdPath = path.join(process.env.ProgramFiles, 'Peer8', '7za.exe')
+    const cmdPath = path.join('C:\\Users\\maria\\Downloads\\7zip', '7za.exe')
+    return cmd(`"${cmdPath}" e ${filename}`, dir)
   } else {
     return cmd(`unzip ${filename}`, dir)
   }
-})
+}
 
-const zipToPPTX: any = catchAsync(async (fpath, dir) => {
+const zipToPPTX: any = async (fpath, dir) => {
   logger.log('will zip using shell cmd', fpath, dir)
   if (isWindows) {
     // TODO: make sure we install at Peer8 folder or somehow get the user chosen folder from the installer
@@ -62,11 +57,11 @@ const zipToPPTX: any = catchAsync(async (fpath, dir) => {
   } else {
     return cmd(`zip -r ${fpath} .`, dir)
   }
-})
+}
 
-const rmFile: any = catchAsync(async (fpath) => {
+const rmFile: any = async (fpath) => {
   return fs.unlink(fpath)
-})
+}
 
 const shell = {
   copyFile,

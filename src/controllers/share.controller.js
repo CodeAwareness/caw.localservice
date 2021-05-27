@@ -11,8 +11,13 @@ const startSharing: any = catchAsync(async (req, res) => {
   /**
    * links = [{ origin, invitationLinks }, {...}, ...]
    */
-  const { extractDir, links, origin } = share.startSharing(req.body)
-  res.send({ wsFolder: extractDir, origin, links })
+  try {
+    const { extractDir, links, origin } = share.startSharing(req.body)
+    res.send({ wsFolder: extractDir, origin, links })
+  } catch (err) {
+    console.error('startSharing op failure', err)
+    res.status(httpStatus.INTERNAL_SERVER_ERROR).send()
+  }
   // TODO: await shell.unzip(path.basename(zipFile), extractDir)
 })
 
