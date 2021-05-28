@@ -376,6 +376,7 @@ function copyFile(source, dest) {
  * (for Office model, please see share.controller.js)
  ************************************************************************************/
 async function setupShare(fPath, groups, isFolder) {
+  // TODO: refactor this and unify the Repo and Office sharing process
   const filename = path.basename(fPath)
   const origin = _.uniqueId(filename + '-') // TODO: this uniqueId only works for multiple sequential calls I think, because it just spits out 1, 2, 3
   const adhocRepo = path.join(adhocDir, origin)
@@ -399,7 +400,7 @@ async function initGit(extractDir, origin) {
 
 async function updateGit(extractDir) {
   await git.gitCommand(extractDir, 'git add .')
-  await git.gitCommand(extractDir, 'git commit -am "updated"')
+  // await git.gitCommand(extractDir, 'git commit -am "updated"') // We'll keep the original commit for now.
 }
 
 /************************************************************************************
@@ -673,6 +674,7 @@ async function unzip(extractDir, zipFile) {
 }
 
 // TODO: error handling of all these awaits
+// TODO: it seems this crashes when closing the file (with save): `spawn C:\WINDOWS\system32\cmd.exe ENOENT`
 async function sendAdhocDiffs(diffDir) {
   if (lastSendDiff[diffDir]) {
     if (new Date() - lastSendDiff[diffDir] < SYNC_THRESHOLD) return Promise.resolve()
