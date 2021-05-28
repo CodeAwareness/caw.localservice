@@ -12,8 +12,8 @@ const startSharing: any = catchAsync(async (req, res) => {
    * links = [{ origin, invitationLinks }, {...}, ...]
    */
   try {
-    const { extractDir, links, origin } = share.startSharing(req.body)
-    res.send({ wsFolder: extractDir, origin, links })
+    const data = await share.startSharing(req.body)
+    res.send(data)
   } catch (err) {
     console.error('startSharing op failure', err)
     res.status(httpStatus.INTERNAL_SERVER_ERROR).send()

@@ -17,9 +17,9 @@ const login: any = catchAsync(async (req, res) => {
   const { user, tokens } = req.body
   Peer8Store.tokens = tokens
   Peer8Store.user = user
-  await keyv.set('uid', user._id)
-  await keyv.set('email', user.email)
-  await keyv.set('lang', user.lang)
+  await keyv.set('uid', user?._id)
+  await keyv.set('email', user?.email)
+  await keyv.set('lang', user?.lang)
   await keyv.set('accessToken', tokens?.access?.token)
   await keyv.set('accessExpires', tokens?.access?.expires)
   await keyv.set('refreshToken', tokens?.refresh?.token)

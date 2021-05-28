@@ -41,8 +41,7 @@ const unzip: any = async (filename, dir) => {
   if (isWindows) {
     // TODO: make sure we install at Peer8 folder or somehow get the user chosen folder from the installer
     // const cmdPath = path.join(process.env.ProgramFiles, 'Peer8', '7za.exe')
-    const cmdPath = path.join('C:\\Users\\maria\\Downloads\\7zip', '7za.exe')
-    return cmd(`"${cmdPath}" e ${filename}`, dir)
+    return cmd(`tar.exe -xf ${filename} *.*`, dir)
   } else {
     return cmd(`unzip ${filename}`, dir)
   }
@@ -51,9 +50,7 @@ const unzip: any = async (filename, dir) => {
 const zipToPPTX: any = async (fpath, dir) => {
   logger.log('will zip using shell cmd', fpath, dir)
   if (isWindows) {
-    // TODO: make sure we install at Peer8 folder or somehow get the user chosen folder from the installer
-    const zip = path.join(process.env.ProgramFiles, 'Peer8', '7za.exe')
-    return cmd(`${zip} a -r ${fpath}`, dir)
+    return cmd(`tar.exe --exclude .git -caf ${fpath} *.*`, dir)
   } else {
     return cmd(`zip -r ${fpath} .`, dir)
   }

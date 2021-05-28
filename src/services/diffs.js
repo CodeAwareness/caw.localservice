@@ -274,7 +274,7 @@ function sendDiffs(project) {
     })
     .then(() => {
       const { cSHA } = project
-      return uploadDiffs({ origin, wsFolder, cSHA, activePath })
+      return uploadDiffs({ origin, diffDir, cSHA, activePath })
     })
     .catch(error => {
       throw new Error(`Error while sendingCommitLog (uploadDiffs). ${error}`)
@@ -304,11 +304,7 @@ function sendDiffs(project) {
   }
 }
 
-function uploadDiffs({ wsFolder, origin, cSHA, activePath }) {
-  const wsName = path.basename(wsFolder)
-  const diffDir = path.join(tmpDir, wsName)
-  mkdirp.sync(diffDir)
-
+function uploadDiffs({ diffDir, origin, cSHA, activePath }) {
   // TODO: I think we sometimes get a file error (cSHA.gz does not exist) -- verify
   const diffFile = path.join(diffDir, 'uploaded.diff')
   const zipFile = path.join(diffDir, `${cSHA}.gz`)
@@ -676,24 +672,30 @@ async function unzip(extractDir, zipFile) {
   await shell.rmFile(zipFile)
 }
 
-async function sendAdhocDiffs(wsFolder) {
-  if (lastSendDiff[wsFolder]) {
-    if (new Date() - lastSendDiff[wsFolder] < SYNC_THRESHOLD) return Promise.resolve()
+// TODO: error handling of all these awaits
+async function sendAdhocDiffs(diffDir) {
+  if (lastSendDiff[diffDir]) {
+    if (new Date() - lastSendDiff[diffDir] < SYNC_THRESHOLD) return Promise.resolve()
   } else {
-    lastSendDiff[wsFolder] = new Date()
+    lastSendDiff[diffDir] = new Date()
   }
-  const wsName = path.basename(wsFolder)
-  const diffDir = path.join(tmpDir, wsName)
-  const origin = await git.gitCommand(wsFolder, 'git config --get remote.origin')
-  const sha = await git.gitCommand(wsFolder, 'git rev-list --max-parents=0 HEAD')
-  logger.log('DIFFS: sendDiffs (wsFolder, origin, sha)', wsFolder, origin, sha)
-  mkdirp.sync(diffDir)
+  const gitDir = path.join(diffDir, EXTRACT_LOCAL_DIR)
+  const origin = (await git.gitCommand(gitDir, 'git remote get-url origin')).trim()
+  const sha = (await git.gitCommand(gitDir, 'git rev-list --max-parents=0 HEAD')).trim()
+  logger.log('DIFFS: sendDiffs (diffDir, origin, sha)', diffDir, origin, sha)
   const tmpProjectDiff = path.join(diffDir, 'uploaded.diff')
 
   createEmpty(tmpProjectDiff)
   createEmpty(emptyFile)
 
-  await git.gitCommand(wsFolder, `git diff -b -U0 --no-color ${sha} >> ${tmpProjectDiff}`)
+  await git.gitCommand(gitDir, `git diff -b -U0 --no-color ${sha} >> ${tmpProjectDiff}`)
+
+  return uploadDiffs({
+    origin,
+    diffDir,
+    cSHA: sha,
+    activePath: '', // TODO: add slide number, and connect to receive updates via socket
+  })
 }
 
 async function refreshAdhocChanges({ origin, fpath }) {

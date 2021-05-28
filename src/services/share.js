@@ -6,14 +6,17 @@ const chokidar = require('chokidar')
 const crypto = require('crypto')
 const fs = require('fs/promises')
 
+const { EXTRACT_LOCAL_DIR } = require('@/config/config')
 const api = require('@/services/api')
 const shell = require('@/services/shell')
 const diffs = require('@/services/diffs')
 const { Peer8Store } = require('@/services/peer8.store')
+const { execFileSync } = require('child_process')
 
 async function startSharing({ fpath, groups }) {
   const tmpDir = Peer8Store.tmpDir
-  const extractDir = path.join(tmpDir, crypto.randomUUID())
+  const wsFolder = path.join(tmpDir, crypto.randomUUID())
+  const extractDir = path.join(wsFolder, EXTRACT_LOCAL_DIR)
   mkdirp.sync(extractDir)
   const zipFile = await copyToWorkspace({ fpath, extractDir })
   const res = await api.shareFile({ zipFile, groups })
@@ -21,9 +24,9 @@ async function startSharing({ fpath, groups }) {
   await diffs.unzip(extractDir, zipFile)
   await diffs.initGit(extractDir, origin)
   monitorFile({ extractDir, fpath })
-  await diffs.sendAdhocDiffs(extractDir)
+  await diffs.sendAdhocDiffs(wsFolder)
 
-  return { extractDir, origin, links: invitationLinks }
+  return { wsFolder, origin, links: invitationLinks }
 }
 
 async function refreshDiffs({ extractDir, fpath }) {
