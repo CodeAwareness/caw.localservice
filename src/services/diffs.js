@@ -350,13 +350,7 @@ function shareFolder(folder, groups) {
 function copyFolder(source, dest) {
   // TODO: OPTIMIZE: maybe use spawn instead of exec (more efficient since it doesn't spin up any shell)
   return new Promise((resolve, reject) => {
-    let command
-    if (isWindows) {
-      logger.info('FS: Windows system, trying xcopy source dest')
-      command = `xcopy /h /r /j /k /o /q /s /e ${source} ${dest}` // wow, fuck, lol, wtf, seriously?!!/???@@
-    } else {
-      command = `cp -r ${source} ${dest}`
-    }
+    const command = `cp -r ${source} ${dest}`
     const options = { windowsHide: true }
     childProcess.exec(command, options, (error, stdout, stderr) => {
       if (stderr || error) console.error('copyFolder exec error', command, error, stderr)
@@ -684,7 +678,6 @@ async function sendAdhocDiffs(diffDir) {
   const gitDir = path.join(diffDir, EXTRACT_LOCAL_DIR)
   const origin = (await git.gitCommand(gitDir, 'git remote get-url origin')).trim()
   const sha = (await git.gitCommand(gitDir, 'git rev-list --max-parents=0 HEAD')).trim()
-  logger.log('DIFFS: sendDiffs (diffDir, origin, sha)', diffDir, origin, sha)
   const tmpProjectDiff = path.join(diffDir, 'uploaded.diff')
 
   createEmpty(tmpProjectDiff)

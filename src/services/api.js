@@ -156,7 +156,7 @@ function sendCommitLog(data) {
 }
 
 function findCommonSHA({ origin }) {
-  return axiosAPI.get(`${API_REPO_COMMON_SHA}?origin=${origin}`)
+  return axiosAPI(`${API_REPO_COMMON_SHA}?origin=${origin}`, { method: 'GET', responseType: 'json' })
 }
 
 const sendDiffs = ({ zipFile, origin, cSHA, activePath }) => {
@@ -196,7 +196,8 @@ const shareFile = ({ zipFile, groups }) => {
 }
 
 const receiveShared = link => {
-  return axiosAPI.get(`${API_SHARE_ACCEPT}?origin=${link}`)
+  const uri = encodeURIComponent(link)
+  return axiosAPI(`${API_SHARE_ACCEPT}?origin=${uri}`, { method: 'GET', responseType: 'json' })
 }
 
 const Peer8API = {

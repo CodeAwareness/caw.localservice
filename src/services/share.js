@@ -60,19 +60,24 @@ async function receiveShared({ origin, folder }) {
   let fpath
   return api.receiveShared(origin)
     .then(({ data, headers }) => {
-      const filename = headers['Content-Disposition']?.split('filename=')[1]
+      console.log('folder', folder)
+      console.log('headers', headers)
+      const filename = headers['content-disposition']?.split('filename=')[1].replace(/"/g, '')
       fpath = path.join(folder, filename)
       return fs.writeFile(fpath, data)
     })
     .then(() => {
-      copyToWorkspace({ fpath, extractDir })
+      return copyToWorkspace({ fpath, extractDir })
     })
     .then(zipFile => {
-      diffs.unzip(extractDir, zipFile)
-      diffs.initGit(extractDir, origin)
+      console.log('RECEIVED zipFile', zipFile)
+      return diffs.unzip(extractDir, zipFile)
+    })
+    .then(() => {
+      return diffs.initGit(extractDir, origin)
     })
     .then(() =>  {
-      monitorFile({ fpath, extractDir })
+      return monitorFile({ fpath, extractDir })
     })
 }
 

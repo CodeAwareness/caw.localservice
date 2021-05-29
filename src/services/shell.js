@@ -25,14 +25,7 @@ async function cmd(command, dir) {
 // TODO: SECURITY: sanitize input; attack vector: specially crafted file name can be maliciously added to the repo.
 const copyFile: any = async (source, destDir) => {
   const dest = path.join(destDir, 'repo.zip')
-  if (isWindows) {
-    logger.info('FS: Windows system, trying xcopy source dest')
-    const filename = path.basename(source)
-    await cmd(`xcopy "${source}" "${destDir}"`)
-    await cmd(`Ren "${filename}" repo.zip`, destDir)
-  } else {
-    await cmd(`cp -r "${source}" "${dest}"`)
-  }
+  await cmd(`cp -r "${source}" "${dest}"`)
   return dest
 }
 
@@ -40,8 +33,7 @@ const unzip: any = async (filename, dir) => {
   logger.log('will unzip using shell cmd', filename, dir)
   if (isWindows) {
     // TODO: make sure we install at Peer8 folder or somehow get the user chosen folder from the installer
-    // const cmdPath = path.join(process.env.ProgramFiles, 'Peer8', '7za.exe')
-    return cmd(`tar.exe -xf ${filename} *.*`, dir)
+    return cmd(`tar.exe -xf ${filename}`, dir)
   } else {
     return cmd(`unzip ${filename}`, dir)
   }
