@@ -18,31 +18,32 @@ async function startSharing({ fpath, groups }: any): any {
   const extractDir = path.join(wsFolder, EXTRACT_LOCAL_DIR)
   mkdirp.sync(extractDir)
   const zipFile = await copyToWorkspace({ fpath, extractDir })
-  const res = await api.shareFile({ fpath, groups })
+  const res = await api.shareFile({ zipFile: fpath, groups })
   const { origin, invitationLinks } = res
   await diffs.unzip(extractDir, zipFile)
   await diffs.initGit(extractDir, origin)
-  monitorFile({ extractDir, fpath })
+  monitorFile({ wsFolder, fpath })
   await diffs.sendAdhocDiffs(wsFolder)
 
   return { wsFolder, origin, links: invitationLinks }
 }
 
-async function refreshDiffs({ extractDir, fpath }) {
+async function refreshDiffs({ wsFolder, fpath }) {
   console.log('File has been saved, refreshing diffs.')
+  const extractDir = path.join(wsFolder, EXTRACT_LOCAL_DIR)
   await copyToWorkspace({ fpath, extractDir })
   await diffs.updateGit(extractDir)
-  await diffs.sendAdhocDiffs(extractDir)
+  await diffs.sendAdhocDiffs(wsFolder)
 }
 
 async function copyToWorkspace({ fpath, extractDir }) {
   return await shell.copyFile(fpath, extractDir)
 }
 
-function monitorFile({ fpath, extractDir }) {
+function monitorFile({ fpath, wsFolder }) {
   chokidar.watch(fpath)
     .on('change', () => {
-      refreshDiffs({ fpath, extractDir })
+      refreshDiffs({ fpath, wsFolder })
     })
 }
 
@@ -53,7 +54,8 @@ function unmonitorFile(fpath) {
 
 async function receiveShared({ origin, folder }) {
   const tmpDir = Peer8Store.tmpDir
-  const extractDir = path.join(tmpDir, crypto.randomUUID())
+  const wsFolder = path.join(tmpDir, crypto.randomUUID())
+  const extractDir = path.join(wsFolder, EXTRACT_LOCAL_DIR)
   mkdirp.sync(extractDir)
 
   let fpath
@@ -67,14 +69,13 @@ async function receiveShared({ origin, folder }) {
       return copyToWorkspace({ fpath, extractDir })
     })
     .then(zipFile => {
-      console.log('RECEIVED zipFile', zipFile)
       return diffs.unzip(extractDir, zipFile)
     })
     .then(() => {
       return diffs.initGit(extractDir, origin)
     })
     .then(() =>  {
-      return monitorFile({ fpath, extractDir })
+      return monitorFile({ fpath, wsFolder })
     })
 }
 

@@ -12,7 +12,7 @@ async function gitExec(command, options = {}) {
   return stdout
 }
 
-function gitCommand(wsFolder, cmd) {
+async function gitCommand(wsFolder, cmd) {
   const options = {
     env: Object.assign(process.env, { GIT_TERMINAL_PROMPT: '0' }),
     windowsHide: true,
@@ -34,7 +34,7 @@ function gitCommand(wsFolder, cmd) {
   return gitExec(cmd, options)
 }
 
-function gitRemotes(wsFolder) {
+async function gitRemotes(wsFolder) {
   return git.gitCommand(wsFolder, 'git remote -v')
     .then(stdout => {
       const outLines = stdout.split('\n')
@@ -51,7 +51,7 @@ function gitRemotes(wsFolder) {
     })
 }
 
-function gitBranches(wsFolder) {
+async function gitBranches(wsFolder) {
   return git.gitCommand(wsFolder, 'git branch --no-color')
     .then(stdout => {
       const lines = stdout.split('\n')
