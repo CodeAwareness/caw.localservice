@@ -309,7 +309,6 @@ function uploadDiffs({ diffDir, origin, cSHA, activePath }) {
   // TODO: I think we sometimes get a file error (cSHA.gz does not exist) -- verify
   const diffFile = path.join(diffDir, 'uploaded.diff')
   const zipFile = path.join(diffDir, `${cSHA}.gz`)
-  logger.log('DIFFS: uploadDiffs (diffFile, zipFile)', diffFile, zipFile)
   return compress(diffFile, zipFile)
     .then(() => {
       return Peer8API.sendDiffs({ zipFile, cSHA, origin, activePath })

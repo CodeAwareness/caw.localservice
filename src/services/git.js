@@ -8,7 +8,7 @@ const isWindows = !!process.env.ProgramFiles
 async function gitExec(command, options = {}) {
   // TODO: maybe use spawn instead of exec (more efficient since it doesn't spin up any shell; also allows larger data to be returned)
   const { stdout, stderr, error } = await exec(command, options)
-  if (stderr) logger.log('git exec warning or error (command, error, stderr)', command, error, stderr)
+  // if (stderr) logger.log('git exec warning or error (command, error, stderr)', command, error, stderr)
   return stdout
 }
 
@@ -19,7 +19,6 @@ function gitCommand(wsFolder, cmd) {
     maxBuffer: 5242880, // TODO: ensure this is enough, or do spawn / streaming instead
   }
   if (wsFolder) {
-    logger.log('GIT: isWindows? (wsFolder)', isWindows, wsFolder)
     /**
      * Windows tipsy notes:
      * You can have folder path reported by Windows / VSCode with either of the following patterns, depending on the planet alignment and the amount of alcohool you poured on your house plants:
@@ -31,7 +30,7 @@ function gitCommand(wsFolder, cmd) {
     options.cwd = isWindows && ['\\', '/'].includes(wsFolder[0]) ? wsFolder.substr(1).replace(/\//g, '\\') : wsFolder
   }
 
-  logger.info('GIT exec', cmd, 'in folder', options.cwd)
+  logger.info('GIT:', cmd, 'in folder', options.cwd)
   return gitExec(cmd, options)
 }
 
@@ -40,7 +39,6 @@ function gitRemotes(wsFolder) {
     .then(stdout => {
       const outLines = stdout.split('\n')
       if (!outLines.length) return logger.info('no output from git remote -v')
-      logger.log('GIT: gitRemotes output', stdout)
       const reOrigin = /github.com[:/](.+)(\.git | )/.exec(
         outLines.filter(line => /^origin/.test(line))[0],
       )
