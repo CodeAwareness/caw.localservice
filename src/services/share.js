@@ -11,9 +11,8 @@ const api = require('@/services/api')
 const shell = require('@/services/shell')
 const diffs = require('@/services/diffs')
 const { Peer8Store } = require('@/services/peer8.store')
-const { execFileSync } = require('child_process')
 
-async function startSharing({ fpath, groups }) {
+async function startSharing({ fpath, groups }: any): any {
   const tmpDir = Peer8Store.tmpDir
   const wsFolder = path.join(tmpDir, crypto.randomUUID())
   const extractDir = path.join(wsFolder, EXTRACT_LOCAL_DIR)
@@ -60,8 +59,6 @@ async function receiveShared({ origin, folder }) {
   let fpath
   return api.receiveShared(origin)
     .then(({ data, headers }) => {
-      console.log('folder', folder)
-      console.log('headers', headers)
       const filename = headers['content-disposition']?.split('filename=')[1].replace(/"/g, '')
       fpath = path.join(folder, filename)
       return fs.writeFile(fpath, data)

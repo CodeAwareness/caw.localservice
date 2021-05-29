@@ -6,6 +6,7 @@ const tar = require('tar')
 const rimraf = require('rimraf')
 const _ = require('lodash')
 const { createGzip } = require('zlib')
+const powerShell = require('node-powershell')
 const childProcess = require('child_process')
 const fs = require('fs')
 const { pipeline } = require('stream')
@@ -352,10 +353,21 @@ function copyFolder(source, dest) {
   return new Promise((resolve, reject) => {
     const command = `cp -r ${source} ${dest}`
     const options = { windowsHide: true }
-    childProcess.exec(command, options, (error, stdout, stderr) => {
-      if (stderr || error) console.error('copyFolder exec error', command, error, stderr)
-      resolve(stdout)
-    })
+    if (isWindows) {
+      let ps = new powerShell({ executionPolicy: 'Bypass', noProfile: true })
+      ps.addCommand(command)
+      ps.invoke()
+        .then(output => resolve(output))
+        .catch(error => {
+          ps.dispose()
+          console.error('copyFolder exec error', command, error)
+        })
+    } else {
+      childProcess.exec(command, options, (error, stdout, stderr) => {
+        if (stderr || error) console.error('copyFolder exec error', command, error, stderr)
+        resolve(stdout)
+      })
+    }
   })
 }
 

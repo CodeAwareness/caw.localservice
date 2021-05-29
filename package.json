@@ -50,6 +50,7 @@
     "mkdirp": "^1.0.4",
     "module-alias": "^2.2.2",
     "morgan": "^1.10.0",
+    "node-powershell": "^4.0.0",
     "path": "^0.12.7",
     "rimraf": "^3.0.2",
     "socket.io": "^4.1.2",

@@ -104,7 +104,7 @@ function reAuthorize(text) {
 }
 
 /* TODO: throttle; when starting up VSCode we may get several such requests in quick succession */
-function sendLatestSHA({ wsFolder, origin }) {
+function sendLatestSHA({ wsFolder, origin }: any): Promise<any> {
   let branch
   return git.gitCommand(wsFolder, 'git fetch')
     .then(() => {
@@ -130,13 +130,13 @@ function logout(reject: function, msg: string, err: Object) {
   reject(err)
 }
 
-function refreshToken(refreshToken) {
+function refreshToken(refreshToken: string) {
   return axiosAPI
     .post(API_AUTH_REFRESH_TOKENS, { refreshToken })
     .then(res => (Peer8Store.tokens = res.data.tokens))
 }
 
-function downloadDiffs({ origin, fpath }) {
+function downloadDiffs({ origin, fpath }: any): Promise<any> {
   return axiosAPI(`${API_REPO_CONTRIB}?origin=${origin}&fpath=${fpath}`, { method: 'GET', responseType: 'json' })
 }
 
@@ -176,11 +176,11 @@ const sendDiffs = ({ zipFile, origin, cSHA, activePath }) => {
     .catch(err => console.error(err.response.status, err.response.statusText)) // TODO: error handling
 }
 
-const login = ({ email, password }) => axiosAPI.post(API_AUTH_LOGIN, { email, password })
+const login = ({ email, password }: any): Promise<any> => axiosAPI.post(API_AUTH_LOGIN, { email, password })
 
-const submitAuthBranch = ({ origin, sha, branch, commitDate }) => axiosAPI.post(API_REPO_SWARM_AUTH, { origin, sha, branch, commitDate })
+const submitAuthBranch = ({ origin, sha, branch, commitDate }: any): Promise<any> => axiosAPI.post(API_REPO_SWARM_AUTH, { origin, sha, branch, commitDate })
 
-const shareFile = ({ zipFile, groups }) => {
+const shareFile = ({ zipFile, groups }: any): Promise<any> => {
   const zipForm = new FormData()
   zipForm.append('groups', JSON.stringify(groups))
   zipForm.append('zipFile', createReadStream(zipFile), { filename: zipFile }) // !! the file HAS to be last appended to FormData

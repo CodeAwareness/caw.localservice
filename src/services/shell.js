@@ -2,6 +2,7 @@ const path = require('path')
 const fs = require('fs/promises')
 const util = require('util')
 const exec = util.promisify(require('child_process').exec)
+const powerShell = require('node-powershell')
 
 const logger = console
 
@@ -25,7 +26,14 @@ async function cmd(command, dir) {
 // TODO: SECURITY: sanitize input; attack vector: specially crafted file name can be maliciously added to the repo.
 const copyFile: any = async (source, destDir) => {
   const dest = path.join(destDir, 'repo.zip')
-  await cmd(`cp -r "${source}" "${dest}"`)
+  const command = `cp -r "${source}" "${dest}"`
+  if (isWindows) {
+    let ps = new powerShell({ executionPolicy: 'Bypass', noProfile: true })
+    ps.addCommand(command)
+    await ps.invoke()
+  } else {
+    await cmd(command)
+  }
   return dest
 }
 
