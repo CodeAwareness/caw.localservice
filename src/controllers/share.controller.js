@@ -22,8 +22,9 @@ const startSharing: any = catchAsync(async (req, res) => {
 })
 
 const receiveShared: any = catchAsync(async (req, res) => {
-  await share.receiveShared(req.body)
-  res.status(httpStatus.OK).send()
+  const peerFile = await share.receiveShared(req.body)
+  const peerFile64 = await share.fileToBase64(peerFile)
+  res.send({ peerFile64 })
 })
 
 const pptContributors: any = catchAsync(async (req, res) => {

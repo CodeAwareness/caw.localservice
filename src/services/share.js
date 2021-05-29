@@ -75,7 +75,8 @@ async function receiveShared({ origin, folder }) {
       return diffs.initGit(extractDir, origin)
     })
     .then(() =>  {
-      return monitorFile({ fpath, wsFolder })
+      monitorFile({ fpath, wsFolder })
+      return fpath
     })
 }
 
