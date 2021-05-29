@@ -197,7 +197,7 @@ const shareFile = ({ zipFile, groups }: any): Promise<any> => {
 
 const receiveShared = link => {
   const uri = encodeURIComponent(link)
-  return axiosAPI(`${API_SHARE_ACCEPT}?origin=${uri}`, { method: 'GET', responseType: 'json' })
+  return axiosAPI(`${API_SHARE_ACCEPT}?origin=${uri}`, { method: 'GET', responseType: 'application/zip' })
 }
 
 const Peer8API = {

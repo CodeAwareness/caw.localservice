@@ -18,7 +18,7 @@ async function startSharing({ fpath, groups }: any): any {
   const extractDir = path.join(wsFolder, EXTRACT_LOCAL_DIR)
   mkdirp.sync(extractDir)
   const zipFile = await copyToWorkspace({ fpath, extractDir })
-  const res = await api.shareFile({ zipFile, groups })
+  const res = await api.shareFile({ fpath, groups })
   const { origin, invitationLinks } = res
   await diffs.unzip(extractDir, zipFile)
   await diffs.initGit(extractDir, origin)
