@@ -6,7 +6,7 @@ const tar = require('tar')
 const rimraf = require('rimraf')
 const _ = require('lodash')
 const { createGzip } = require('zlib')
-const powerShell = require('node-powershell')
+const PowerShell = require('node-powershell')
 const childProcess = require('child_process')
 const fs = require('fs')
 const { pipeline } = require('stream')
@@ -41,7 +41,7 @@ const adhocDir = path.join(tmpDir, 'adhoc') // for adhoc sharing files and folde
  *
  * Open the VSCode standard diff window...
  ************************************************************************************/
-function diffWithBranch(branch) {
+function diffWithBranch(branch: string) {
   let peerFile
   let wsFolder = Peer8Store.activeProject.root
   Peer8Store.selectedBranch = branch
@@ -140,7 +140,7 @@ function diffWithContributor({ ct, userFile, origin, wsFolder }) {
  * We're sending a number of commit SHA values (e.g. latest 100) to the server,
  * in order to compute the common ancestor SHA for everyone in a team.
  ************************************************************************************/
-function sendCommitLog(project) {
+function sendCommitLog(project: any) {
   // TODO: make MAX_COMMITS something configurable by the server instead. That way we can automatically accommodate a rescale in team size.
   const MAX_COMMITS = 1000
   const wsFolder = project.root
@@ -296,7 +296,7 @@ function sendDiffs(project) {
         return new Promise((resolve, reject) => {
           stream
             .end()
-            .on('error', err => reject(new Error('DIFF: error streaming files', err))) // TODO: is this failing if we simplify to `on('error', reject)` ?
+            .on('error', err => reject(new Error('DIFF: error streaming files.' + err))) // TODO: is this failing if we simplify to `on('error', reject)` ?
             .on('close', resolve)
             .on('end', resolve)
             .on('finish', resolve)
@@ -315,7 +315,7 @@ function uploadDiffs({ diffDir, origin, cSHA, activePath }) {
     })
 }
 
-function compress(input, output) {
+function compress(input: string, output: string): Promise<any> {
   logger.log('DIFFS: compress (input, output)', input, output)
   return new Promise((resolve, reject) => {
     const gzip = createGzip()
@@ -338,11 +338,11 @@ function receiveShared(link) {
     .then()
 }
 
-function shareFile(filePath, groups) {
+function shareFile(filePath: string, groups: Array<string>) {
   setupShare(filePath, groups)
 }
 
-function shareFolder(folder, groups) {
+function shareFolder(folder: string, groups: Array<string>) {
   setupShare(folder, groups, true)
 }
 
@@ -353,7 +353,7 @@ function copyFolder(source, dest) {
     const command = `cp -r ${source} ${dest}`
     const options = { windowsHide: true }
     if (isWindows) {
-      let ps = new powerShell({ executionPolicy: 'Bypass', noProfile: true })
+      const ps = new PowerShell({ executionPolicy: 'Bypass', noProfile: true })
       ps.addCommand(command)
       ps.invoke()
         .then(output => resolve(output))
@@ -372,7 +372,10 @@ function copyFolder(source, dest) {
 
 function copyFile(source, dest) {
   return new Promise((resolve, reject) => {
-    fs.copyFile(source, dest, error => error && (reject(error) || 1) || resolve())
+    fs.copyFile(source, dest, function(error) {
+      if (error) return reject(error)
+      resolve()
+    })
   })
 }
 
@@ -390,21 +393,22 @@ async function setupShare(fPath, groups, isFolder) {
   mkdirp.sync(adhocRepo)
   const copyOp = isFolder ? copyFolder : copyFile
   await copyOp(fPath, adhocRepo)
-  await initGit(adhocRepo, origin)
+  await initGit({ extractDir: adhocRepo, origin })
   await git.gitCommand(adhocRepo, `git archive --format zip --output ${zipFile} HEAD`)
   await git.gitCommand(adhocRepo, 'git rev-list HEAD -n1')
-  await Peer8API.sendAdhocShare({ zipFile, origin, groups })
+  // TODO:
+  // await Peer8API.sendAdhocShare({ zipFile, origin, groups })
 }
 
-async function initGit(extractDir, origin) {
+async function initGit({ extractDir, origin }: any): any {
   await git.gitCommand(extractDir, 'git init')
   await git.gitCommand(extractDir, 'git add .')
   await git.gitCommand(extractDir, `git remote add origin ${origin}`)
   await git.gitCommand(extractDir, 'git commit -am "initial commit"')
 }
 
-async function updateGit(extractDir) {
-  // await git.gitCommand(extractDir, 'git add .')
+async function updateGit(extractDir: string): any {
+  // await git.gitCommand(extractDir, 'git add .') // TODO: this conflicts with initGit in the initial receiving phase
   // await git.gitCommand(extractDir, 'git commit -am "updated"') // We'll keep the original commit for now.
 }
 
@@ -671,7 +675,7 @@ function clear() {
   // TODO
 }
 
-async function unzip(extractDir, zipFile) {
+async function unzip({ extractDir, zipFile }) {
   console.log('unzip in ', extractDir)
   const filename = path.basename(zipFile)
   await shell.unzip(filename, extractDir)
@@ -724,6 +728,7 @@ const Peer8Diffs = {
   diffWithContributor,
   diffWithBranch,
   initGit,
+  receiveShared,
   refreshAdhocChanges,
   refreshChanges,
   shareFile,

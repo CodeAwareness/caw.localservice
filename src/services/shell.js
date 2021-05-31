@@ -2,7 +2,7 @@ const path = require('path')
 const fs = require('fs/promises')
 const util = require('util')
 const exec = util.promisify(require('child_process').exec)
-const powerShell = require('node-powershell')
+const PowerShell = require('node-powershell')
 
 const logger = console
 
@@ -19,7 +19,7 @@ async function cmd(command, dir) {
     console.log(`executing '${command}' in folder`, options.cwd)
   }
   const { stdout, stderr } = await exec(command, options)
-  if (stderr) logger.log('shell exec warning or error', command, error, stderr)
+  if (stderr) logger.log('shell exec warning or error', command, stderr)
   return stdout
 }
 
@@ -28,7 +28,7 @@ const copyFile: any = async (source, destDir) => {
   const dest = path.join(destDir, 'repo.zip')
   const command = `cp -r "${source}" "${dest}"`
   if (isWindows) {
-    let ps = new powerShell({ executionPolicy: 'Bypass', noProfile: true })
+    const ps = new PowerShell({ executionPolicy: 'Bypass', noProfile: true })
     ps.addCommand(command)
     await ps.invoke()
   } else {

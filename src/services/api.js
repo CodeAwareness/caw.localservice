@@ -17,7 +17,9 @@ const API_REPO_COMMITS        = '/repos/commits'
 const API_REPO_COMMON_SHA     = '/repos/common-sha'
 const API_REPO_CONTRIB        = '/repos/contrib'
 const API_REPO_DIFF_FILE      = '/repos/diff'
+const API_SHARE_SLIDE_CONTRIB = '/share/slideContrib'
 const API_SHARE_START         = '/share/start'
+const API_SHARE_UPLOAD        = '/share/uploadOriginal'
 const API_SHARE_ACCEPT        = '/share/accept'
 
 axios.defaults.adapter = require('axios/lib/adapters/http')
@@ -97,7 +99,7 @@ function reAuthorize(text) {
       return git.gitCommand(wsFolder, `git log --pretty="%cd %H" ${options} --date=iso-strict ${branch}`)
     })
     .then(log => {
-      // eslint-disable-next-line no-unused-vars
+      // eslint-disable-next-line
       const [a, d, h] = /(.+) (.+)/.exec(log)
       return submitAuthBranch({ origin, branch, sha: h, commitDate: d })
     })
@@ -116,7 +118,7 @@ function sendLatestSHA({ wsFolder, origin }: any): Promise<any> {
       return git.gitCommand(wsFolder, `git log --pretty="%cd %H" -n1 --date=iso-strict ${branch}`)
     })
     .then(log => {
-      // eslint-disable-next-line no-unused-vars
+      // eslint-disable-next-line
       const [a, commitDate, sha] = /(.+) (.+)/.exec(log)
       return submitAuthBranch({ origin, sha, commitDate, branch })
     })
@@ -137,29 +139,38 @@ function refreshToken(refreshToken: string) {
 }
 
 function downloadDiffs({ origin, fpath }: any): Promise<any> {
-  return axiosAPI(`${API_REPO_CONTRIB}?origin=${origin}&fpath=${fpath}`, { method: 'GET', responseType: 'json' })
+  const uri = encodeURIComponent(origin)
+  return axiosAPI(`${API_REPO_CONTRIB}?origin=${uri}&fpath=${fpath}`, { method: 'GET', responseType: 'json' })
 }
 
-function downloadDiffFile({ origin, fpath }) {
-  return axiosAPI(`${API_REPO_DIFF_FILE}?origin=${origin}&fpath=${fpath}`, { method: 'GET', responseType: 'json' })
+function downloadDiffFile({ origin, fpath }: any): Promise<any> {
+  const uri = encodeURIComponent(origin)
+  return axiosAPI(`${API_REPO_DIFF_FILE}?origin=${uri}&fpath=${fpath}`, { method: 'GET', responseType: 'json' })
 }
 
-function getRepo(origin) {
-  return axiosAPI(`${API_REPO_GET_INFO}?origin=${origin}`, { method: 'GET', responseType: 'json' })
+function getRepo(origin: string): Promise<any> {
+  const uri = encodeURIComponent(origin)
+  return axiosAPI(`${API_REPO_GET_INFO}?origin=${uri}`, { method: 'GET', responseType: 'json' })
+}
+
+function getPPTSlideContrib({ origin, fpath }) {
+  const uri = encodeURIComponent(origin)
+  return axiosAPI(`${API_SHARE_SLIDE_CONTRIB}?origin=${uri}&fpath=${fpath}`, { method: 'GET', responseType: 'json' })
 }
 
 /**
  * data: { origin, list }
  */
-function sendCommitLog(data) {
+function sendCommitLog(data: any): Promise<any> {
   return axiosAPI.post(API_REPO_COMMITS, data)
 }
 
-function findCommonSHA({ origin }) {
-  return axiosAPI(`${API_REPO_COMMON_SHA}?origin=${origin}`, { method: 'GET', responseType: 'json' })
+function findCommonSHA(origin: string): Promise<any> {
+  const uri = encodeURIComponent(origin)
+  return axiosAPI(`${API_REPO_COMMON_SHA}?origin=${uri}`, { method: 'GET', responseType: 'json' })
 }
 
-const sendDiffs = ({ zipFile, origin, cSHA, activePath }) => {
+const sendDiffs = ({ zipFile, origin, cSHA, activePath }: any): Promise<any> => {
   const zipForm = new FormData()
   zipForm.append('activePath', activePath)
   zipForm.append('origin', origin)
@@ -180,19 +191,27 @@ const login = ({ email, password }: any): Promise<any> => axiosAPI.post(API_AUTH
 
 const submitAuthBranch = ({ origin, sha, branch, commitDate }: any): Promise<any> => axiosAPI.post(API_REPO_SWARM_AUTH, { origin, sha, branch, commitDate })
 
-const shareFile = ({ zipFile, groups }: any): Promise<any> => {
-  const zipForm = new FormData()
-  zipForm.append('groups', JSON.stringify(groups))
-  zipForm.append('zipFile', createReadStream(zipFile), { filename: zipFile }) // !! the file HAS to be last appended to FormData
+const shareFile = ({ origin, zipFile }: any): Promise<any> => {
+  const zipform = new FormData()
+  zipform.append('origin', origin)
+  zipform.append('zipFile', createReadStream(zipFile), { filename: zipFile }) // !! the file has to be last appended to formdata
   return axiosAPI
-    .post(API_SHARE_START, zipForm,
+    .post(API_SHARE_UPLOAD, zipform,
       {
-        headers: zipForm.getHeaders(),
-        maxContentLength: Infinity,
-        maxBodyLength: Infinity,
+        headers: zipform.getheaders(),
+        maxcontentlength: Infinity,
+        maxbodylength: Infinity,
       })
     .then(res => res.data)
-    .catch(err => console.error(err.response.status, err.response.statusText)) // TODO: error handling
+    .catch(err => console.error(err.response.status, err.response.statustext)) // todo: error handling
+}
+
+const setupShare = (groups: Array<string>): promise<any> => {
+  const data = JSON.stringify(groups)
+  return axiosAPI
+    .post(API_SHARE_START, { data })
+    .then(res => res.data)
+    .catch(err => console.error(err.response.status, err.response.statustext)) // todo: error handling
 }
 
 const receiveShared = link => {
@@ -205,6 +224,7 @@ const Peer8API = {
   downloadDiffFile,
   downloadDiffs,
   findCommonSHA,
+  getPPTSlideContrib,
   getRepo,
   login,
   logout,
@@ -213,6 +233,7 @@ const Peer8API = {
   sendCommitLog,
   sendDiffs,
   sendLatestSHA,
+  setupShare,
   shareFile,
   submitAuthBranch,
   API_AUTH_LOGIN,
