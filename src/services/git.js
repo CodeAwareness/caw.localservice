@@ -7,7 +7,7 @@ const isWindows = !!process.env.ProgramFiles
 
 async function gitExec(command, options = {}) {
   // TODO: maybe use spawn instead of exec (more efficient since it doesn't spin up any shell; also allows larger data to be returned)
-  const { stdout, stderr, error } = await exec(command, options)
+  const { stdout } = await exec(command, options)
   // if (stderr) logger.log('git exec warning or error (command, error, stderr)', command, error, stderr)
   return stdout
 }

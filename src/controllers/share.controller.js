@@ -36,7 +36,7 @@ const startSharing: any = catchAsync(async (req, res) => {
 const receiveShared: any = catchAsync(async (req, res) => {
   const peerFile = await share.receiveShared(req.body)
   const peerFile64 = await share.fileToBase64(peerFile)
-  res.send({ peerFile64 })
+  res.send({ peerFile, peerFile64 })
 })
 
 const setupReceived: any = catchAsync(async (req, res) => {
@@ -65,4 +65,5 @@ module.exports = {
   setupReceived,
   pptContributors,
   startSharing,
+  uploadOriginal,
 }
