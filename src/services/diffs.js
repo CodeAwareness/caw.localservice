@@ -315,7 +315,7 @@ function uploadDiffs({ diffDir, origin, cSHA, activePath }) {
     })
 }
 
-function compress(input, output) {
+function compress(input: string, output: string): Promise<any> {
   logger.log('DIFFS: compress (input, output)', input, output)
   return new Promise((resolve, reject) => {
     const gzip = createGzip()
@@ -338,11 +338,11 @@ function receiveShared(link) {
     .then()
 }
 
-function shareFile(filePath, groups) {
+function shareFile(filePath: string, groups: Array<string>) {
   setupShare(filePath, groups)
 }
 
-function shareFolder(folder, groups) {
+function shareFolder(folder: string, groups: Array<string>) {
   setupShare(folder, groups, true)
 }
 
@@ -393,17 +393,18 @@ async function setupShare(fPath, groups, isFolder) {
   await initGit(adhocRepo, origin)
   await git.gitCommand(adhocRepo, `git archive --format zip --output ${zipFile} HEAD`)
   await git.gitCommand(adhocRepo, 'git rev-list HEAD -n1')
-  await Peer8API.sendAdhocShare({ zipFile, origin, groups })
+  // TODO:
+  // await Peer8API.sendAdhocShare({ zipFile, origin, groups })
 }
 
-async function initGit(extractDir, origin) {
+async function initGit(extractDir: string, origin: string): any {
   await git.gitCommand(extractDir, 'git init')
   await git.gitCommand(extractDir, 'git add .')
   await git.gitCommand(extractDir, `git remote add origin ${origin}`)
   await git.gitCommand(extractDir, 'git commit -am "initial commit"')
 }
 
-async function updateGit(extractDir) {
+async function updateGit(extractDir: string): any {
   await git.gitCommand(extractDir, 'git add .')
   // await git.gitCommand(extractDir, 'git commit -am "updated"') // We'll keep the original commit for now.
 }

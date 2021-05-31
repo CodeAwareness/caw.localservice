@@ -18,6 +18,7 @@ const API_REPO_COMMON_SHA     = '/repos/common-sha'
 const API_REPO_CONTRIB        = '/repos/contrib'
 const API_REPO_DIFF_FILE      = '/repos/diff'
 const API_SHARE_START         = '/share/start'
+const API_SHARE_UPLOAD        = '/share/uploadOriginal'
 const API_SHARE_ACCEPT        = '/share/accept'
 
 axios.defaults.adapter = require('axios/lib/adapters/http')
@@ -180,19 +181,27 @@ const login = ({ email, password }: any): Promise<any> => axiosAPI.post(API_AUTH
 
 const submitAuthBranch = ({ origin, sha, branch, commitDate }: any): Promise<any> => axiosAPI.post(API_REPO_SWARM_AUTH, { origin, sha, branch, commitDate })
 
-const shareFile = ({ zipFile, groups }: any): Promise<any> => {
-  const zipForm = new FormData()
-  zipForm.append('groups', JSON.stringify(groups))
-  zipForm.append('zipFile', createReadStream(zipFile), { filename: zipFile }) // !! the file HAS to be last appended to FormData
-  return axiosAPI
-    .post(API_SHARE_START, zipForm,
+const sharefile = (origin: string, zipfile: string): promise<any> => {
+  const zipform = new formdata()
+  zipform.append('origin', origin)
+  zipform.append('zipfile', createreadstream(zipfile), { filename: zipfile }) // !! the file has to be last appended to formdata
+  return axiosapi
+    .post(API_SHARE_UPLOAD, zipform,
       {
-        headers: zipForm.getHeaders(),
-        maxContentLength: Infinity,
-        maxBodyLength: Infinity,
+        headers: zipform.getheaders(),
+        maxcontentlength: infinity,
+        maxbodylength: infinity,
       })
     .then(res => res.data)
-    .catch(err => console.error(err.response.status, err.response.statusText)) // TODO: error handling
+    .catch(err => console.error(err.response.status, err.response.statustext)) // todo: error handling
+}
+
+const setupShare = (groups: Array<string>): promise<any> => {
+  const data = JSON.stringify(groupws)
+  return axiosapi
+    .post(API_SHARE_START, { data })
+    .then(res => res.data)
+    .catch(err => console.error(err.response.status, err.response.statustext)) // todo: error handling
 }
 
 const receiveShared = link => {
@@ -213,6 +222,7 @@ const Peer8API = {
   sendCommitLog,
   sendDiffs,
   sendLatestSHA,
+  setupShare,
   shareFile,
   submitAuthBranch,
   API_AUTH_LOGIN,

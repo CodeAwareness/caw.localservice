@@ -11,8 +11,16 @@ router
   .post(shareController.startSharing)
 
 router
+  .route('/uploadOriginal')
+  .post(shareController.uploadOriginal)
+
+router
   .route('/accept')
   .post(shareController.receiveShared)
+
+router
+  .route('/setupReceived')
+  .post(shareController.setupReceived)
 
 router
   .route('/pptContributors')
