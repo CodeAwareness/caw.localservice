@@ -404,7 +404,7 @@ async function initGit(extractDir, origin) {
 }
 
 async function updateGit(extractDir) {
-  await git.gitCommand(extractDir, 'git add .')
+  // await git.gitCommand(extractDir, 'git add .')
   // await git.gitCommand(extractDir, 'git commit -am "updated"') // We'll keep the original commit for now.
 }
 

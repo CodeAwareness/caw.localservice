@@ -40,6 +40,7 @@ async function copyToWorkspace({ fpath, extractDir }) {
   return await shell.copyFile(fpath, extractDir)
 }
 
+// TODO: avoid double action
 function monitorFile({ fpath, wsFolder }) {
   chokidar.watch(fpath)
     .on('change', () => {
