@@ -27,6 +27,10 @@ router
   .post(shareController.pptContributors)
 
 router
+  .route('/fileInfo')
+  .post(shareController.fileInfo)
+
+router
   .route('/diffs')
   .post(shareController.getDiffs)
 

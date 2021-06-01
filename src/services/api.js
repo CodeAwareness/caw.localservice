@@ -21,6 +21,7 @@ const API_SHARE_SLIDE_CONTRIB = '/share/slideContrib'
 const API_SHARE_START         = '/share/start'
 const API_SHARE_UPLOAD        = '/share/uploadOriginal'
 const API_SHARE_ACCEPT        = '/share/accept'
+const API_SHARE_FINFO         = '/share/findFile'
 
 axios.defaults.adapter = require('axios/lib/adapters/http')
 const axiosAPI = axios.create({ baseURL: API_URL })
@@ -206,7 +207,7 @@ const shareFile = ({ origin, zipFile }: any): Promise<any> => {
     .catch(err => console.error(err.response.status, err.response.statustext)) // todo: error handling
 }
 
-const setupShare = (groups: Array<string>): promise<any> => {
+const setupShare = (groups: Array<string>): Promise<any> => {
   const data = JSON.stringify(groups)
   return axiosAPI
     .post(API_SHARE_START, { data })
@@ -219,11 +220,18 @@ const receiveShared = link => {
   return axiosAPI(`${API_SHARE_ACCEPT}?origin=${uri}`, { method: 'GET', responseType: 'arraybuffer' })
 }
 
+const getFileInfo = fpath => {
+  const uri = encodeURIComponent(fpath)
+  return axiosAPI(`${API_SHARE_FINFO}?fpath=${uri}`, { method: 'GET', responseType: 'json' })
+
+}
+
 const Peer8API = {
   clearAuth,
   downloadDiffFile,
   downloadDiffs,
   findCommonSHA,
+  getFileInfo,
   getPPTSlideContrib,
   getRepo,
   login,

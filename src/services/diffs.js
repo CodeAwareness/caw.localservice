@@ -8,7 +8,8 @@ const _ = require('lodash')
 const { createGzip } = require('zlib')
 const PowerShell = require('node-powershell')
 const childProcess = require('child_process')
-const fs = require('fs')
+const fs = require('fs/promise')
+const { openSync, closeSync } = require('fs')
 const { pipeline } = require('stream')
 // const replaceStream = require('replacestream' // doesn't work (!)
 
@@ -83,7 +84,7 @@ function diffWithBranch(branch: string) {
  * As a guideline, CodeAwareness should focus on small teams.
  * Perhaps this can change in the future.
  ************************************************************************************/
-function diffWithContributor({ ct, userFile, origin, wsFolder }) {
+function diffWithContributor({ ct, userFile, origin, wsFolder }: any): any {
   // !!!!! Peer8Workspace.selectContributor(ct)
   const wsName = path.basename(wsFolder)
   const archiveDir = path.join(tmpDir, wsName)
@@ -214,7 +215,7 @@ function sendCommitLog(project: any) {
 }
 
 function createEmpty(file) {
-  fs.closeSync(fs.openSync(file, 'w'))
+  closeSync(openSync(file, 'w'))
 }
 
 /************************************************************************************

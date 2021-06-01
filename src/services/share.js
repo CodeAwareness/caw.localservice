@@ -24,9 +24,9 @@ async function uploadOriginal({ fpath, origin }: any): any {
   const promises = []
   promises.push(api.shareFile({ zipFile: fpath, origin }))
   promises.push(
-    diffs.unzip(extractDir, zipFile)
+    diffs.unzip({ extractDir, zipFile })
       .then(() => {
-        diffs.initGit(extractDir, origin)
+        diffs.initGit({ extractDir, origin })
       })
       .then(() => {
         diffs.sendAdhocDiffs(wsFolder)
@@ -117,8 +117,13 @@ async function fileToBase64(fpath: string): any {
   return fs.readFile(fpath, { encoding: 'base64' })
 }
 
+async function getFileInfo(fpath: string): Promise<any> {
+  return await api.getFileInfo(fpath)
+}
+
 module.exports = {
   buildPPTX,
+  getFileInfo,
   fileToBase64,
   receiveShared,
   setupReceived,

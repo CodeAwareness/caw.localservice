@@ -1,6 +1,7 @@
 /* @flow */
 
 const httpStatus = require('http-status')
+const path = require('path')
 
 // TODO: clear up this messed up tangled share/diffs code
 const diffs = require('@/services/diffs')
@@ -44,6 +45,12 @@ const setupReceived: any = catchAsync(async (req, res) => {
   res.send({ wsFolder })
 })
 
+const fileInfo: any = catchAsync(async (req, res) => {
+  const filename = path.basename(req.query.f)
+  const data = await share.getFileInfo(filename)
+  res.send(data)
+})
+
 const pptContributors: any = catchAsync(async (req, res) => {
   const contributors = await diffs.refreshAdhocChanges(req.body)
   res.send(contributors)
@@ -61,6 +68,7 @@ const getDiffs: any = catchAsync(async (req, res) => {
 
 module.exports = {
   getDiffs,
+  fileInfo,
   receiveShared,
   setupReceived,
   pptContributors,
