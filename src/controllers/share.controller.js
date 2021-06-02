@@ -57,7 +57,8 @@ const fileInfo: any = catchAsync(async (req, res) => {
 const originInfo: any = catchAsync(async (req, res) => {
   const origin = req.query.origin
   if (!origin) return res.status(httpStatus.BAD_REQUEST).send()
-  const data = await share.getOriginInfo(origin)
+  const { data } = await share.getOriginInfo(origin)
+  console.log('origin info', data)
   res.send(data)
 })
 
