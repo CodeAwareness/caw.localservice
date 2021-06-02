@@ -100,6 +100,7 @@ function setupReceived({ fpath, origin, wsFolder }: any): Promise<any> {
   wsFolder = wsFolder || path.join(tmpDir, crypto.randomUUID())
   const extractDir = path.join(wsFolder, EXTRACT_LOCAL_DIR)
   mkdirp.sync(extractDir)
+  if (!fpath) return Promise.resolve()
 
   return copyToWorkspace({ fpath, extractDir })
     .then(zipFile => {
