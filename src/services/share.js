@@ -4,8 +4,10 @@ const path = require('path')
 const mkdirp = require('mkdirp')
 const chokidar = require('chokidar')
 const crypto = require('crypto')
+const https = require('https')
 // eslint-disable-next-line
 const fs = require('fs/promises')
+const { createWriteStream, mkdirSync } = require('fs')
 
 const { EXTRACT_LOCAL_DIR } = require('@/config/config')
 const api = require('@/services/api')
@@ -23,16 +25,14 @@ async function uploadOriginal({ fpath, origin }: any): any {
   const zipFile = await copyToWorkspace({ fpath, extractDir })
   const promises = []
   promises.push(api.shareFile({ zipFile: fpath, origin }))
-  promises.push(
-    diffs.unzip({ extractDir, zipFile })
-      .then(() => {
-        diffs.initGit({ extractDir, origin })
-      })
-      .then(() => {
-        diffs.sendAdhocDiffs(wsFolder)
-      })
-  )
+  promises.push(diffs.unzip({ extractDir, zipFile }))
   Promise.all(promises)
+    .then(() => {
+      return diffs.initGit({ extractDir, origin })
+    })
+    .then(() => {
+      return diffs.sendAdhocDiffs(wsFolder)
+    })
     .then(() => {
       monitorFile({ wsFolder, fpath })
     })
@@ -74,12 +74,19 @@ function unmonitorFile(fpath: string): any {
 async function receiveShared({ origin, folder }: any): Promise<any> {
   let fpath
   return api.receiveShared(origin)
-    .then(({ data, headers }) => {
-      // $FlowIgnore
-      // eslint-disable-next-line
-      const filename = headers['content-disposition']?.split('filename=')[1].replace(/"/g, '')
+    .then(({ data }) => {
+      console.log('received shared URL', data)
+      const parts = data.url.split('/')
+      const filename = parts[parts.length - 1].replace(/\?.*$/, '')
       fpath = path.join(folder, filename)
-      return fs.writeFile(fpath, data)
+      console.log('WRITE S3 Stream to', fpath)
+      const file = createWriteStream(fpath)
+      const request = https.get(data.url, response => response.pipe(file))
+      return new Promise((resolve, reject) => {
+        file.on('close', resolve)
+        file.on('end', resolve)
+        file.on('error', reject)
+      })
     })
     .then(() => {
       return fpath

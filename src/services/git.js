@@ -1,18 +1,22 @@
 const util = require('util')
-const exec = util.promisify(require('child_process').exec)
+const exec = require('child_process').exec
 
 const logger = console
 
 const isWindows = !!process.env.ProgramFiles
 
-async function gitExec(command, options = {}) {
+function gitExec(command, options = {}) {
   // TODO: maybe use spawn instead of exec (more efficient since it doesn't spin up any shell; also allows larger data to be returned)
-  const { stdout } = await exec(command, options)
-  // if (stderr) logger.log('git exec warning or error (command, error, stderr)', command, error, stderr)
-  return stdout
+  return new Promise((resolve, reject) => {
+    exec(command, options, function (error, stdout, stderr) {
+      console.log(`GIT: command ${command} returned.`)
+      // if (stderr) logger.log('git exec warning or error (command, error, stderr)', command, error, stderr)
+      resolve(stdout)
+    })
+  })
 }
 
-async function gitCommand(wsFolder, cmd) {
+function gitCommand(wsFolder, cmd) {
   const options = {
     env: Object.assign(process.env, { GIT_TERMINAL_PROMPT: '0' }),
     windowsHide: true,

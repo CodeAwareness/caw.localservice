@@ -8,8 +8,8 @@ const _ = require('lodash')
 const { createGzip } = require('zlib')
 const PowerShell = require('node-powershell')
 const childProcess = require('child_process')
-const fs = require('fs/promise')
-const { openSync, closeSync } = require('fs')
+const fs = require('fs').promises
+const { createReadStream, createWriteStream, openSync, closeSync } = require('fs')
 const { pipeline } = require('stream')
 // const replaceStream = require('replacestream' // doesn't work (!)
 
@@ -21,6 +21,7 @@ const git = require('@/services/git')
 const shell = require('@/services/shell')
 const { Peer8Store } = require('@/services/peer8.store')
 const Peer8API = require('@/services/api')
+const { extra } = require('http-status')
 
 const PENDING_DIFFS = {}
 const isWindows = !!process.env.ProgramFiles
@@ -284,7 +285,7 @@ function sendDiffs(project) {
 
   function gatherUntrackedFiles(files) {
     logger.log('DIFFS: gatherUntrackedFiles (files)', files)
-    const stream = fs.createWriteStream(tmpProjectDiff)
+    const stream = createWriteStream(tmpProjectDiff)
     const streamPromises = files.map(f => {
       return git
         .gitCommand(wsFolder, `git --no-pager diff -b -U0 ${emptyFile} ${f}`)
@@ -320,8 +321,8 @@ function compress(input: string, output: string): Promise<any> {
   logger.log('DIFFS: compress (input, output)', input, output)
   return new Promise((resolve, reject) => {
     const gzip = createGzip()
-    const source = fs.createReadStream(input)
-    const destination = fs.createWriteStream(output)
+    const source = createReadStream(input)
+    const destination = createWriteStream(output)
     pipeline(source, gzip, destination, err => {
       logger.log('DIFFS: compress finished; (err ?)', err)
       if (err) reject(err)
@@ -402,9 +403,13 @@ async function setupShare(fPath, groups, isFolder) {
 }
 
 async function initGit({ extractDir, origin }: any): any {
+  console.log('DIFFS: initGit', extractDir)
   await git.gitCommand(extractDir, 'git init')
+  console.log('DIFFS: git add .', extractDir)
   await git.gitCommand(extractDir, 'git add .')
+  console.log('DIFFS: git remote add origin', extractDir, origin)
   await git.gitCommand(extractDir, `git remote add origin ${origin}`)
+  console.log('DIFFS: git commit initial', extractDir)
   await git.gitCommand(extractDir, 'git commit -am "initial commit"')
 }
 

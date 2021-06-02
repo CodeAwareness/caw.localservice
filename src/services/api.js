@@ -193,31 +193,32 @@ const login = ({ email, password }: any): Promise<any> => axiosAPI.post(API_AUTH
 const submitAuthBranch = ({ origin, sha, branch, commitDate }: any): Promise<any> => axiosAPI.post(API_REPO_SWARM_AUTH, { origin, sha, branch, commitDate })
 
 const shareFile = ({ origin, zipFile }: any): Promise<any> => {
-  const zipform = new FormData()
-  zipform.append('origin', origin)
-  zipform.append('zipFile', createReadStream(zipFile), { filename: zipFile }) // !! the file has to be last appended to formdata
+  const zipForm = new FormData()
+  zipForm.append('origin', origin)
+  zipForm.append('zipFile', createReadStream(zipFile), { filename: zipFile }) // !! the file has to be last appended to formdata
   return axiosAPI
-    .post(API_SHARE_UPLOAD, zipform,
+    .post(API_SHARE_UPLOAD, zipForm,
       {
-        headers: zipform.getheaders(),
-        maxcontentlength: Infinity,
-        maxbodylength: Infinity,
+        headers: zipForm.getHeaders(),
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity,
       })
     .then(res => res.data)
-    .catch(err => console.error(err.response.status, err.response.statustext)) // todo: error handling
+    .catch(err => console.error(err.response.status, err.response.statusText)) // todo: error handling
 }
 
 const setupShare = (groups: Array<string>): Promise<any> => {
   const data = JSON.stringify(groups)
   return axiosAPI
     .post(API_SHARE_START, { data })
+    .then(res => { console.log(res, res.data); return res; })
     .then(res => res.data)
-    .catch(err => console.error(err.response.status, err.response.statustext)) // todo: error handling
+    .catch(err => console.error(err.response.status, err.response.statusText)) // todo: error handling
 }
 
 const receiveShared = link => {
   const uri = encodeURIComponent(link)
-  return axiosAPI(`${API_SHARE_ACCEPT}?origin=${uri}`, { method: 'GET', responseType: 'arraybuffer' })
+  return axiosAPI(`${API_SHARE_ACCEPT}?origin=${uri}`, { method: 'GET', responseType: 'json' })
 }
 
 const getFileInfo = fpath => {

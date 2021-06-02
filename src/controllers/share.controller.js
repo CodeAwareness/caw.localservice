@@ -47,7 +47,9 @@ const setupReceived: any = catchAsync(async (req, res) => {
 
 const fileInfo: any = catchAsync(async (req, res) => {
   const filename = path.basename(req.query.f)
+  if (!filename) return res.status(httpStatus.BAD_REQUEST).send()
   const data = await share.getFileInfo(filename)
+  console.log('fileInfo', data)
   res.send(data)
 })
 

@@ -28,7 +28,7 @@ router
 
 router
   .route('/fileInfo')
-  .post(shareController.fileInfo)
+  .get(shareController.fileInfo)
 
 router
   .route('/diffs')
