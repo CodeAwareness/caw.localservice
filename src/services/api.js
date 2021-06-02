@@ -22,7 +22,7 @@ const API_SHARE_START         = '/share/start'
 const API_SHARE_UPLOAD        = '/share/uploadOriginal'
 const API_SHARE_ACCEPT        = '/share/accept'
 const API_SHARE_FINFO         = '/share/findFile'
-const API_SHARE_OINFO         = '/share/originInfo'
+const API_SHARE_OINFO         = '/share/findOrigin'
 
 axios.defaults.adapter = require('axios/lib/adapters/http')
 const axiosAPI = axios.create({ baseURL: API_URL })
