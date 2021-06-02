@@ -2,6 +2,11 @@
 
 const httpStatus = require('http-status')
 const path = require('path')
+const Keyv = require('keyv')
+
+const dbpath = path.join(process.cwd(), 'storage.sqlite')
+const keyv = new Keyv(`sqlite://${dbpath}`, { namespace: 'share' })
+keyv.on('error', err => console.error('SQLite storage: connection error', err))
 
 // TODO: clear up this messed up tangled share/diffs code
 const diffs = require('@/services/diffs')
@@ -68,6 +73,16 @@ const getDiffs: any = catchAsync(async (req, res) => {
   res.send({ peerFile64 })
 })
 
+const willOpenPPT: any = catchAsync(async (req, res) => {
+  const { user } = req
+  await keyv.set('uid', user?._id)
+})
+
+const checkReceived: any = catchAsync(async (req, res) => {
+  const { user } = req
+  const config = await keyv.get('uid', user?._id)
+})
+
 module.exports = {
   getDiffs,
   fileInfo,
@@ -76,4 +91,5 @@ module.exports = {
   pptContributors,
   startSharing,
   uploadOriginal,
+  willOpenPPT,
 }

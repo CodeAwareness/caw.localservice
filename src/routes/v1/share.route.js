@@ -34,4 +34,12 @@ router
   .route('/diffs')
   .post(shareController.getDiffs)
 
+router
+  .route('/willOpenPPT')
+  .post(shareController.willOpenPPT)
+
+router
+  .route('/checkReceived')
+  .post(shareController.checkReceived`)
+
 module.exports = router
