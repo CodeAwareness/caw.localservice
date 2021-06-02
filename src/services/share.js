@@ -136,7 +136,7 @@ module.exports = {
   buildPPTX,
   getFileInfo,
   fileToBase64,
-  originInfo,
+  getOriginInfo,
   receiveShared,
   setupReceived,
   startSharing,
