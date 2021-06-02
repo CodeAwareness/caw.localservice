@@ -22,6 +22,7 @@ const API_SHARE_START         = '/share/start'
 const API_SHARE_UPLOAD        = '/share/uploadOriginal'
 const API_SHARE_ACCEPT        = '/share/accept'
 const API_SHARE_FINFO         = '/share/findFile'
+const API_SHARE_OINFO         = '/share/originInfo'
 
 axios.defaults.adapter = require('axios/lib/adapters/http')
 const axiosAPI = axios.create({ baseURL: API_URL })
@@ -224,6 +225,11 @@ const receiveShared = link => {
 const getFileInfo = fpath => {
   const uri = encodeURIComponent(fpath)
   return axiosAPI(`${API_SHARE_FINFO}?fpath=${uri}`, { method: 'GET', responseType: 'json' })
+}
+
+const getOriginInfo = origin => {
+  const uri = encodeURIComponent(origin)
+  return axiosAPI(`${API_SHARE_OINFO}?origin=${uri}`, { method: 'GET', responseType: 'json' })
 
 }
 
@@ -233,6 +239,7 @@ const Peer8API = {
   downloadDiffs,
   findCommonSHA,
   getFileInfo,
+  getOriginInfo,
   getPPTSlideContrib,
   getRepo,
   login,

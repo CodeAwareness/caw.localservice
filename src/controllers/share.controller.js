@@ -54,6 +54,13 @@ const fileInfo: any = catchAsync(async (req, res) => {
   res.send(data)
 })
 
+const originInfo: any = catchAsync(async (req, res) => {
+  const origin = req.query.origin
+  if (!origin) return res.status(httpStatus.BAD_REQUEST).send()
+  const data = await share.getOriginInfo(origin)
+  res.send(data)
+})
+
 const pptContributors: any = catchAsync(async (req, res) => {
   const contributors = await diffs.refreshAdhocChanges(req.body)
   res.send(contributors)
@@ -103,6 +110,7 @@ module.exports = {
   checkReceived,
   getDiffs,
   fileInfo,
+  originInfo,
   receiveShared,
   setupReceived,
   pptContributors,

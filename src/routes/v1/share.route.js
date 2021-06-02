@@ -31,6 +31,10 @@ router
   .get(shareController.fileInfo)
 
 router
+  .route('/originInfo')
+  .get(shareController.originInfo)
+
+router
   .route('/diffs')
   .post(shareController.getDiffs)
 

@@ -128,10 +128,15 @@ async function getFileInfo(fpath: string): Promise<any> {
   return await api.getFileInfo(fpath)
 }
 
+async function getOriginInfo(origin: string): Promise<any> {
+  return await api.getOriginInfo(origin)
+}
+
 module.exports = {
   buildPPTX,
   getFileInfo,
   fileToBase64,
+  originInfo,
   receiveShared,
   setupReceived,
   startSharing,
