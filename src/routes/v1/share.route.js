@@ -44,6 +44,6 @@ router
 
 router
   .route('/checkReceived')
-  .post(shareController.checkReceived)
+  .get(shareController.checkReceived)
 
 module.exports = router
