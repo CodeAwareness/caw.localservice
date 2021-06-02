@@ -3,12 +3,8 @@
 const path = require('path')
 const httpStatus = require('http-status')
 const catchAsync = require('@/utils/catchAsync')
-const Keyv = require('keyv')
-const { Peer8Store } = require('../services/peer8.store')
-
-const dbpath = path.join(process.cwd(), 'storage.sqlite')
-const authStore = new Keyv(`sqlite://${dbpath}`, { namespace: 'auth' })
-authStore.on('error', err => console.error('SQLite storage: connection error', err))
+const { Peer8Store } = require('@/services/peer8.store')
+const { authStore } = require('@/config/config')
 
 const register: any = catchAsync(async (req, res) => {
 })

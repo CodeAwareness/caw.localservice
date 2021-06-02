@@ -2,16 +2,12 @@
 
 const httpStatus = require('http-status')
 const path = require('path')
-const Keyv = require('keyv')
-
-const dbpath = path.join(process.cwd(), 'storage.sqlite')
-const keyv = new Keyv(`sqlite://${dbpath}`, { namespace: 'share' })
-keyv.on('error', err => console.error('SQLite storage: connection error', err))
 
 // TODO: clear up this messed up tangled share/diffs code
 const diffs = require('@/services/diffs')
 const share = require('@/services/share')
 const catchAsync = require('@/utils/catchAsync')
+const { authStore, shareStore } = require('@/config/config')
 
 const uploadOriginal: any = catchAsync(async (req, res) => {
   try {
@@ -74,16 +70,37 @@ const getDiffs: any = catchAsync(async (req, res) => {
 })
 
 const willOpenPPT: any = catchAsync(async (req, res) => {
-  const { user } = req
-  await keyv.set('uid', user?._id)
+  const { user, origin } = req
+  await shareStore.set('uid', user?._id)
+  await shareStore.set('origin', origin)
+  await shareStore.set('configDate', new Date())
 })
 
 const checkReceived: any = catchAsync(async (req, res) => {
-  const { user } = req
-  const config = await keyv.get('uid', user?._id)
+  const uid            = await shareStore.get('uid')
+  const origin         = await shareStore.get('origin')
+  const configDate     = await shareStore.get('configDate')
+
+  const email          = await authStore.get('email')
+  const accessToken    = await authStore.get('accessToken')
+  const accessExpires  = await authStore.get('accessExpires')
+  const refreshToken   = await authStore.get('refreshToken')
+  const refreshExpires = await authStore.get('refreshExpires')
+
+  if (new Date() - configDate < 60000) {
+    return {
+      config: {
+        origin,
+        user: { _id: uid, email },
+        access: { token: accessToken, expires: accessExpires },
+        refresh: { token: refreshToken, expires: refreshExpires },
+      }
+    }
+  }
 })
 
 module.exports = {
+  checkReceived,
   getDiffs,
   fileInfo,
   receiveShared,

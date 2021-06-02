@@ -21,7 +21,6 @@ const git = require('@/services/git')
 const shell = require('@/services/shell')
 const { Peer8Store } = require('@/services/peer8.store')
 const Peer8API = require('@/services/api')
-const { extra } = require('http-status')
 
 const PENDING_DIFFS = {}
 const isWindows = !!process.env.ProgramFiles

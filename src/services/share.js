@@ -81,7 +81,7 @@ async function receiveShared({ origin, folder }: any): Promise<any> {
       fpath = path.join(folder, filename)
       console.log('WRITE S3 Stream to', fpath)
       const file = createWriteStream(fpath)
-      const request = https.get(data.url, response => response.pipe(file))
+      https.get(data.url, (response: any) => response.pipe(file))
       return new Promise((resolve, reject) => {
         file.on('close', resolve)
         file.on('end', resolve)
@@ -93,7 +93,7 @@ async function receiveShared({ origin, folder }: any): Promise<any> {
     })
 }
 
-function setupReceived({ fpath, origin, wsFolder }) {
+function setupReceived({ fpath, origin, wsFolder }: any): Promise<any> {
   const tmpDir = Peer8Store.tmpDir
   // $FlowIgnore
   // eslint-disable-next-line

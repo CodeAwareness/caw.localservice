@@ -5,8 +5,18 @@ const packageRoot = require('pkg-dir')
 const path   = require('path')
 const mkdir  = require('mkdirp').sync
 const tmp = require('tmp')
+const Keyv = require('keyv')
 
 const Joi    = require('@hapi/joi')
+
+const dbpath = path.join(process.cwd(), 'storage.sqlite')
+
+const shareStore = new Keyv(`sqlite://${dbpath}`, { namespace: 'share' })
+shareStore.on('error', err => console.error('SQLite storage: connection error', err))
+
+const authStore = new Keyv(`sqlite://${dbpath}`, { namespace: 'auth' })
+authStore.on('error', err => console.error('SQLite storage: connection error', err))
+
 
 // Setting up a temporary folder to work in
 const { Peer8Store } = require('@/services/peer8.store')
@@ -70,8 +80,10 @@ module.exports = {
   PORT_LOCAL,
   SYNC_INTERVAL,
   SYNC_THRESHOLD,
+  authStore,
   env: envVars.NODE_ENV,
   host: '127.0.0.1',
   port: envVars.PORT,
+  shareStore,
   uploadDir,
 }
