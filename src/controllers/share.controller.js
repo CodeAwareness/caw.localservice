@@ -41,6 +41,9 @@ const receiveShared: any = catchAsync(async (req, res) => {
   res.send({ peerFile, peerFile64 })
 })
 
+/**
+ * @param { fpath, origin, wsFolder }
+ */
 const setupReceived: any = catchAsync(async (req, res) => {
   const wsFolder = await share.setupReceived(req.body)
   res.send({ wsFolder })

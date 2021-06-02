@@ -131,7 +131,6 @@ async function getFileInfo(fpath: string): Promise<any> {
 
 async function getOriginInfo(origin: string): Promise<any> {
   return await api.getOriginInfo(origin)
-    .then(res => { console.log('getOriginInfo', res); return res; })
 }
 
 module.exports = {
