@@ -34,7 +34,7 @@ async function uploadOriginal({ fpath, origin }: any): any {
       return diffs.sendAdhocDiffs(wsFolder)
     })
     .then(() => {
-      monitorFile({ wsFolder, fpath })
+      monitorFile({ origin, wsFolder, fpath })
     })
     .then(() => {
       return { wsFolder, origin }
@@ -59,16 +59,18 @@ async function copyToWorkspace({ fpath, extractDir }) {
 }
 
 // TODO: create a hash table to not do double action when a file with the same name is downloaded in the same folder as before
-function monitorFile({ fpath, wsFolder }) {
-  chokidar.watch(fpath)
+const cwatchers = {}
+function monitorFile({ origin, fpath, wsFolder }) {
+  console.log('will monitor file', fpath, origin, wsFolder)
+  cwatchers[origin] = chokidar.watch(fpath)
     .on('change', () => {
       refreshDiffs({ fpath, wsFolder })
     })
 }
 
 // TODO: when closing the PPT:
-function unmonitorFile(fpath: string): any {
-  chokidar.unwatch(fpath)
+function unmonitorOrigin(origin: string): any {
+  cwatchers[origin]?.unwatch('*')
 }
 
 async function receiveShared({ origin }: any): Promise<any> {
@@ -114,7 +116,7 @@ function setupReceived({ fpath, origin, wsFolder }: any): Promise<any> {
       return diffs.initGit({ extractDir, origin })
     })
     .then(() =>  {
-      monitorFile({ fpath, wsFolder })
+      monitorFile({ origin, fpath, wsFolder })
       return { fpath, wsFolder }
     })
 }

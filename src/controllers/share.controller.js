@@ -110,6 +110,12 @@ const checkReceived: any = catchAsync(async (req, res) => {
   return res.send('')
 })
 
+const updateFilename: any = catchAsync(async (req, res) => {
+  const { origin } = req.body
+  share.unmonitorFile(origin)
+  share.monitorFile(req.body)
+})
+
 module.exports = {
   checkReceived,
   getDiffs,
@@ -119,6 +125,7 @@ module.exports = {
   setupReceived,
   pptContributors,
   startSharing,
+  updateFilename,
   uploadOriginal,
   willOpenPPT,
 }

@@ -46,4 +46,8 @@ router
   .route('/checkReceived')
   .get(shareController.checkReceived)
 
+router
+  .route('/updateFilename')
+  .get(shareController.updateFilename)
+
 module.exports = router
