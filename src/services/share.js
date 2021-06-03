@@ -147,6 +147,6 @@ module.exports = {
   receiveShared,
   setupReceived,
   startSharing,
-  unmonitorFile,
+  unmonitorOrigin,
   uploadOriginal,
 }

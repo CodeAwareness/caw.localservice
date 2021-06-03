@@ -112,7 +112,7 @@ const checkReceived: any = catchAsync(async (req, res) => {
 
 const updateFilename: any = catchAsync(async (req, res) => {
   const { origin } = req.body
-  share.unmonitorFile(origin)
+  share.unmonitorOrigin(origin)
   share.monitorFile(req.body)
 })
 
