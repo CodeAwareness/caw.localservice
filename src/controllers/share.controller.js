@@ -80,33 +80,31 @@ const getDiffs: any = catchAsync(async (req, res) => {
 })
 
 const willOpenPPT: any = catchAsync(async (req, res) => {
-  const { user, origin } = req
+  const { user } = req
+  const { origin } = req.body
   await shareStore.set('uid', user?._id)
   await shareStore.set('origin', origin)
   await shareStore.set('configDate', new Date())
+  console.log('WILL OPEN PPT', origin)
 })
 
 const checkReceived: any = catchAsync(async (req, res) => {
   const uid            = await shareStore.get('uid')
   const origin         = await shareStore.get('origin')
-  const configDate     = await shareStore.get('configDate')
+  const configDate     = new Date(await shareStore.get('configDate'))
 
-  const email          = await authStore.get('email')
-  const accessToken    = await authStore.get('accessToken')
-  const accessExpires  = await authStore.get('accessExpires')
-  const refreshToken   = await authStore.get('refreshToken')
-  const refreshExpires = await authStore.get('refreshExpires')
+  const user = await authStore.get('user')
+  const tokens = await authStore.get('tokens')
+
+  console.log('checkReceived', origin, configDate, new Date() - configDate)
 
   if (new Date() - configDate < 60000) {
-    return {
-      config: {
-        origin,
-        user: { _id: uid, email },
-        access: { token: accessToken, expires: accessExpires },
-        refresh: { token: refreshToken, expires: refreshExpires },
-      }
-    }
+    return res.send({
+      config: { origin, user, tokens },
+    })
   }
+
+  return res.send('')
 })
 
 module.exports = {
