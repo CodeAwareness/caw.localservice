@@ -45,6 +45,7 @@ const receiveShared: any = catchAsync(async (req, res) => {
  * @param { fpath, origin, wsFolder }
  */
 const setupReceived: any = catchAsync(async (req, res) => {
+  console.log('setupReceived', req.body)
   const wsFolder = await share.setupReceived(req.body)
   res.send({ wsFolder })
 })
@@ -81,26 +82,28 @@ const getDiffs: any = catchAsync(async (req, res) => {
 
 const willOpenPPT: any = catchAsync(async (req, res) => {
   const { user } = req
-  const { origin } = req.body
+  const { origin, fpath } = req.body
   await shareStore.set('uid', user?._id)
   await shareStore.set('origin', origin)
+  await shareStore.set('fpath', fpath)
   await shareStore.set('configDate', new Date())
   console.log('WILL OPEN PPT', origin)
 })
 
 const checkReceived: any = catchAsync(async (req, res) => {
-  const uid            = await shareStore.get('uid')
-  const origin         = await shareStore.get('origin')
-  const configDate     = new Date(await shareStore.get('configDate'))
+  const uid        = await shareStore.get('uid')
+  const origin     = await shareStore.get('origin')
+  const fpath      = await shareStore.get('fpath')
+  const configDate = new Date(await shareStore.get('configDate'))
 
-  const user = await authStore.get('user')
+  const user   = await authStore.get('user')
   const tokens = await authStore.get('tokens')
 
   console.log('checkReceived', origin, configDate, new Date() - configDate)
 
   if (new Date() - configDate < 60000) {
     return res.send({
-      config: { origin, user, tokens },
+      config: { origin, fpath, user, tokens },
     })
   }
 

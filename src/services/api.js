@@ -212,7 +212,6 @@ const setupShare = (groups: Array<string>): Promise<any> => {
   const data = JSON.stringify(groups)
   return axiosAPI
     .post(API_SHARE_START, { data })
-    .then(res => { console.log(res, res.data); return res; })
     .then(res => res.data)
     .catch(err => console.error(err.response.status, err.response.statusText)) // todo: error handling
 }

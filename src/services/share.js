@@ -71,14 +71,18 @@ function unmonitorFile(fpath: string): any {
   chokidar.unwatch(fpath)
 }
 
-async function receiveShared({ origin, folder }: any): Promise<any> {
+async function receiveShared({ origin }: any): Promise<any> {
+  const tmpDir = Peer8Store.tmpDir
+  const wsFolder = path.join(tmpDir, crypto.randomUUID())
+  const extractDir = path.join(wsFolder, EXTRACT_LOCAL_DIR)
+  mkdirp.sync(extractDir)
   let fpath
   return api.receiveShared(origin)
     .then(({ data }) => {
       console.log('received shared URL', data)
       const parts = data.url.split('/')
       const filename = parts[parts.length - 1].replace(/\?.*$/, '')
-      fpath = path.join(folder, filename)
+      fpath = path.join(extractDir, filename)
       console.log('WRITE S3 Stream to', fpath)
       const file = createWriteStream(fpath)
       https.get(data.url, (response: any) => response.pipe(file))
