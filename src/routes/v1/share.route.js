@@ -48,6 +48,6 @@ router
 
 router
   .route('/updateFilename')
-  .get(shareController.updateFilename)
+  .post(shareController.updateFilename)
 
 module.exports = router
