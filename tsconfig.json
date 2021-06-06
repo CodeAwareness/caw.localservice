@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "baseUrl": "./src",
+    "outDir": "./dist",
+    "paths": {
+      "@/*": ["*"]
+    },
+    "allowJs": true,
+    "esModuleInterop": true,
+    "moduleResolution": "Node",
+    "module": "commonjs",
+    "lib": ["esnext"],
+    "target": "es6"
+  },
+  "include": [
+    "./src/**/*"
+  ],
+  "rules": {
+    "@typescript-eslint/ban-ts-comment": 0
+  }
+}
