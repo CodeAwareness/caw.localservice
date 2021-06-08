@@ -1,19 +1,21 @@
 {
   "compilerOptions": {
-    "baseUrl": "./src",
-    "outDir": "./dist",
-    "paths": {
-      "@/*": ["*"]
-    },
-    "allowJs": true,
-    "esModuleInterop": true,
-    "moduleResolution": "Node",
     "module": "commonjs",
-    "lib": ["esnext"],
-    "target": "es6"
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "es6",
+    "noImplicitAny": false,
+    "moduleResolution": "node",
+    "forceConsistentCasingInFileNames": true,
+    "sourceMap": true,
+    "outDir": "dist",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [ "*" ]
+    }
   },
   "include": [
-    "./src/**/*"
+    "src/**/*"
   ],
   "rules": {
     "@typescript-eslint/ban-ts-comment": 0

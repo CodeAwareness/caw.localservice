@@ -1,6 +1,6 @@
 import express from 'express'
 
-import shareController from '@/controllers/share.controller'
+import shareController from '../../controllers/share.controller'
 
 const router = express.Router()
 

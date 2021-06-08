@@ -2,11 +2,11 @@ import httpStatus from 'http-status'
 import { existsSync } from 'fs'
 import path from 'path'
 
-import logger from '@/config/logger'
-import catchAsync from '@/utils/catchAsync'
+import logger from '../config/logger'
+import catchAsync from '../utils/catchAsync'
 
-import git from '@/services/git'
-import { Peer8Store } from '@/services/peer8.store'
+import git from '../services/git'
+import { Peer8Store } from '../services/peer8.store'
 
 const add = catchAsync(async (req, res) => {
   const { folder } = req.body

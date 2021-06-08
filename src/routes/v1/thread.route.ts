@@ -1,5 +1,5 @@
 import express from 'express'
-import threadController from '@/controllers/thread.controller'
+import threadController from '../../controllers/thread.controller'
 
 const router = express.Router()
 

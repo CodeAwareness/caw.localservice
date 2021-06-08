@@ -2,8 +2,8 @@ import axios from 'axios'
 import FormData from 'form-data'
 import { createReadStream } from 'fs'
 
-import Config from '@/config/config'
-import git from '@/services/git'
+import Config from '../config/config'
+import git from './git'
 
 import { Peer8Store } from './peer8.store'
 
@@ -128,7 +128,7 @@ function sendLatestSHA({ wsFolder, origin }: any): Promise<any> {
     .catch(console.error)
 }
 
-function logout(reject: any, msg: string, err: Object) {
+function logout(reject, msg, err) {
   Peer8Store.user = ''
   Peer8Store.tokens = ''
 

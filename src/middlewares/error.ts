@@ -1,14 +1,13 @@
 import httpStatus from 'http-status'
 
-import config from '@/config/config'
-import logger from '@/config/logger'
-import ApiError from '@/utils/ApiError'
+import config from '../config/config'
+import logger from '../config/logger'
+import ApiError from '../utils/ApiError'
 
 export const errorConverter = (err, req, res, next) => {
   let error = err
   if (!(error instanceof ApiError)) {
     const statusCode = error.statusCode || httpStatus.INTERNAL_SERVER_ERROR
-    /* eslint-disable-next-line security/detect-object-injection */
     const message = error.message || httpStatus[statusCode]
     error = new ApiError(statusCode, message, false, err.stack)
   }

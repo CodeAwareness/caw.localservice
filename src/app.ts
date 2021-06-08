@@ -2,12 +2,12 @@ import express from 'express'
 import cors from 'cors'
 import httpStatus from 'http-status'
 
-import config from '@/config/config'
-import morgan from '@/config/morgan'
-import { errorConverter, errorHandler } from '@/middlewares/error'
-import ApiError from '@/utils/ApiError'
+import config from './config/config'
+import morgan from './config/morgan'
+import { errorConverter, errorHandler } from './middlewares/error'
+import ApiError from './utils/ApiError'
 
-import routes from '@/routes/v1'
+import routes from './routes/v1'
 
 const app = express()
 
@@ -38,4 +38,4 @@ app.use(errorConverter)
 // handle error
 app.use(errorHandler)
 
-module.exports = app
+export default app

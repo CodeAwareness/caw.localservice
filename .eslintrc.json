@@ -6,17 +6,16 @@
   },
   "extends": [
     "standard",
-    "plugin:@typescript-eslint/recommended",
+    "plugin:eslint/recommended",
     "plugin:jest/recommended",
     "plugin:security/recommended"
   ],
-  "parser": "@typescript-eslint/parser",
+  "parser": "babel-eslint",
   "parserOptions": {
     "sourceType": "module",
     "ecmaVersion": 11
   },
   "plugins": [
-    "@typescript-eslint"
     ],
     "rules": {
       "array-callback-return": 0,

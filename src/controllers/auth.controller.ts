@@ -1,8 +1,8 @@
 import httpStatus from 'http-status'
 
-import catchAsync from '@/utils/catchAsync'
-import { Peer8Store } from '@/services/peer8.store'
-import Config from '@/config/config'
+import catchAsync from '../utils/catchAsync'
+import { Peer8Store } from '../services/peer8.store'
+import Config from '../config/config'
 
 // TODO: use the stored auth for future requests (newly open PPT, etc)
 const login = catchAsync(async (req, res) => {

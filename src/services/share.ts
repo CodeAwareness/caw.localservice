@@ -6,11 +6,11 @@ import * as https from 'https'
 import * as fs from 'fs/promises'
 import { createWriteStream } from 'fs'
 
-import Config from '@/config/config'
-import api from '@/services/api'
-import shell from '@/services/shell'
-import diffs from '@/services/diffs'
-import { Peer8Store } from '@/services/peer8.store'
+import Config from '../config/config'
+import api from '../services/api'
+import shell from '../services/shell'
+import diffs from '../services/diffs'
+import { Peer8Store } from '../services/peer8.store'
 
 type TypeWS = {
   wsFolder: string,

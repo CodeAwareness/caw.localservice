@@ -2,10 +2,10 @@ import httpStatus from 'http-status'
 import * as path from 'path'
 
 // TODO: clear up this messed up tangled share/diffs code
-import diffs from '@/services/diffs'
-import share from '@/services/share'
-import catchAsync from '@/utils/catchAsync'
-import { authStore, shareStore } from '@/config/config'
+import diffs from '../services/diffs'
+import share from '../services/share'
+import catchAsync from '../utils/catchAsync'
+import { authStore, shareStore } from '../config/config'
 
 const uploadOriginal = catchAsync(async (req, res) => {
   try {

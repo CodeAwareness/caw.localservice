@@ -1,10 +1,10 @@
-require('flow-remove-types/register')({ all: true })
-require('module-alias/register')
-const displayRoutes = require('express-routemap')
+import displayRoutes from 'express-routemap'
 
-const app = require('@/app')
-const config = require('@/config/config')
-const logger = require('@/config/logger')
+import app from './app'
+import config from './config/config'
+import logger from './config/logger'
+
+console.log('STARTING')
 
 const server = app.listen(config.port, config.host, () => {
   displayRoutes(app)
@@ -36,3 +36,5 @@ process.on('SIGTERM', () => {
     server.close()
   }
 })
+
+export default server

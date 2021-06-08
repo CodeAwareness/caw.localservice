@@ -14,8 +14,10 @@ function auth(socket) {
 const wsEngine = {
   init: (app: any, wsIO: any) => {
     // initial mock until the real socket connects
-    app.userSocket = { emit: () => {}, to: () => ({ emit: () => {} }), join: () => {} }
-    app.repoSocket = { emit: () => {}, to: () => ({ emit: () => {} }), join: () => {} }
+    /* eslint-disable-next-line */
+    app.userSocket = { emit: () => {}, to: () => ({ emit: () => {} }), join: () => {} };
+    /* eslint-disable-next-line */
+    app.repoSocket = { emit: () => {}, to: () => ({ emit: () => {} }), join: () => {} };
     // real sockets
     app.rootIONS = wsIO
       .on('connect', socket => {

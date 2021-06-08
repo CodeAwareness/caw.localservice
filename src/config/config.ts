@@ -6,7 +6,7 @@ import tmp from 'tmp'
 import Keyv from 'keyv'
 
 import Joi    from '@hapi/joi'
-import { Peer8Store } from '@/services/peer8.store'
+import { Peer8Store } from '../services/peer8.store'
 
 const dbpath = path.join(process.cwd(), 'storage.sqlite')
 

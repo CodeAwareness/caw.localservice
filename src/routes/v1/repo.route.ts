@@ -1,6 +1,6 @@
 import express from 'express'
 
-import repoController from '@/controllers/repo.controller'
+import repoController from '../../controllers/repo.controller'
 
 const router = express.Router()
 

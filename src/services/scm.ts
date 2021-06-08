@@ -1,7 +1,8 @@
 import * as path from 'path'
 import * as fs from 'fs'
 
-import git from '@/services/git'
+import logger from '../config/logger'
+import git from './git'
 
 import { Peer8Store } from './peer8.store'
 

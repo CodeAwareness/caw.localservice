@@ -10,12 +10,12 @@ import { promises as fs, createReadStream, createWriteStream, openSync, closeSyn
 import { pipeline } from 'stream'
 // import replaceStream from 'replacestream' // doesn't work (!
 
-import Config from '@/config/config'
+import Config from '../config/config'
 
-import git from '@/services/git'
-import shell from '@/services/shell'
-import { Peer8Store } from '@/services/peer8.store'
-import Peer8API from '@/services/api'
+import git from './git'
+import shell from './shell'
+import { Peer8Store } from './peer8.store'
+import Peer8API from './api'
 
 const logger = console
 
@@ -644,7 +644,6 @@ function parseDiffFile(diffs): Array<TDiffReplace> {
     } else if (line[0] === '+') {
       insLines++
     } else if (start === '@@ ') {
-      /* eslint-disable-next-line security/detect-unsafe-regex */
       const matches = /@@ -([0-9]+)(,[0-9]+)? \+([0-9]+)(,[0-9]+)? @@/.exec(line)
       if (delLines || insLines) {
         changes.push({

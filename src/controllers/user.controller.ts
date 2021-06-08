@@ -1,4 +1,4 @@
-import catchAsync from '@/utils/catchAsync'
+import catchAsync from '../utils/catchAsync'
 
 const getUsers = catchAsync(async (req, res) => {
   // TODO
