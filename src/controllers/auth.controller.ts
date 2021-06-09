@@ -16,6 +16,8 @@ const login = catchAsync(async (req, res) => {
 
 const logout = catchAsync(async (req, res) => {
   config.authStore.clear()
+  Peer8Store.tokens = undefined
+  Peer8Store.user = undefined
   res.status(httpStatus.OK).send()
 })
 
@@ -25,7 +27,7 @@ const refreshTokens = catchAsync(async (req, res) => {
 })
 
 const info = catchAsync(async (req, res) => {
-  const { user, tokens } = Peer8Store.tokens
+  const { user, tokens } = Peer8Store
   res.send({ user, tokens })
 })
 
