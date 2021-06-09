@@ -32,6 +32,7 @@ const info = catchAsync(async (req, res) => {
 const authController = {
   login,
   logout,
+  info,
   refreshTokens,
 }
 
