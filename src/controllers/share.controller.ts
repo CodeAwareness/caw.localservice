@@ -63,11 +63,6 @@ const originInfo = catchAsync(async (req, res) => {
   res.send(data)
 })
 
-const pptContributors = catchAsync(async (req, res) => {
-  const contributors = await diffs.refreshAdhocChanges(req.body)
-  res.send(contributors)
-})
-
 const getDiffs = catchAsync(async (req, res) => {
   const { origin, ct, fpath, wsFolder } = req.body
   const userFile = fpath
@@ -98,10 +93,10 @@ const checkReceived = catchAsync(async (req, res) => {
   const tokens = await authStore.get('tokens')
 
   /* @ts-ignore */
-  console.log('checkReceived', origin, configDate, new Date() - configDate)
+  const timediff = new Date() - configDate
+  console.log('checkReceived', origin, configDate, timediff)
 
-  /* @ts-ignore */
-  if (new Date() - configDate < 60000) {
+  if (timediff < 60000) {
     return res.send({
       config: { origin, fpath, user, tokens },
     })
@@ -124,7 +119,6 @@ const ShareController = {
   originInfo,
   receiveShared,
   setupReceived,
-  pptContributors,
   startSharing,
   updateFilename,
   uploadOriginal,

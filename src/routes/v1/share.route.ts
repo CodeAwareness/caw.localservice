@@ -21,10 +21,6 @@ router
   .post(shareController.setupReceived)
 
 router
-  .route('/pptContributors')
-  .get(shareController.pptContributors)
-
-router
   .route('/fileInfo')
   .get(shareController.fileInfo)
 
