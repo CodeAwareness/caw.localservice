@@ -2,20 +2,20 @@ import httpStatus from 'http-status'
 
 import catchAsync from '../utils/catchAsync'
 import { Peer8Store } from '../services/peer8.store'
-import Config from '../config/config'
+import config from '../config/config'
 
 // TODO: use the stored auth for future requests (newly open PPT, etc)
 const login = catchAsync(async (req, res) => {
   const { user, tokens } = req.body
   Peer8Store.tokens = tokens
   Peer8Store.user = user
-  await Config.authStore.set('user', user)
-  await Config.authStore.set('tokens', tokens)
+  await config.authStore.set('user', user)
+  await config.authStore.set('tokens', tokens)
   res.status(httpStatus.OK).send()
 })
 
 const logout = catchAsync(async (req, res) => {
-  Config.authStore.clear()
+  config.authStore.clear()
   res.status(httpStatus.OK).send()
 })
 

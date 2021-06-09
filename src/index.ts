@@ -3,8 +3,17 @@ import displayRoutes from 'express-routemap'
 import app from './app'
 import config from './config/config'
 import logger from './config/logger'
+import { Peer8Store } from './services/peer8.store'
 
 console.log('STARTING')
+restoreAuthInfo()
+
+async function restoreAuthInfo() {
+  const user = await config.authStore.get('user')
+  const tokens = await config.authStore.get('tokens')
+  Peer8Store.tokens = tokens
+  Peer8Store.user = user
+}
 
 const server = app.listen(config.port, config.host, () => {
   displayRoutes(app)
