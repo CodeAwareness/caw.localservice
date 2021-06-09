@@ -1,12 +1,12 @@
 import * as path from 'path'
 import mkdirp from 'mkdirp'
 import * as chokidar from 'chokidar'
-import * as crypto from 'crypto'
 import * as https from 'https'
 import * as fs from 'fs/promises'
 import { createWriteStream } from 'fs'
 
 import Config from '../config/config'
+import { generateUUID } from '../utils/string'
 import api from '../services/api'
 import shell from '../services/shell'
 import diffs from '../services/diffs'
@@ -17,10 +17,13 @@ type TypeWS = {
   origin: string,
 }
 
-async function uploadOriginal({ fpath, origin }): Promise<TypeWS> {
+function generateWSFolder() {
   const tmpDir = Peer8Store.tmpDir
-  /* @ts-ignore */
-  const wsFolder = path.join(tmpDir, crypto.randomUUID())
+  return path.join(tmpDir, generateUUID(16))
+}
+
+async function uploadOriginal({ fpath, origin }): Promise<TypeWS> {
+  const wsFolder = generateWSFolder()
   const extractDir = path.join(wsFolder, Config.EXTRACT_LOCAL_DIR)
   mkdirp.sync(extractDir)
   const zipFile = await copyToWorkspace({ fpath, extractDir })
@@ -80,9 +83,7 @@ function unmonitorOrigin(origin: string): any {
 }
 
 async function receiveShared({ origin }: any): Promise<any> {
-  const tmpDir = Peer8Store.tmpDir
-  /* @ts-ignore */
-  const wsFolder = path.join(tmpDir, crypto.randomUUID())
+  const wsFolder = generateWSFolder()
   const extractDir = path.join(wsFolder, Config.EXTRACT_LOCAL_DIR)
   mkdirp.sync(extractDir)
   let fpath
@@ -107,9 +108,7 @@ async function receiveShared({ origin }: any): Promise<any> {
 }
 
 function setupReceived({ fpath, origin, wsFolder }: any): Promise<any> {
-  const tmpDir = Peer8Store.tmpDir
-  /* @ts-ignore */
-  wsFolder = wsFolder || path.join(tmpDir, crypto.randomUUID())
+  wsFolder = wsFolder || generateWSFolder()
   const extractDir = path.join(wsFolder, Config.EXTRACT_LOCAL_DIR)
   mkdirp.sync(extractDir)
   if (!fpath) return Promise.resolve()

@@ -44,4 +44,8 @@ router
   .route('/updateFilename')
   .post(shareController.updateFilename)
 
+router
+  .route('/pptContributors')
+  .get(shareController.pptContributors)
+
 export default router

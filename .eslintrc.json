@@ -6,11 +6,11 @@
   },
   "extends": [
     "standard",
-    "plugin:eslint/recommended",
+    "plugin:@typescript-eslint/recommended",
     "plugin:jest/recommended",
     "plugin:security/recommended"
   ],
-  "parser": "babel-eslint",
+  "parser": "@typescript-eslint/parser",
   "parserOptions": {
     "sourceType": "module",
     "ecmaVersion": 11
@@ -64,6 +64,7 @@
         }
       ],
       "security/detect-child-process": 0,
-      "security/detect-object-injection": 0
+      "security/detect-object-injection": 0,
+      "@typescript-eslint/ban-ts-comment": 0
     }
 }

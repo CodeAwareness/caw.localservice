@@ -230,7 +230,6 @@ const getFileInfo = fpath => {
 const getOriginInfo = origin => {
   const uri = encodeURIComponent(origin)
   return axiosAPI(`${API_SHARE_OINFO}?origin=${uri}`, { method: 'GET', responseType: 'json' })
-
 }
 
 const Peer8API = {

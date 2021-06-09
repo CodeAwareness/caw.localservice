@@ -112,11 +112,17 @@ const updateFilename = catchAsync(async (req, res) => {
   res.status(httpStatus.OK).send()
 })
 
+const pptContributors = catchAsync(async (req, res) => {
+  const contributors = await diffs.refreshAdhocChanges(req.body)
+  res.send(contributors)
+})
+
 const ShareController = {
   checkReceived,
   getDiffs,
   fileInfo,
   originInfo,
+  pptContributors,
   receiveShared,
   setupReceived,
   startSharing,
