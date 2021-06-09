@@ -24,6 +24,11 @@ const refreshTokens = catchAsync(async (req, res) => {
   res.status(httpStatus.OK).send()
 })
 
+const info = catchAsync(async (req, res) => {
+  const { user, tokens } = Peer8Store.tokens
+  res.send({ user, tokens })
+})
+
 const authController = {
   login,
   logout,
