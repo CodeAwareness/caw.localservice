@@ -28,7 +28,7 @@ async function cmd(command: string, dir: string = undefined): Promise<string> {
 // TODO: SECURITY: sanitize input; attack vector: specially crafted file name can be maliciously added to the repo (double check)
 const copyFile = async (source: string, destDir: string): Promise<string> => {
   const dest = path.join(destDir, 'repo.zip')
-  const command = `cp -r "${source}" "${dest}"`
+  const command = `cp "${source}" "${dest}"`
   if (isWindows) {
     const ps = new PowerShell({ executionPolicy: 'Bypass', noProfile: true })
     ps.addCommand(command)

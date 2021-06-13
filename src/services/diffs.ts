@@ -716,7 +716,9 @@ async function refreshAdhocChanges({ origin, fpath }): Promise<void> {
 
   lastDownloadDiff[origin] = new Date()
 
-  await Peer8API.getPPTSlideContrib({ origin, fpath }).then(res => res.data)
+  return Peer8API
+    .getPPTSlideContrib({ origin, fpath })
+    .then(res => res.data)
 }
 
 const Peer8Diffs = {

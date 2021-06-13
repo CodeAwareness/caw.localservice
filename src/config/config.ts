@@ -1,7 +1,7 @@
 import dotenv from 'dotenv'
 import packageRoot from 'pkg-dir'
 import path   from 'path'
-import { sync as mkdir } from 'mkdirp'
+import mkdirp from 'mkdirp'
 import tmp from 'tmp'
 import Keyv from 'keyv'
 
@@ -24,7 +24,7 @@ const API_ROOT = packageRoot.sync(__dirname)
 dotenv.config({ path: path.join(API_ROOT, '.env') })
 
 const uploadDir: string = path.join(API_ROOT, '_uploadDiffs')
-mkdir(uploadDir)
+mkdirp.sync(uploadDir)
 
 const envVarsSchema = Joi.object()
   .keys({

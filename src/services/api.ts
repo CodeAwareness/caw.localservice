@@ -9,20 +9,20 @@ import { Peer8Store } from './peer8.store'
 
 Peer8Store.swarmAuthStatus = 0
 
-const API_AUTH_LOGIN          = '/auth/login'
-const API_AUTH_REFRESH_TOKENS = '/auth/refresh-tokens'
-const API_REPO_GET_INFO       = '/repos/info'
-const API_REPO_SWARM_AUTH     = '/repos/swarm-auth'
-const API_REPO_COMMITS        = '/repos/commits'
-const API_REPO_COMMON_SHA     = '/repos/common-sha'
-const API_REPO_CONTRIB        = '/repos/contrib'
-const API_REPO_DIFF_FILE      = '/repos/diff'
-const API_SHARE_SLIDE_CONTRIB = '/share/slideContrib'
-const API_SHARE_START         = '/share/start'
-const API_SHARE_UPLOAD        = '/share/uploadOriginal'
-const API_SHARE_ACCEPT        = '/share/accept'
-const API_SHARE_FINFO         = '/share/findFile'
-const API_SHARE_OINFO         = '/share/findOrigin'
+export const API_AUTH_LOGIN          = '/auth/login'
+export const API_AUTH_REFRESH_TOKENS = '/auth/refresh-tokens'
+export const API_REPO_GET_INFO       = '/repos/info'
+export const API_REPO_SWARM_AUTH     = '/repos/swarm-auth'
+export const API_REPO_COMMITS        = '/repos/commits'
+export const API_REPO_COMMON_SHA     = '/repos/common-sha'
+export const API_REPO_CONTRIB        = '/repos/contrib'
+export const API_REPO_DIFF_FILE      = '/repos/diff'
+export const API_SHARE_SLIDE_CONTRIB = '/share/slideContrib'
+export const API_SHARE_START         = '/share/start'
+export const API_SHARE_UPLOAD        = '/share/uploadOriginal'
+export const API_SHARE_ACCEPT        = '/share/accept'
+export const API_SHARE_FINFO         = '/share/findFile'
+export const API_SHARE_OINFO         = '/share/findOrigin'
 
 axios.defaults.adapter = require('axios/lib/adapters/http')
 const axiosAPI = axios.create({ baseURL: Config.API_URL })
@@ -187,7 +187,7 @@ const sendDiffs = ({ zipFile, origin, cSHA, activePath }: any): Promise<any> => 
         maxBodyLength: Infinity,
       })
     .then(res => res.data)
-    .catch(err => console.error(err.response.status, err.response.statusText)) // TODO: error handling
+    .catch(err => console.error(err.status, err.code, err.request._currentUrl, err.request._currentRequest.method)) // TODO: error handling
 }
 
 const login = ({ email, password }: any): Promise<any> => axiosAPI.post(API_AUTH_LOGIN, { email, password })
@@ -206,7 +206,7 @@ const shareFile = ({ origin, zipFile }: any): Promise<any> => {
         maxBodyLength: Infinity,
       })
     .then(res => res.data)
-    .catch(err => console.error(err.response.status, err.response.statusText)) // todo: error handling
+    .catch(err => console.error(err.status, err.code, err.request._currentUrl, err.request._currentRequest.method)) // todo: error handling
 }
 
 const setupShare = (groups: Array<string>): Promise<any> => {
@@ -214,7 +214,7 @@ const setupShare = (groups: Array<string>): Promise<any> => {
   return axiosAPI
     .post(API_SHARE_START, { data })
     .then(res => res.data)
-    .catch(err => console.error(err.response.status, err.response.statusText)) // todo: error handling
+    .catch(err => console.error(err.status, err.code, err.request._currentUrl, err.request._currentRequest.method)) // todo: error handling
 }
 
 const receiveShared = link => {
@@ -233,6 +233,7 @@ const getOriginInfo = origin => {
 }
 
 const Peer8API = {
+  axiosAPI,
   clearAuth,
   downloadDiffFile,
   downloadDiffs,

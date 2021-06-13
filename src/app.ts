@@ -25,7 +25,7 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
 // api routes
-app.use('/', routes)
+app.use('/v1', routes)
 
 // send back a 404 error for any unknown api request
 app.use((req, res, next) => {

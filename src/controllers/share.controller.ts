@@ -43,7 +43,6 @@ const receiveShared = catchAsync(async (req, res) => {
  * @param { fpath, origin, wsFolder }
  */
 const setupReceived = catchAsync(async (req, res) => {
-  console.log('setupReceived', req.body)
   const wsFolder = await share.setupReceived(req.body)
   res.send({ wsFolder })
 })
@@ -113,7 +112,8 @@ const updateFilename = catchAsync(async (req, res) => {
 })
 
 const pptContributors = catchAsync(async (req, res) => {
-  const contributors = await diffs.refreshAdhocChanges(req.body)
+  const { origin, fpath } = req.query
+  const contributors = await diffs.refreshAdhocChanges({ origin, fpath })
   res.send(contributors)
 })
 
