@@ -217,7 +217,7 @@ const setupShare = (groups: Array<string>): Promise<any> => {
     .catch(err => console.error(err.status, err.code, err.request._currentUrl, err.request._currentRequest.method)) // todo: error handling
 }
 
-const receiveShared = link => {
+const acceptShare = link => {
   const uri = encodeURIComponent(link)
   return axiosAPI(`${API_SHARE_ACCEPT}?origin=${uri}`, { method: 'GET', responseType: 'json' })
 }
@@ -233,6 +233,7 @@ const getOriginInfo = origin => {
 }
 
 const Peer8API = {
+  acceptShare,
   axiosAPI,
   clearAuth,
   downloadDiffFile,
@@ -244,7 +245,6 @@ const Peer8API = {
   getRepo,
   login,
   logout,
-  receiveShared,
   refreshToken,
   sendCommitLog,
   sendDiffs,

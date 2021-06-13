@@ -69,7 +69,7 @@ async function copyToWorkspace({ fpath, extractDir }) {
 
 // TODO: create a hash table to not do double action when a file with the same name is downloaded in the same folder as before
 const cwatchers = {}
-function monitorFile({ origin, fpath, wsFolder }) {
+function monitorFile({ origin, fpath, wsFolder }): void {
   console.log('will monitor file', fpath, origin, wsFolder)
   cwatchers[origin] = chokidar.watch(fpath)
     .on('change', () => {
@@ -82,12 +82,13 @@ function unmonitorOrigin(origin: string): any {
   cwatchers[origin]?.unwatch('*')
 }
 
-async function receiveShared({ origin }: any): Promise<any> {
+async function acceptShare({ origin }: any): Promise<any> {
   const wsFolder = generateWSFolder()
   const extractDir = path.join(wsFolder, Config.EXTRACT_LOCAL_DIR)
   mkdirp.sync(extractDir)
   let fpath
-  return api.receiveShared(origin)
+  console.log('WILL ACCEPT SHARE', origin)
+  return api.acceptShare(origin)
     .then(({ data }) => {
       console.log('received shared URL', data)
       const parts = data.url.split('/')
@@ -145,12 +146,12 @@ async function getOriginInfo(origin: string): Promise<any> {
 }
 
 const ShareService = {
+  acceptShare,
   buildPPTX,
   getFileInfo,
   fileToBase64,
   getOriginInfo,
   monitorFile,
-  receiveShared,
   setupReceived,
   startSharing,
   unmonitorOrigin,

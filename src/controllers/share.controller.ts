@@ -33,8 +33,8 @@ const startSharing = catchAsync(async (req, res) => {
   // TODO: await shell.unzip(path.basename(zipFile), extractDir)
 })
 
-const receiveShared = catchAsync(async (req, res) => {
-  const peerFile = await share.receiveShared(req.body)
+const acceptShare = catchAsync(async (req, res) => {
+  const peerFile = await share.acceptShare(req.body)
   const peerFile64 = await share.fileToBase64(peerFile)
   res.send({ peerFile, peerFile64 })
 })
@@ -118,12 +118,12 @@ const pptContributors = catchAsync(async (req, res) => {
 })
 
 const ShareController = {
+  acceptShare,
   checkReceived,
   getDiffs,
   fileInfo,
   originInfo,
   pptContributors,
-  receiveShared,
   setupReceived,
   startSharing,
   updateFilename,

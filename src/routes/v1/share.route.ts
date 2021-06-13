@@ -14,7 +14,7 @@ router
 
 router
   .route('/accept')
-  .post(shareController.receiveShared)
+  .post(shareController.acceptShare)
 
 router
   .route('/setupReceived')

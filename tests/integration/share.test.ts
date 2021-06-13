@@ -7,7 +7,7 @@ import * as util from 'util'
 import * as child from 'child_process'
 
 import app from '../../src/app'
-import { API_REPO_CONTRIB, API_SHARE_START, API_SHARE_UPLOAD } from '../../src/services/api'
+import { API_REPO_CONTRIB, API_SHARE_ACCEPT, API_SHARE_START, API_SHARE_UPLOAD } from '../../src/services/api'
 import Config from '../../src/config/config'
 import { Peer8Store } from '../../src/services/peer8.store'
 
@@ -42,7 +42,7 @@ afterAll(() => {
 })
 
 describe('Share service', () => {
-  describe('startSharing', () => {
+  describe('PPT file sharing', () => {
     test('should setup a list of share groups', async () => {
       nock(Config.API_URL)
         .post(API_SHARE_START, () => true)
@@ -63,9 +63,7 @@ describe('Share service', () => {
       // EXPECT : dummy expectation for this one, just to make sure the code runs without errors
       expect(res.body.origin).toEqual('test-origin')
     })
-  })
 
-  describe('Upload share', () => {
     test('Should upload original ppt file', async () => {
       const docDir = `${tmpDir}/documents`
       mkdirp.sync(docDir)
@@ -93,6 +91,32 @@ describe('Share service', () => {
 
       expect(res.body.origin).toEqual('test-origin')
       expect(res.body.wsFolder).toMatch(/^\/tmp\/peer8.local-service\//)
+    })
+
+    test('Should setup a shared file from provided link', async () => {
+      const docDir = `${tmpDir}/documents`
+      mkdirp.sync(docDir)
+      await exec(`cp ../fixtures/my.pptx ${docDir}/`, { cwd: __dirname })
+
+      const origin = 'test-origin'
+      const uri = encodeURIComponent(origin)
+      nock(Config.API_URL)
+        .get(`${API_SHARE_ACCEPT}?origin=${uri}`)
+        .reply(200, { url: 'https://s3.peer8.com/some-id-test-origin/my.pptx' })
+
+      nock('https://s3.peer8.com')
+        .get('/some-id-test-origin/my.pptx')
+        .reply(200, {})
+
+      // TEST
+      const res = await request(app)
+        .post('/v1/share/accept')
+        .send({
+          origin: 'test-origin',
+        })
+        .expect(httpStatus.OK)
+
+      expect(res.body.peerFile).toMatch(/\/tmp\/peer8.local-service\/[a-z0-9]+\/l\/my.pptx/)
     })
   })
 })
