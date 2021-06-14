@@ -34,7 +34,7 @@ const startSharing = catchAsync(async (req, res) => {
 })
 
 const acceptShare = catchAsync(async (req, res) => {
-  const peerFile = await share.acceptShare(req.body)
+  const peerFile = await share.acceptShare(req.body.origin)
   const peerFile64 = await share.fileToBase64(peerFile)
   res.send({ peerFile, peerFile64 })
 })
@@ -43,18 +43,18 @@ const acceptShare = catchAsync(async (req, res) => {
  * @param { fpath, origin, wsFolder }
  */
 const setupReceived = catchAsync(async (req, res) => {
-  const wsFolder = await share.setupReceived(req.body)
-  res.send({ wsFolder })
-})
-
-const fileInfo = catchAsync(async (req, res) => {
-  const filename = path.basename(req.query.f)
-  if (!filename) return res.status(httpStatus.BAD_REQUEST).send()
-  const { data } = await share.getFileInfo(filename)
+  const data = await share.setupReceived(req.body)
   res.send(data)
 })
 
-const originInfo = catchAsync(async (req, res) => {
+const getFileOrigin = catchAsync(async (req, res) => {
+  const filename = path.basename(req.query.f)
+  if (!filename) return res.status(httpStatus.BAD_REQUEST).send()
+  const { data } = await share.getFileOrigin(filename)
+  res.send(data)
+})
+
+const getOriginInfo = catchAsync(async (req, res) => {
   const origin = req.query.origin
   if (!origin) return res.status(httpStatus.BAD_REQUEST).send()
   const { data } = await share.getOriginInfo(origin)
@@ -121,8 +121,8 @@ const ShareController = {
   acceptShare,
   checkReceived,
   getDiffs,
-  fileInfo,
-  originInfo,
+  getFileOrigin,
+  getOriginInfo,
   pptContributors,
   setupReceived,
   startSharing,

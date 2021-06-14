@@ -2,6 +2,7 @@ import request from 'supertest'
 import httpStatus from 'http-status'
 import nock from 'nock'
 import mkdirp from 'mkdirp'
+import * as path from 'path'
 import * as _ from 'lodash'
 import * as util from 'util'
 import * as child from 'child_process'
@@ -42,7 +43,7 @@ afterAll(() => {
 })
 
 describe('Share service', () => {
-  describe('PPT file sharing', () => {
+  describe('Starting a share should create groups and invitation links', () => {
     test('should setup a list of share groups', async () => {
       nock(Config.API_URL)
         .post(API_SHARE_START, () => true)
@@ -64,7 +65,7 @@ describe('Share service', () => {
       expect(res.body.origin).toEqual('test-origin')
     })
 
-    test('Should upload original ppt file', async () => {
+    test('Should upload original ppt file and create a workspace directory', async () => {
       const docDir = `${tmpDir}/documents`
       mkdirp.sync(docDir)
       await exec(`cp ../fixtures/my.pptx ${docDir}/`, { cwd: __dirname })
@@ -93,7 +94,7 @@ describe('Share service', () => {
       expect(res.body.wsFolder).toMatch(/^\/tmp\/peer8.local-service\//)
     })
 
-    test('Should setup a shared file from provided link', async () => {
+    test('Should download a shared file from provided invitation link', async () => {
       const docDir = `${tmpDir}/documents`
       mkdirp.sync(docDir)
       await exec(`cp ../fixtures/my.pptx ${docDir}/`, { cwd: __dirname })
@@ -117,6 +118,38 @@ describe('Share service', () => {
         .expect(httpStatus.OK)
 
       expect(res.body.peerFile).toMatch(/\/tmp\/peer8.local-service\/[a-z0-9]+\/l\/my.pptx/)
+    })
+
+    test('Should setup the received shared file in a new workspace', async () => {
+      const docDir = `${tmpDir}/documents`
+      mkdirp.sync(docDir)
+
+      // TEST
+      const res = await request(app)
+        .post('/v1/share/setupReceived')
+        .send({
+          origin: 'test-origin',
+          fpath: path.join(__dirname, '../fixtures/my.pptx'),
+        })
+        .expect(httpStatus.OK)
+
+      expect(res.body.fpath).toMatch(/fixtures\/my.pptx/)
+      expect(res.body.wsFolder).toMatch(/\/tmp\/peer8.local-service\//)
+    })
+
+    test.only('When opening a file, we should be able to find its origin on CodeAwareness', async () => {
+      const docDir = `${tmpDir}/documents`
+      mkdirp.sync(docDir)
+      const s3key = encodeURIComponent('test-origin-s3-id.zip')
+
+      // TEST
+      const res = await request(app)
+        .get(`/v1/share/getFileOrigin?f=${s3key}`)
+        .send({
+          origin: 'test-origin',
+          fpath: path.join(__dirname, '../fixtures/my.pptx'),
+        })
+        .expect(httpStatus.OK)
     })
   })
 })

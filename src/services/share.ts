@@ -78,25 +78,22 @@ function monitorFile({ origin, fpath, wsFolder }): void {
 }
 
 // TODO: when closing the PPT:
-function unmonitorOrigin(origin: string): any {
+function unmonitorOrigin(origin: string): void {
   cwatchers[origin]?.unwatch('*')
 }
 
-async function acceptShare({ origin }: any): Promise<any> {
+async function acceptShare(origin: string): Promise<string> {
   const wsFolder = generateWSFolder()
   const extractDir = path.join(wsFolder, Config.EXTRACT_LOCAL_DIR)
   mkdirp.sync(extractDir)
-  let fpath
-  console.log('WILL ACCEPT SHARE', origin)
+  let fpath: string
   return api.acceptShare(origin)
     .then(({ data }) => {
-      console.log('received shared URL', data)
       const parts = data.url.split('/')
       const filename = parts[parts.length - 1].replace(/\?.*$/, '')
       fpath = path.join(extractDir, filename)
-      console.log('WRITE S3 Stream to', fpath)
       const file = createWriteStream(fpath)
-      https.get(data.url, (response: any) => response.pipe(file))
+      https.get(data.url, response => response.pipe(file))
       return new Promise((resolve, reject) => {
         file.on('close', resolve)
         file.on('end', resolve)
@@ -137,8 +134,8 @@ async function fileToBase64(fpath: string): Promise<string> {
   return fs.readFile(fpath, { encoding: 'base64' })
 }
 
-async function getFileInfo(fpath: string): Promise<any> {
-  return await api.getFileInfo(fpath)
+async function getFileOrigin(fpath: string): Promise<any> {
+  return await api.getFileOrigin(fpath)
 }
 
 async function getOriginInfo(origin: string): Promise<any> {
@@ -148,7 +145,7 @@ async function getOriginInfo(origin: string): Promise<any> {
 const ShareService = {
   acceptShare,
   buildPPTX,
-  getFileInfo,
+  getFileOrigin,
   fileToBase64,
   getOriginInfo,
   monitorFile,

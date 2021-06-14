@@ -21,12 +21,12 @@ router
   .post(shareController.setupReceived)
 
 router
-  .route('/fileInfo')
-  .get(shareController.fileInfo)
+  .route('/getFileOrigin')
+  .get(shareController.getFileOrigin)
 
 router
-  .route('/originInfo')
-  .get(shareController.originInfo)
+  .route('/getOriginInfo')
+  .get(shareController.getOriginInfo)
 
 router
   .route('/diffs')
