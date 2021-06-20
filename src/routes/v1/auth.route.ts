@@ -7,6 +7,7 @@ const router = express.Router()
 router.get('/info', authController.info)
 router.post('/login', authController.login)
 router.post('/logout', authController.logout)
-router.post('/refresh-tokens', authController.refreshTokens)
+router.post('/sync', authController.sync)
+console.log(router)
 
 export default router

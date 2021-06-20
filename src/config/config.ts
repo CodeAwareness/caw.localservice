@@ -40,7 +40,8 @@ if (error) {
 }
 
 const PORT_LOCAL = envVars.PORT || 48048
-const API_URL = process.env.LOCAL ? `http://localhost:${PORT_LOCAL}/api/v1` : 'https://ppt.peer8.com/v1'
+const PORT_LOCAL_API = 3000
+const API_URL = process.env.LOCAL ? `http://localhost:${PORT_LOCAL_API}/v1` : 'https://ppt.peer8.com/v1'
 
 const CONFIGURATION_FILE = '.peer8'
 const PEER8_SCHEMA = 'peer8'

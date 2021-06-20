@@ -11,6 +11,7 @@ Peer8Store.swarmAuthStatus = 0
 
 export const API_AUTH_LOGIN          = '/auth/login'
 export const API_AUTH_REFRESH_TOKENS = '/auth/refresh-tokens'
+export const API_AUTH_SYNC           = '/auth/syncConfirm'
 export const API_REPO_GET_INFO       = '/repos/info'
 export const API_REPO_SWARM_AUTH     = '/repos/swarm-auth'
 export const API_REPO_COMMITS        = '/repos/commits'
@@ -232,6 +233,15 @@ const getOriginInfo = origin => {
   return axiosAPI(`${API_SHARE_OINFO}?origin=${uri}`, { method: 'GET', responseType: 'json' })
 }
 
+const sync = code => {
+  console.log(`${Config.API_URL}${API_AUTH_SYNC}?code=${code}`, { method: 'GET', responseType: 'json' })
+  return axiosAPI(`${API_AUTH_SYNC}?code=${code}`, { method: 'GET', responseType: 'json' })
+    .then(res => {
+      console.log('SYNC data', res.data)
+      return refreshToken(res.data.token)
+    })
+}
+
 const Peer8API = {
   acceptShare,
   axiosAPI,
@@ -252,6 +262,7 @@ const Peer8API = {
   setupShare,
   shareFile,
   submitAuthBranch,
+  sync,
   API_AUTH_LOGIN,
   API_REPO_COMMITS,
   API_REPO_COMMON_SHA,
