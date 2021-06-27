@@ -5,9 +5,8 @@ import authController from '../../controllers/auth.controller'
 const router = express.Router()
 
 router.get('/info', authController.info)
-router.post('/login', authController.login)
 router.post('/logout', authController.logout)
-router.post('/sync', authController.sync)
+router.get('/sync', authController.sync)
 console.log(router)
 
 export default router
