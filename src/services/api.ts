@@ -139,7 +139,10 @@ function logout(reject, msg, err) {
 function refreshToken(refreshToken: string) {
   return axiosAPI
     .post(API_AUTH_REFRESH_TOKENS, { refreshToken })
-    .then(res => (Peer8Store.tokens = res.data.tokens))
+    .then(res => {
+      Peer8Store.user = res.data.user
+      Peer8Store.tokens = res.data.tokens
+    })
 }
 
 function downloadDiffs({ origin, fpath }: any): Promise<any> {
@@ -235,10 +238,7 @@ const getOriginInfo = origin => {
 
 const sync = code => {
   return axiosAPI(`${API_AUTH_SYNC}?code=${code}`, { method: 'GET', responseType: 'json' })
-    .then(res => {
-      console.log('SYNC data', res.data)
-      return refreshToken(res.data.token)
-    })
+    .then(res => refreshToken(res.data.token))
 }
 
 const Peer8API = {

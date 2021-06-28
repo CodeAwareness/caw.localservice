@@ -18,15 +18,10 @@ const info = catchAsync(async (req, res) => {
 })
 
 const sync = catchAsync(async (req, res) => {
-  const { code } = req.body
+  const { code } = req.query
   if (!code) res.status(httpStatus.BAD_REQUEST).send()
-  const refreshToken = await Peer8API.sync(code)
-  return Peer8API.refreshToken(refreshToken)
-    .then(res => {
-      Peer8Store.tokens = res.data.tokens
-      Peer8Store.user = res.data.user
-      res.status(httpStatus.OK).send()
-    })
+  const data = await Peer8API.sync(code)
+  res.status(httpStatus.OK).send()
 })
 
 const authController = {
