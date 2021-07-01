@@ -1,15 +1,21 @@
-import express from 'express'
+import app from '../../app'
 
 import authRoute from './auth.route'
 import userRoute from './user.route'
 import repoRoute from './repo.route'
 import shareRoute from './share.route'
 
-const router = express.Router()
+function use(route) {
+  route.init()
+}
 
-router.use('/auth',  authRoute)
-router.use('/repos', repoRoute)
-router.use('/share', shareRoute)
-router.use('/users', userRoute)
+const router = {
+  init: () => {
+    use(authRoute)
+    use(repoRoute)
+    use(shareRoute)
+    use(userRoute)
+  },
+}
 
 export default router

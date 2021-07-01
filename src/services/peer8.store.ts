@@ -111,6 +111,8 @@ export const Peer8Store = {
   doc: undefined, // active document (specific doc format for Atom, VSCode)
   line: 0, // cursor line nr in document
 
+  socket: undefined, // socketIO
+
   clear: () => {
     Peer8Store.selectedContributor = undefined
   },
@@ -128,6 +130,7 @@ export const Peer8Store = {
     Peer8Store.peerFS = {}
     Peer8Store.doc = undefined
     Peer8Store.line = 0
+    Peer8Store.socket = undefined
   },
 }
 

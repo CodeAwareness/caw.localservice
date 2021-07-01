@@ -1,28 +1,25 @@
 import httpStatus from 'http-status'
 
-import catchAsync from '../utils/catchAsync'
+import root from '../app'
 import { Peer8Store } from '../services/peer8.store'
 import Peer8API from '../services/api'
 import config from '../config/config'
 
-const logout = catchAsync(async (req, res) => {
+const logout = () => {
   config.authStore.clear()
   Peer8Store.tokens = undefined
   Peer8Store.user = undefined
-  res.status(httpStatus.OK).send()
-})
+}
 
-const info = catchAsync(async (req, res) => {
+const info = () => {
   const { user, tokens } = Peer8Store
-  res.send({ user, tokens })
-})
+  root.rootSocket.emit('info:load', { user, tokens })
+}
 
-const sync = catchAsync(async (req, res) => {
-  const { code } = req.query
-  if (!code) res.status(httpStatus.BAD_REQUEST).send()
-  const data = await Peer8API.sync(code)
-  res.status(httpStatus.OK).send()
-})
+const sync = code => {
+  if (!code) root.rootSocket.emit('badRequest', 'sync')
+  return Peer8API.sync(code)
+}
 
 const authController = {
   logout,

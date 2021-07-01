@@ -1,3 +1,5 @@
+import router from '../routes/v1'
+
 function auth(socket) {
   socket.use(([event, ...args], next) => {
     console.log('SOCKET TOKEN', socket.handshake.auth.token, socket.request.user)
@@ -23,6 +25,7 @@ const wsEngine = {
       .on('connect', socket => {
         app.rootSocket = socket
         auth(socket)
+        router.init()
       })
     /*
     app.userIONS = wsIO.of('/users')
@@ -44,4 +47,4 @@ const wsEngine = {
   },
 }
 
-module.exports = wsEngine
+export default wsEngine

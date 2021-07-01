@@ -1,11 +1,19 @@
-import express from 'express'
-
+import app from '../../app'
 import authController from '../../controllers/auth.controller'
 
-const router = express.Router()
-
-router.get('/info', authController.info)
-router.post('/logout', authController.logout)
-router.get('/sync', authController.sync)
+const router = {
+  init: (): void => {
+    const socket = (app as any).rootSocket
+    socket.on('auth:info', () => {
+      // socket.to(socketId).emit('auth:info:load', data)
+    })
+    socket.on('auth:logout', () => {
+      authController.logout()
+    })
+    socket.on('auth:sync', (code: string) => {
+      authController.sync(code)
+    })
+  },
+}
 
 export default router

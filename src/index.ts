@@ -1,8 +1,7 @@
-import displayRoutes from 'express-routemap'
 import { Server } from 'socket.io'
 
 import app from './app'
-import wsEngine from './services/wsio'
+import wsEngine from './middlewares/wsio'
 import config from './config/config'
 import logger from './config/logger'
 import { Peer8Store } from './services/peer8.store'
@@ -17,7 +16,6 @@ async function restoreAuthInfo() {
 }
 
 const server = app.listen(config.port, config.host, () => {
-  displayRoutes(app)
   logger.info(`Listening on HTTP ${config.host}:${config.port}`)
 })
 
