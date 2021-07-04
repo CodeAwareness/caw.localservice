@@ -1,23 +1,22 @@
-import express from 'express'
-
+import app from '../../app'
 import repoController from '../../controllers/repo.controller'
 
-const router = express.Router()
-
-router
-  .route('/add')
-  .post(repoController.add)
-
-router
-  .route('/remove')
-  .post(repoController.remove)
-
-router
-  .route('/add-submodules')
-  .post(repoController.addSubmodules)
-
-router
-  .route('/remove-submodules')
-  .post(repoController.removeSubmodules)
+const router = {
+  init: (): void => {
+    const socket = (app as any).rootSocket
+    socket.on('repo:add', folder => {
+      repoController.add(folder)
+    })
+    socket.on('repo:remove', folder => {
+      repoController.remove(folder)
+    })
+    socket.on('repo:add-submodules', fpath => {
+      repoController.addSubmodules(fpath)
+    })
+    socket.on('repo:remove-submodules', fpath => {
+      repoController.removeSubmodules(fpath)
+    })
+  },
+}
 
 export default router

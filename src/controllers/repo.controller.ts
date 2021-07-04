@@ -1,15 +1,13 @@
-import httpStatus from 'http-status'
 import { existsSync } from 'fs'
 import path from 'path'
 
 import logger from '../config/logger'
-import catchAsync from '../utils/catchAsync'
 
+import root from '../app'
 import git from '../services/git'
 import { Peer8Store } from '../services/peer8.store'
 
-const add = catchAsync(async (req, res) => {
-  const { folder } = req.body
+const add = folder => {
   logger.info('SCM addProject', folder)
   const hasGit = existsSync(path.join(folder, '.git'))
   if (!hasGit) {
@@ -29,23 +27,21 @@ const add = catchAsync(async (req, res) => {
       // TODO: cleanup Peer8Store.projects with a timeout of inactivity or something
       const project = { name, origin, root, changes, contributors }
       Peer8Store.projects.push(project)
-      res.send(project)
+      root.rootSocket.emit('repo:added', { project })
     })
     .catch(err => logger.error('SCM setupOrigin ERROR', err))
-})
+}
 
-const remove = catchAsync(async (req, res) => {
-  const { folder } = req.body
+const remove = folder => {
   const project = Peer8Store.projects.filter(m => m.name === path.basename(folder))[0]
   logger.info('SCM removeProject folder', folder, project)
   if (project) {
     Peer8Store.projects = Peer8Store.projects.filter(m => m.origin !== project.origin)
   }
-  res.send(httpStatus.OK)
-})
+  root.rootSocket.emit('repo:removed', { folder })
+}
 
-const addSubmodules = catchAsync(async (req, res) => {
-  const { folder } = req.body
+const addSubmodules = folder => {
   // TODO: add submodules of submodules ? (recursive)
   return git.gitCommand(folder, 'git submodule status')
     .then(out => {
@@ -56,25 +52,20 @@ const addSubmodules = catchAsync(async (req, res) => {
         if (res) subs.push(res[2])
       })
       logger.log('SCM git submodules: ', out, subs)
-      subs.map(sub => {
-        return add(
-          path.join(folder, sub)
-        )
-      })
+      subs.map(sub => add(path.join(folder, sub)))
     })
     .catch(err => {
       logger.error('SCM git submodule error', err)
     })
-})
+}
 
-const removeSubmodules = catchAsync(async (req, res) => {
-  const { folder } = req.body
+const removeSubmodules = folder => {
   return git.gitCommand(folder, 'git submodule status')
     .then(out => {
       const subs = out.split('\n').map(line => / ([^\s]+) /.exec(line)[1])
       subs.map(sub => remove(path.join(folder, sub)))
     })
-})
+}
 
 const repoController = {
   add,

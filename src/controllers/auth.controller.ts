@@ -1,5 +1,3 @@
-import httpStatus from 'http-status'
-
 import root from '../app'
 import { Peer8Store } from '../services/peer8.store'
 import Peer8API from '../services/api'
