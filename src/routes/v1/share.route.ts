@@ -17,40 +17,4 @@ const router = {
   },
 }
 
-router
-  .route('/accept')
-  .post(shareController.acceptShare)
-
-router
-  .route('/setupReceived')
-  .post(shareController.setupReceived)
-
-router
-  .route('/getFileOrigin')
-  .get(shareController.getFileOrigin)
-
-router
-  .route('/getOriginInfo')
-  .get(shareController.getOriginInfo)
-
-router
-  .route('/diffs')
-  .post(shareController.getDiffs)
-
-router
-  .route('/willOpenPPT')
-  .post(shareController.willOpenPPT)
-
-router
-  .route('/checkReceived')
-  .get(shareController.checkReceived)
-
-router
-  .route('/updateFilename')
-  .post(shareController.updateFilename)
-
-router
-  .route('/pptContributors')
-  .get(shareController.pptContributors)
-
 export default router

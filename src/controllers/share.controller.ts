@@ -33,11 +33,11 @@ const startSharing = groups => {
     .catch(err => {
       console.error('startSharing op failure', err)
       root.rootSocket.emit('share:error', { op: 'share:start', err })
-    }
+    })
   // TODO: await shell.unzip(path.basename(zipFile), extractDir)
 }
 
-const acceptShare = origin => {
+const acceptShare = async origin => {
   const peerFile = await share.acceptShare(origin)
   const peerFile64 = await share.fileToBase64(peerFile)
   // TODO: this is potentially sending 200MB file to the server and then back
@@ -47,7 +47,7 @@ const acceptShare = origin => {
 /**
  * @param { fpath, origin, wsFolder }
  */
-const setupReceived = data => {
+const setupReceived = async data => {
   // data = { fpath, origin, wsFolder }
   const { fpath, wsFolder } = await share.setupReceived(data)
   root.rootSocket.emit('share:setupComplete', { fpath, wsFolder })
@@ -93,7 +93,7 @@ const willOpenPPT = async ({ user, origin, fpath }) => {
   root.rootSocket.emit('share:storeSet')
 }
 
-const checkReceived = () => {
+const checkReceived = async () => {
   const origin     = await shareStore.get('origin')
   const fpath      = await shareStore.get('fpath')
   const configDate = new Date(await shareStore.get('configDate'))
@@ -119,7 +119,7 @@ const updateFilename = data => {
   root.rootSocket.emit('share:filenameUpdated')
 }
 
-const pptContributors = ({ origin, fpath }) => {
+const pptContributors = async ({ origin, fpath }) => {
   const contributors = await diffs.refreshAdhocChanges({ origin, fpath })
   root.rootSocket.emit('share:contributors', contributors)
 }
