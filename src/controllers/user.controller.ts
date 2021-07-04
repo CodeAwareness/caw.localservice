@@ -1,8 +1,8 @@
-import catchAsync from '../utils/catchAsync'
+import root from '../app'
 
-const getUsers = catchAsync(async (req, res) => {
+const getUsers = () => {
   // TODO
-})
+}
 
 const userController = {
   getUsers,
