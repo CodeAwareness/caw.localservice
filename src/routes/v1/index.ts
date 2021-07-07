@@ -1,5 +1,3 @@
-import app from '../../app'
-
 import authRoute from './auth.route'
 import userRoute from './user.route'
 import repoRoute from './repo.route'
@@ -10,7 +8,7 @@ function use(route) {
 }
 
 const router = {
-  init: () => {
+  init: (): void => {
     use(authRoute)
     use(repoRoute)
     use(shareRoute)
