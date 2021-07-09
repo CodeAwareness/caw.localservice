@@ -1,18 +1,5 @@
 import router from '../routes/v1'
 
-function auth(socket) {
-  socket.use(([event, ...args], next) => {
-    console.log('SOCKET TOKEN', socket.handshake.auth.token, socket.request.user)
-    /* TODO: check token: (maybe move to Express middleware instead?)
-        const token = socket.handshake.auth.token
-        const err = new Error("not authorized")
-        err.data = { content: "Invalid token" }
-        next(err)
-        */
-    next()
-  })
-}
-
 const wsEngine = {
   init: (app: any, wsIO: any) => {
     // initial mock until the real socket connects
@@ -24,7 +11,7 @@ const wsEngine = {
     app.rootIONS = wsIO
       .on('connect', socket => {
         app.rootSocket = socket
-        auth(socket)
+        // auth(socket) // TODO: secure this server connection a bit more than just CORS
         router.init()
       })
     /*

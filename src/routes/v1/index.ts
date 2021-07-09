@@ -1,5 +1,4 @@
 import authRoute from './auth.route'
-import userRoute from './user.route'
 import repoRoute from './repo.route'
 import shareRoute from './share.route'
 
@@ -12,7 +11,6 @@ const router = {
     use(authRoute)
     use(repoRoute)
     use(shareRoute)
-    use(userRoute)
   },
 }
 

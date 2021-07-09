@@ -21,7 +21,7 @@ const server = app.listen(config.port, config.host, () => {
 
 const wsIO = new Server(server, {
   cors: {
-    origin: ['*:*'],
+    origin: [config.API_SERVER],
   }
 })
 
