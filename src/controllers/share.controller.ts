@@ -5,7 +5,6 @@ import { authStore, shareStore } from '../config/config'
 import root from '../app'
 import diffs from '../services/diffs'
 import share from '../services/share'
-import catchAsync from '../utils/catchAsync'
 
 const uploadOriginal = ({ fpath, origin }) => {
   share
@@ -28,7 +27,7 @@ const startSharing = groups => {
   share
     .startSharing(groups)
     .then(data => {
-      root.rootSocket.emit('share:started', { data })
+      root.rootSocket.emit('share:start:complete', { data })
     })
     .catch(err => {
       console.error('startSharing op failure', err)

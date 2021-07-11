@@ -1,32 +1,27 @@
+import io from 'socket.io-client'
+
 import router from '../routes/v1'
+import config from '../config/config'
 
 const wsEngine = {
-  init: (app: any, wsIO: any) => {
-    // initial mock until the real socket connects
-    /* eslint-disable-next-line */
-    app.userSocket = { emit: () => {}, to: () => ({ emit: () => {} }), join: () => {} };
-    /* eslint-disable-next-line */
-    app.repoSocket = { emit: () => {}, to: () => ({ emit: () => {} }), join: () => {} };
-    // real sockets
-    app.rootIONS = wsIO
-      .on('connect', socket => {
-        app.rootSocket = socket
-        // auth(socket) // TODO: secure this server connection a bit more than just CORS
-        router.init()
-      })
-    /*
-    app.userIONS = wsIO.of('/users')
-      .on('connect', socket => {
-        app.userSocket = socket
-        auth(socket)
-      })
-    app.repoIONS = wsIO.of('/repos')
-      .on('connect', socket => {
-        app.repoSocket = socket
-        auth(socket)
-      })
-      */
-    app.wsIO = wsIO
+  init: (app: any, server: any) => {
+    // TODO: SECURITY: origin: [config.SERVER_WSS],
+    const rootSocket = io(config.SERVER_WSS, {
+      reconnectionDelayMax: 10000,
+      transports: ['websocket'],
+      origins: ['*'],
+      withCredentials: true,
+      timestampRequests: true,
+    })
+
+    console.log('INIT WSIO', config.SERVER_WSS)
+    rootSocket.on('connect', () => {
+      console.log('Websocket CONNECT. Assigning to rootSocket')
+      // auth(socket) // TODO: secure this server connection a bit more than just CORS
+      router.init()
+    })
+
+    app.rootSocket = rootSocket
   },
 
   reqHandler: (req: any, res: any, next: any) => {

@@ -1,5 +1,3 @@
-import { Server } from 'socket.io'
-
 import app from './app'
 import wsEngine from './middlewares/wsio'
 import config from './config/config'
@@ -19,16 +17,7 @@ const server = app.listen(config.port, config.host, () => {
   logger.info(`Listening on HTTP ${config.host}:${config.port}`)
 })
 
-const wsIO = new Server(server, {
-  cors: {
-    origin: [config.API_SERVER],
-  }
-})
-
-wsIO.on('connection', socket => {
-  console.log('Websocket Connection complete')
-})
-wsEngine.init(app, wsIO)
+wsEngine.init(app, server)
 
 const exitHandler = () => {
   if (server) {

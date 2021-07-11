@@ -1,4 +1,4 @@
-import root from '../app'
+import app from '../app'
 import { Peer8Store } from '../services/peer8.store'
 import Peer8API from '../services/api'
 import config from '../config/config'
@@ -11,12 +11,17 @@ const logout = () => {
 
 const info = () => {
   const { user, tokens } = Peer8Store
-  root.rootSocket.emit('info:load', { user, tokens })
+  app.rootSocket.emit('info:load', { user, tokens })
 }
 
 const sync = code => {
-  if (!code) root.rootSocket.emit('badRequest', 'sync')
-  return Peer8API.sync(code)
+  if (!code) app.rootSocket.emit('error:auth:sync', 'sync code invalid')
+  return Peer8API
+    .sync(code)
+    .then(() => {
+      app.rootSocket.emit('res:auth:sync')
+    })
+    .catch(_ => app.rootSocket.emit('error:auth:sync', 'could not sync with the code provided.'))
 }
 
 const AUTH_COMPLETE_HTML = `<html><body><h4>Code Awareness local service:</h4><h1>Authentication complete.</h1><p>You may now close this window.</p></body><style>body { text-align: center; padding-top: 4em; }</style></html>`
@@ -25,7 +30,10 @@ const AUTH_ERROR_HTML = err => `<html><body><h4>Code Awareness local service:</h
 const httpSync = (req, res) => {
   Peer8API
     .sync(req.query.code)
-    .then(() => res.send(AUTH_COMPLETE_HTML))
+    .then(() => {
+      app.rootSocket.emit('auth:sync:complete')
+      res.send(AUTH_COMPLETE_HTML)
+    })
     .catch(err => res.send(AUTH_ERROR_HTML(err)))
 }
 

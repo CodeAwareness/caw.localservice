@@ -42,6 +42,7 @@ if (error) {
 const PORT_LOCAL = envVars.PORT || 48048
 const PORT_LOCAL_API = 3000
 const API_SERVER = process.env.LOCAL ? `localhost:${PORT_LOCAL_API}` : 'ppt.peer8.com'
+const SERVER_WSS = process.env.LOCAL ? `ws://localhost:${PORT_LOCAL_API}` : 'wss://ppt.peer8.com'
 const API_URL = process.env.LOCAL ? `http://${API_SERVER}/v1` : `https://${API_SERVER}/v1`
 
 const CONFIGURATION_FILE = '.peer8'
@@ -78,6 +79,7 @@ const Config = {
   MAX_NR_OF_SHA_TO_COMPARE,
   PEER8_SCHEMA,
   PORT_LOCAL,
+  SERVER_WSS,
   SYNC_INTERVAL,
   SYNC_THRESHOLD,
   authStore,

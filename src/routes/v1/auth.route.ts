@@ -10,7 +10,7 @@ const router = {
     socket.on('auth:logout', () => {
       authController.logout()
     })
-    socket.on('auth:sync', (code: string) => {
+    socket.on('local:auth:sync', (code: string) => {
       authController.sync(code)
     })
   },

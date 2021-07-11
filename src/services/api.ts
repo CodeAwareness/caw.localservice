@@ -27,6 +27,7 @@ export const API_SHARE_OINFO         = '/share/getOriginInfo'
 
 axios.defaults.adapter = require('axios/lib/adapters/http')
 const axiosAPI = axios.create({ baseURL: Config.API_URL })
+console.log('REST on', Config.API_URL)
 
 axiosAPI.interceptors.request.use(config => {
   const { access } = Peer8Store.tokens || { access: {} }
@@ -238,7 +239,10 @@ const getOriginInfo = origin => {
 
 const sync = code => {
   return axiosAPI(`${API_AUTH_SYNC}?code=${code}`, { method: 'GET', responseType: 'json' })
-    .then(res => refreshToken(res.data.token))
+    .then(res => {
+      Peer8Store.user = res.data?.user
+      Peer8API.refreshToken(res.data?.refreshToken?.token)
+    })
 }
 
 const Peer8API = {
