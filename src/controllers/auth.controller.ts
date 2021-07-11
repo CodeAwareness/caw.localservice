@@ -14,6 +14,7 @@ const info = () => {
   app.rootSocket.emit('info:load', { user, tokens })
 }
 
+/* cA syncing between PPT web and cA local service */
 const sync = code => {
   if (!code) app.rootSocket.emit('error:auth:sync', 'sync code invalid')
   return Peer8API
@@ -27,6 +28,7 @@ const sync = code => {
 const AUTH_COMPLETE_HTML = `<html><body><h4>Code Awareness local service:</h4><h1>Authentication complete.</h1><p>You may now close this window.</p></body><style>body { text-align: center; padding-top: 4em; }</style></html>`
 const AUTH_ERROR_HTML = err => `<html><body><h4>Code Awareness local service:</h4><h1 style="padding-top: 4em; color: #a00">Error trying to authenticate.</h1>${err}</body><style>body { text-align: center; padding-top: 4em; }</style></html>`
 
+/* cA Portal will use this for immediate authentication (when not using Safari) */
 const httpSync = (req, res) => {
   Peer8API
     .sync(req.query.code)
