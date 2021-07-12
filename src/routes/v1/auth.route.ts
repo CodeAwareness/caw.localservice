@@ -5,7 +5,7 @@ const router = {
   init: (): void => {
     const socket = (app as any).rootSocket
     socket.on('auth:info', () => {
-      // socket.to(socketId).emit('auth:info:load', data)
+      // TODO:
     })
     socket.on('auth:logout', () => {
       authController.logout()

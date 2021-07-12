@@ -241,7 +241,7 @@ const sync = code => {
   return axiosAPI(`${API_AUTH_SYNC}?code=${code}`, { method: 'GET', responseType: 'json' })
     .then(res => {
       Peer8Store.user = res.data?.user
-      Peer8API.refreshToken(res.data?.refreshToken?.token)
+      return Peer8API.refreshToken(res.data?.refreshToken?.token)
     })
 }
 

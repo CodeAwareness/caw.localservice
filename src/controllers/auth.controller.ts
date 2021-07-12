@@ -2,6 +2,7 @@ import app from '../app'
 import { Peer8Store } from '../services/peer8.store'
 import Peer8API from '../services/api'
 import config from '../config/config'
+import wsEngine from '../middlewares/wsio'
 
 const logout = () => {
   config.authStore.clear()
@@ -32,7 +33,9 @@ const AUTH_ERROR_HTML = err => `<html><body><h4>Code Awareness local service:</h
 const httpSync = (req, res) => {
   Peer8API
     .sync(req.query.code)
+    .then(wsEngine.reconnect)
     .then(() => {
+      console.log('EMIT auth:sync:complete', app.rootSocket.io.opts.auth)
       app.rootSocket.emit('auth:sync:complete')
       res.send(AUTH_COMPLETE_HTML)
     })
