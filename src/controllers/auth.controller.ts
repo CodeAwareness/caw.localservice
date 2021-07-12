@@ -12,18 +12,18 @@ const logout = () => {
 
 const info = () => {
   const { user, tokens } = Peer8Store
-  app.rootSocket.emit('info:load', { user, tokens })
+  wsEngine.transmit('info:load', { user, tokens })
 }
 
 /* cA syncing between PPT web and cA local service */
 const sync = code => {
-  if (!code) app.rootSocket.emit('error:auth:sync', 'sync code invalid')
+  if (!code) wsEngine.transmit('error:auth:sync', 'sync code invalid')
   return Peer8API
     .sync(code)
     .then(() => {
-      app.rootSocket.emit('res:auth:sync')
+      wsEngine.transmit('res:auth:sync')
     })
-    .catch(_ => app.rootSocket.emit('error:auth:sync', 'could not sync with the code provided.'))
+    .catch(_ => wsEngine.transmit('error:auth:sync', 'could not sync with the code provided.'))
 }
 
 const AUTH_COMPLETE_HTML = `<html><body><h4>Code Awareness local service:</h4><h1>Authentication complete.</h1><p>You may now close this window.</p></body><style>body { text-align: center; padding-top: 4em; }</style></html>`
@@ -35,8 +35,7 @@ const httpSync = (req, res) => {
     .sync(req.query.code)
     .then(wsEngine.reconnect)
     .then(() => {
-      console.log('EMIT auth:sync:complete', app.rootSocket.io.opts.auth)
-      app.rootSocket.emit('auth:sync:complete')
+      wsEngine.transmit('auth:sync:complete')
       res.send(AUTH_COMPLETE_HTML)
     })
     .catch(err => res.send(AUTH_ERROR_HTML(err)))
