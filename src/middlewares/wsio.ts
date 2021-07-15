@@ -1,10 +1,10 @@
 import io from 'socket.io-client'
 
+import app from '../app'
 import router from '../routes/v1'
 import config from '../config/config'
-import { Peer8Store } from '..//services/peer8.store'
+import { Peer8Store } from '../services/peer8.store'
 
-let _app
 let _delay
 const expDelay = () => {
   _delay = _delay * 2
@@ -17,19 +17,19 @@ const resetDelay = () => {
 
 const transmit = (action, data = undefined) => {
   return new Promise((resolve, reject) => {
-    if (!_app.rootSocket) {
+    if (!app.rootSocket) {
       console.log('While trying to transmit', action)
       return reject(new Error('no socket connection'))
     }
     resetDelay()
     const pendingConnection = () => {
-      console.log('pendingConnection', _delay, _app.rootSocket.connected)
-      if (!_app.rootSocket.connected) return setTimeout(pendingConnection, expDelay())
+      console.log('pendingConnection', _delay, app.rootSocket.connected)
+      if (!app.rootSocket.connected) return setTimeout(pendingConnection, expDelay())
       resetDelay()
       console.log('Will emit (action, data)', action, data)
-      _app.rootSocket.emit(action, data)
-      _app.rootSocket.on(`res:${action}`, resolve)
-      _app.rootSocket.on(`error:${action}`, reject)
+      app.rootSocket.emit(action, data)
+      app.rootSocket.on(`res:${action}`, resolve)
+      app.rootSocket.on(`error:${action}`, reject)
     }
 
     pendingConnection()
@@ -37,10 +37,8 @@ const transmit = (action, data = undefined) => {
 }
 
 const wsEngine = {
-  init: (app: any): void => {
-    _app = app
-
-    const rootSocket = _app.rootSocket || wsEngine.reconnect()
+  init: (): Promise<void> => {
+    const rootSocket = app.rootSocket || wsEngine.reconnect()
 
     rootSocket.on('connect', () => {
       console.log('Websocket CONNECT. Assigning to rootSocket', rootSocket.auth)
@@ -53,13 +51,18 @@ const wsEngine = {
       return wsEngine.reconnect()
     })
 
+    rootSocket.onAny(ev => console.log('SOCKET DATA', ev))
+    rootSocket.prependAny(ev => console.log('SOCKET WILL EMIT', ev))
+
+    rootSocket.on('peer8', e => console.log('PEER8 EVENT', e))
     rootSocket.on('error', err => console.error(err.description?.message))
     rootSocket.on('connect_error', e => console.log('WSIO ERROR rootSocket', e))
 
-    wsEngine.reconnect()
+    return Promise.resolve() // TODO: wait until connected
   },
 
   reconnect: (): any => {
+    console.log('WSIO RECONNECT')
     // TODO: SECURITY: origin: [config.SERVER_WSS],
     const rootSocket = io(config.SERVER_WSS, {
       reconnectionDelayMax: 10000,
@@ -72,7 +75,7 @@ const wsEngine = {
       auth: { token: Peer8Store.tokens?.access?.token },
     })
 
-    _app.rootSocket = rootSocket
+    app.rootSocket = rootSocket
     return rootSocket
   },
 

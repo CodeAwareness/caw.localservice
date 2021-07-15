@@ -51,8 +51,10 @@ type TypeLinks = {
 }
 
 async function startSharing(groups): Promise<TypeLinks> {
-  const { origin, invitationLinks } = await api.setupShare(groups)
-  return { origin, links: invitationLinks }
+  console.log('SHARE.js', groups)
+  const data = await api.setupShare(groups)
+  console.log('got origin and links', data)
+  return data
 }
 
 async function refreshDiffs({ wsFolder, fpath }) {

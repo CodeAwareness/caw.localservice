@@ -7,13 +7,9 @@ const router = {
     socket.on('auth:info', () => {
       // TODO:
     })
-    socket.on('auth:logout', () => {
-      authController.logout()
-    })
-    socket.on('local:auth:sync', (code: string) => {
-      console.log('LOCAL auth:sync', code)
-      authController.sync(code)
-    })
+    socket.on('auth:logout', authController.logout)
+    // TODO: direct sync (without roundtrip to API)
+    // socket.on('local:auth:sync', authController.sync)
   },
 }
 

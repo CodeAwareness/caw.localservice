@@ -5,6 +5,7 @@ import { authStore, shareStore } from '../config/config'
 import root from '../app'
 import diffs from '../services/diffs'
 import share from '../services/share'
+import wsEngine from '../middlewares/wsio'
 
 const uploadOriginal = ({ fpath, origin }) => {
   share
@@ -14,24 +15,21 @@ const uploadOriginal = ({ fpath, origin }) => {
     })
     .catch(err => {
       console.error('startSharing op failure', err)
-      root.rootSocket.emit('share:error', { op: 'share:start:upload', err })
+      root.rootSocket.emit('error', { op: 'share:start:upload', err })
     })
   // TODO: unzip and create Files records, maybe?
   // await shell.unzip(path.basename(zipFile), extractDir)
 }
 
-const startSharing = groups => {
-  /**
-   * links = [{ origin, invitationLinks }, {...}, ...]
-   */
-  share
-    .startSharing(groups)
-    .then(data => {
-      root.rootSocket.emit('share:start:complete', { data })
-    })
+/**
+ * @param Object data = { origin, links }
+ */
+const startSharing = (data) => {
+  share.startSharing(data.groups)
+    .then(data => wsEngine.transmit('res:share:start', { data }))
     .catch(err => {
       console.error('startSharing op failure', err)
-      root.rootSocket.emit('share:error', { op: 'share:start', err })
+      root.rootSocket.emit('error', { op: 'share:start', err })
     })
   // TODO: await shell.unzip(path.basename(zipFile), extractDir)
 }
@@ -55,7 +53,7 @@ const setupReceived = async data => {
 const getFileOrigin = fpath => {
   const filename = path.basename(fpath)
   if (!filename) {
-    root.rootSocket.emit('share:error', { op: 'getFileOrigin', err: 'empty filename' })
+    root.rootSocket.emit('error', { op: 'getFileOrigin', err: 'empty filename' })
   }
   share
     .getFileOrigin(filename)
@@ -65,7 +63,7 @@ const getFileOrigin = fpath => {
 }
 
 const getOriginInfo = origin => {
-  if (!origin) return root.rootSocket.emit('share:error', { op: 'getOriginInfo', err: 'empty origin' })
+  if (!origin) return root.rootSocket.emit('error', { op: 'getOriginInfo', err: 'empty origin' })
   share
     .getOriginInfo(origin)
     .then(res => {

@@ -4,16 +4,9 @@ import shareController from '../../controllers/share.controller'
 const router = {
   init: (): void => {
     const socket = (app as any).rootSocket
-    socket.on('share:start', groups => {
-      shareController.startSharing(groups)
-    })
-    socket.on('share:uploadOriginal', data => {
-      // data = { fpath, origin }
-      shareController.startSharing(data)
-    })
-    socket.on('share:accept', origin => {
-      shareController.acceptShare(origin)
-    })
+    socket.on('share:start', shareController.startSharing)
+    socket.on('share:uploadOriginal', shareController.startSharing)
+    socket.on('share:accept', shareController.acceptShare)
   },
 }
 

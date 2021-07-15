@@ -17,6 +17,7 @@ const info = () => {
 
 /* cA syncing between PPT web and cA local service */
 const sync = code => {
+  console.log('AUTH:SYNC controller')
   if (!code) wsEngine.transmit('error:auth:sync', 'sync code invalid')
   return Peer8API
     .sync(code)
@@ -31,9 +32,10 @@ const AUTH_ERROR_HTML = err => `<html><body><h4>Code Awareness local service:</h
 
 /* cA Portal will use this for immediate authentication (when not using Safari) */
 const httpSync = (req, res) => {
+  console.log('AUTH:HTTPSYNC controller')
   Peer8API
     .sync(req.query.code)
-    .then(wsEngine.reconnect)
+    .then(wsEngine.init)
     .then(() => {
       wsEngine.transmit('auth:sync:complete')
       res.send(AUTH_COMPLETE_HTML)

@@ -27,7 +27,6 @@ export const API_SHARE_OINFO         = '/share/getOriginInfo'
 
 axios.defaults.adapter = require('axios/lib/adapters/http')
 const axiosAPI = axios.create({ baseURL: Config.API_URL })
-console.log('REST on', Config.API_URL)
 
 axiosAPI.interceptors.request.use(config => {
   const { access } = Peer8Store.tokens || { access: {} }
@@ -192,7 +191,7 @@ const sendDiffs = ({ zipFile, origin, cSHA, activePath }: any): Promise<any> => 
         maxBodyLength: Infinity,
       })
     .then(res => res.data)
-    .catch(err => console.error(err.status, err.code, err.request._currentUrl, err.request._currentRequest.method)) // TODO: error handling
+    .catch(err => console.error('API error', err.status, err.code, err.request._currentUrl, err.request._currentRequest?.method)) // TODO: error handling
 }
 
 const login = ({ email, password }: any): Promise<any> => axiosAPI.post(API_AUTH_LOGIN, { email, password })
@@ -211,15 +210,14 @@ const shareFile = ({ origin, zipFile }: any): Promise<any> => {
         maxBodyLength: Infinity,
       })
     .then(res => res.data)
-    .catch(err => console.error(err.status, err.code, err.request._currentUrl, err.request._currentRequest.method)) // todo: error handling
+    .catch(err => console.error('API error', err.status, err.code, err.request._currentUrl, err.request._currentRequest?.method)) // todo: error handling
 }
 
 const setupShare = (groups: Array<string>): Promise<any> => {
-  const data = JSON.stringify(groups)
   return axiosAPI
-    .post(API_SHARE_START, { data })
+    .post(API_SHARE_START, { groups })
     .then(res => res.data)
-    .catch(err => console.error(err.status, err.code, err.request._currentUrl, err.request._currentRequest.method)) // todo: error handling
+    .catch(err => console.error('API error', err.status, err.code, err.request._currentUrl, err.request._currentRequest?.method)) // todo: error handling
 }
 
 const acceptShare = link => {

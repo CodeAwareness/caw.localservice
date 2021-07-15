@@ -17,8 +17,6 @@ const server = app.listen(config.port, config.host, () => {
   logger.info(`Listening on HTTP ${config.host}:${config.port}`)
 })
 
-wsEngine.init(app)
-
 const exitHandler = () => {
   if (server) {
     server.close(() => {
