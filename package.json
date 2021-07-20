@@ -15,7 +15,7 @@
         "serve:dev": "NODE_ENV=development LOCAL=1 DEBUG='socket.io:client*,socket.io:socket*' nodemon --inspect dist/index.js",
         "serve": "node dist/index.js",
         "start": "NODE_ENV=production npm run serve",
-        "start:win": "$env:NODE_ENV='production' & npm run serve",
+        "start:win": "cross-env NODE_ENV='production' npm run serve",
         "dev": "npm run watch",
         "dev:win": "$env:NODE_ENV='development' & npm run serve",
         "test": "LOCAL=1 jest --forceExit --verbose",
