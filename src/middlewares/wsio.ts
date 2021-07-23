@@ -40,25 +40,32 @@ const wsEngine = {
   init: (): Promise<void> => {
     const rootSocket = app.rootSocket || wsEngine.reconnect()
 
-    rootSocket.on('connect', () => {
-      console.log('Websocket CONNECT. Assigning to rootSocket', rootSocket.auth)
-      // auth(socket) // TODO: secure this server connection a bit more than just CORS
-      router.init()
+    return new Promise((resolve, reject) => {
+      let connected
+      setTimeout(() => {
+        if (!connected) reject(new Error('Could not connect to websocket for 5 seconds'))
+      }, 5000)
+
+      rootSocket.on('connect', () => {
+        console.log('Websocket CONNECT. Assigning to rootSocket', rootSocket.auth)
+        // auth(socket) // TODO: secure this server connection a bit more than just CORS
+        router.init()
+        connected = true
+        resolve()
+      })
+
+      rootSocket.on('disconnect', reason => {
+        console.log('WSIO rootSocket DISCONNECT', reason)
+        return wsEngine.reconnect()
+      })
+
+      rootSocket.onAny(ev => console.log('SOCKET DATA', ev))
+      rootSocket.prependAny(ev => console.log('SOCKET WILL EMIT', ev))
+
+      rootSocket.on('peer8', e => console.log('PEER8 EVENT', e))
+      rootSocket.on('error', err => console.error(err.description?.message))
+      rootSocket.on('connect_error', e => console.log('WSIO ERROR rootSocket', e))
     })
-
-    rootSocket.on('disconnect', reason => {
-      console.log('WSIO rootSocket DISCONNECT', reason)
-      return wsEngine.reconnect()
-    })
-
-    rootSocket.onAny(ev => console.log('SOCKET DATA', ev))
-    rootSocket.prependAny(ev => console.log('SOCKET WILL EMIT', ev))
-
-    rootSocket.on('peer8', e => console.log('PEER8 EVENT', e))
-    rootSocket.on('error', err => console.error(err.description?.message))
-    rootSocket.on('connect_error', e => console.log('WSIO ERROR rootSocket', e))
-
-    return Promise.resolve() // TODO: wait until connected
   },
 
   reconnect: (): any => {
