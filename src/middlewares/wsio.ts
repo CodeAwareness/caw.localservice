@@ -3,7 +3,7 @@ import io from 'socket.io-client'
 import app from '../app'
 import router from '../routes/v1'
 import config from '../config/config'
-import { Peer8Store } from '../services/peer8.store'
+import { Peer8Store } from '../services/cA.store'
 
 let _delay
 const expDelay = () => {
@@ -62,7 +62,7 @@ const wsEngine = {
       rootSocket.onAny(ev => console.log('SOCKET DATA', ev))
       rootSocket.prependAny(ev => console.log('SOCKET WILL EMIT', ev))
 
-      rootSocket.on('peer8', e => console.log('PEER8 EVENT', e))
+      rootSocket.on('cA', e => console.log('PEER8 EVENT', e))
       rootSocket.on('error', err => console.error(err.description?.message))
       rootSocket.on('connect_error', e => console.log('WSIO ERROR rootSocket', e))
     })

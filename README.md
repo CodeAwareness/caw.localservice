@@ -55,7 +55,7 @@ yarn lint:fix
 
 ## Architecture
 
-`peer8.service` is an OS service that listens to HTTP requests from your editors (Visual Studio Code, vim, etc) and performs the necessary actions for CodeAwareness.
+`cA.localservice` is an OS service that listens to HTTP requests from your editors (Visual Studio Code, vim, etc) and performs the necessary actions for CodeAwareness.
 
 This service is composed of the following components:
 

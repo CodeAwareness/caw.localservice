@@ -4,10 +4,10 @@ import * as fs from 'fs'
 import logger from '../config/logger'
 import git from './git'
 
-import { Peer8Store } from './peer8.store'
+import { Peer8Store } from './cA.store'
 
 /**
- * @param string origin (OR) - the URL for this repo (e.g. github.com/peer8/peer8.vscode.git)
+ * @param string origin (OR) - the URL for this repo (e.g. github.com/cA/peer8.vscode.git)
  * @param string wsFolder (OR) - the local folder path for this repo
  */
 function getProject({ origin, wsFolder }): Array<any> {

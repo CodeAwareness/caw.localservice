@@ -5,7 +5,7 @@ export const Peer8Store = {
   panel: undefined,
 
   /* tmpDir: {
-   *   name: '/tmp/peer8_-12750-bA2Le6JKQ4Ad/'
+   *   name: '/tmp/cA_-12750-bA2Le6JKQ4Ad/'
    *   ... // see npm tmp package
    * }
    */
@@ -14,7 +14,7 @@ export const Peer8Store = {
   /* projects: [{
    *   name, // convenience property = basename(root)
    *   root, // root path
-   *   origin, // e.g. `https://github.com/peer8/peer8.vscode.git`
+   *   origin, // e.g. `https://github.com/cA/peer8.vscode.git`
    *   repo, // repo object (vscode or atom specific)
    *   branch, // current branch
    *   branches, // list of local branches

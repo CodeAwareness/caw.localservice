@@ -1,5 +1,5 @@
 import app from '../app'
-import { Peer8Store } from '../services/peer8.store'
+import { Peer8Store } from '../services/cA.store'
 import Peer8API from '../services/api'
 import config from '../config/config'
 import wsEngine from '../middlewares/wsio'

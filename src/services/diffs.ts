@@ -14,7 +14,7 @@ import Config from '../config/config'
 
 import git from './git'
 import shell from './shell'
-import { Peer8Store } from './peer8.store'
+import { Peer8Store } from './cA.store'
 import Peer8API from './api'
 
 const logger = console
@@ -87,7 +87,7 @@ function diffWithContributor({ ct, userFile, origin, wsFolder }): Promise<any> {
   const archiveDir = path.join(tmpDir, wsName)
   mkdirp.sync(archiveDir)
   /* downloadedFile: we save the diffs received from the server to TMP/active.diffs */
-  const downloadedFile = path.join(archiveDir, '_peer8.active.diffs')
+  const downloadedFile = path.join(archiveDir, '_cA.active.diffs')
   /* archiveFile: we use git archive to extract the active file from the cSHA commit */
   const archiveFile = path.join(archiveDir, `local-${ct.s}.tar`)
   /* extractDir: we extract the active file from the archive in this folder, so we can run git apply on it */
@@ -517,7 +517,7 @@ function getLinesChangedLocaly(project, fpath, doc): Promise<void> {
   let shaPromise = fs.writeFile(activeFile, doc)
 
   shas.forEach(sha => {
-    const archiveFile = path.join(archiveDir, `_peer8.archive-${sha}`)
+    const archiveFile = path.join(archiveDir, `_cA.archive-${sha}`)
     shaPromise = shaPromise
       .then(() => {
         logger.log('DIFFS: ARCHIVE', archiveFile, sha, fpath)

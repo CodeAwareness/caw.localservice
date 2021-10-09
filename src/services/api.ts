@@ -5,7 +5,7 @@ import { createReadStream } from 'fs'
 import Config from '../config/config'
 import git from './git'
 
-import { Peer8Store } from './peer8.store'
+import { Peer8Store } from './cA.store'
 
 Peer8Store.swarmAuthStatus = 0
 
@@ -35,7 +35,7 @@ axiosAPI.interceptors.request.use(config => {
 })
 
 axiosAPI.interceptors.response.use(
-  response => {
+  (response: any) => {
     if (response.status === 202) { // We are processing the requests as authorized for now, but we need to send the required (or latest) SHA to continue being authorized
       const authPromise = reAuthorize(response.statusText || response.data.statusText) // IMPORTANT: no await! otherwise we interrupt the regular operations for too long, and we also get deeper into a recursive interceptor response.
       // also, we do this strange response.statusText OR response.data.statusText because of a glitch in the test, it seems I can't make it work with supertest
@@ -139,7 +139,7 @@ function logout(reject, msg, err) {
 function refreshToken(refreshToken: string) {
   return axiosAPI
     .post(API_AUTH_REFRESH_TOKENS, { refreshToken })
-    .then(res => {
+    .then((res: any) => {
       Peer8Store.user = res.data.user
       Peer8Store.tokens = res.data.tokens
     })
@@ -237,7 +237,7 @@ const getOriginInfo = origin => {
 
 const sync = code => {
   return axiosAPI(`${API_AUTH_SYNC}?code=${code}`, { method: 'GET', responseType: 'json' })
-    .then(res => {
+    .then((res: any) => {
       Peer8Store.user = res.data?.user
       return Peer8API.refreshToken(res.data?.refreshToken?.token)
     })

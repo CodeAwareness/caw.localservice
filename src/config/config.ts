@@ -6,7 +6,7 @@ import tmp from 'tmp'
 import Keyv from 'keyv'
 
 import Joi    from '@hapi/joi'
-import { Peer8Store } from '../services/peer8.store'
+import { Peer8Store } from '../services/cA.store'
 
 const dbpath = path.join(process.cwd(), 'storage.sqlite')
 
@@ -17,7 +17,7 @@ export const authStore = new Keyv(`sqlite://${dbpath}`, { namespace: 'auth' })
 authStore.on('error', err => console.error('SQLite storage: connection error', err))
 
 // Setting up a temporary folder to work in
-Peer8Store.tmpDir = tmp.dirSync({ prefix: 'peer8', keep: true, unsafeCleanup: true }).name
+Peer8Store.tmpDir = tmp.dirSync({ prefix: 'cA', keep: true, unsafeCleanup: true }).name
 
 const API_ROOT = packageRoot.sync(__dirname)
 
@@ -41,12 +41,12 @@ if (error) {
 
 const PORT_LOCAL = envVars.PORT || 48048
 const PORT_LOCAL_API = 3000
-const API_SERVER = process.env.LOCAL ? `localhost:${PORT_LOCAL_API}` : 'ppt.peer8.com'
-const SERVER_WSS = process.env.LOCAL ? `ws://localhost:${PORT_LOCAL_API}/svc` : 'wss://ppt.peer8.com/svc'
+const API_SERVER = process.env.LOCAL ? `localhost:${PORT_LOCAL_API}` : 'ppt.cA.com'
+const SERVER_WSS = process.env.LOCAL ? `ws://localhost:${PORT_LOCAL_API}/svc` : 'wss://ppt.cA.com/svc'
 const API_URL = process.env.LOCAL ? `http://${API_SERVER}/v1` : `https://${API_SERVER}/v1`
 
-const CONFIGURATION_FILE = '.peer8'
-const PEER8_SCHEMA = 'peer8'
+const CONFIGURATION_FILE = '.cA'
+const PEER8_SCHEMA = 'cA'
 const SYNC_INTERVAL = 100 * 1000 // download diffs from the server every some time
 const SYNC_THRESHOLD = 1000 // don't sync too often
 const MAX_NR_OF_SHA_TO_COMPARE = 5

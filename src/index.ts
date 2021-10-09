@@ -2,7 +2,7 @@ import app from './app'
 import wsEngine from './middlewares/wsio'
 import config from './config/config'
 import logger from './config/logger'
-import { Peer8Store } from './services/peer8.store'
+import { Peer8Store } from './services/cA.store'
 
 restoreAuthInfo()
 

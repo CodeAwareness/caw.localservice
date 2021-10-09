@@ -5,7 +5,7 @@ import logger from '../config/logger'
 
 import root from '../app'
 import git from '../services/git'
-import { Peer8Store } from '../services/peer8.store'
+import { Peer8Store } from '../services/cA.store'
 
 const add = folder => {
   logger.info('SCM addProject', folder)
