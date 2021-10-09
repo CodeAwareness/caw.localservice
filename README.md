@@ -1,8 +1,10 @@
 # CodeAwareness client system service
 
-This is a service that needs to be wrapped and compiled specifically for Windows, MacOS, Linux.
+This is a local (client) system service that needs to be wrapped and compiled specifically for Windows, MacOS, Linux.
 We could use node-windows, node-mac, and systemd to ensure proper launching, restarting and logging.
 We're also using node-ipc for communication with the editor plugins.
+
+The service listens on port 48408. We have the port customization on our TODO list, since it's a complex problem involving coordination between this service and various clients, such as PowerPoint addons, VSCode extensions, vim/emacs plugins, etc.
 
 ## Getting Started
 
