@@ -6,10 +6,10 @@ import * as path from 'path'
 import * as util from 'util'
 import * as child from 'child_process'
 
-import app from '../../src/app'
-import { API_REPO_CONTRIB, API_SHARE_ACCEPT, API_SHARE_START, API_SHARE_UPLOAD } from '../../src/services/api'
-import Config from '../../src/config/config'
-import { CΩStore } from '../../src/services/cA.store'
+import app from '@/app'
+import { API_REPO_CONTRIB, API_SHARE_ACCEPT, API_SHARE_START, API_SHARE_UPLOAD } from '@/services/api'
+import Config from '@/config/config'
+import { CΩStore } from '@/services/cA.store'
 
 // TODO: Windows env setup
 const tmpDir = '/tmp/codeawareness.local'
@@ -41,6 +41,9 @@ afterAll(() => {
   nock.cleanAll()
 })
 
+/***
+ * TODO: rewrite these with sockets
+ */
 describe('Share service', () => {
   describe('Starting a share should create groups and invitation links', () => {
     test.only('should setup a list of share groups', async () => {
