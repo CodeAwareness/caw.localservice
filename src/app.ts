@@ -5,10 +5,19 @@ import config from './config/config'
 import morgan from './config/morgan'
 import httpRoutes from './routes/v1/http.route'
 
-type ExpressPeer8 = Partial<express.Application> &
-  { rootSocket: any }
+export type CΩExpress = Partial<express.Application> &
+  {
+    apiSocket: any,
+    localSocket: any,
+  }
 
-const app = express() as unknown as ExpressPeer8
+export type CΩRequest = Partial<express.Request>
+
+export type CΩResponse = express.Response
+
+export type CΩNext = express.NextFunction
+
+const app = express() as unknown as CΩExpress
 
 if (config.env !== 'test') {
   app.use(morgan.successHandler)

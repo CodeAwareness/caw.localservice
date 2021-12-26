@@ -10,7 +10,7 @@ import { generateUUID } from '../utils/string'
 import api from '../services/api'
 import shell from '../services/shell'
 import diffs from '../services/diffs'
-import { Peer8Store } from '../services/cA.store'
+import { CΩStore } from '../services/cA.store'
 
 type TypeWS = {
   wsFolder: string,
@@ -18,7 +18,7 @@ type TypeWS = {
 }
 
 function generateWSFolder() {
-  const tmpDir = Peer8Store.tmpDir
+  const tmpDir = CΩStore.tmpDir
   return path.join(tmpDir, generateUUID(16))
 }
 
@@ -90,7 +90,7 @@ async function acceptShare(origin: string): Promise<string> {
   mkdirp.sync(extractDir)
   let fpath: string
   return api.acceptShare(origin)
-    .then((res: any) => {
+    .then(res => {
       const parts = res.data.url.split('/')
       const filename = parts[parts.length - 1].replace(/\?.*$/, '')
       fpath = path.join(extractDir, filename)

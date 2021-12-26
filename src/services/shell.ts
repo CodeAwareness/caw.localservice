@@ -42,7 +42,7 @@ const copyFile = async (source: string, destDir: string): Promise<string> => {
 const unzip = async (filename: string, dir: string): Promise<string> => {
   logger.log('will unzip using shell cmd', filename, dir)
   if (isWindows) {
-    // TODO: make sure we install at Peer8 folder or somehow get the user chosen folder from the installer
+    // TODO: make sure we install at CΩ folder or somehow get the user chosen folder from the installer
     return cmd(`tar.exe -xf ${filename}`, dir)
   } else {
     return cmd(`unzip ${filename}`, dir)

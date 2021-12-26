@@ -1,9 +1,10 @@
-import app from '../../app'
-import authController from '../../controllers/auth.controller'
+import type { CΩExpress } from '@/app'
+import app from '@/app'
+import authController from '@/controllers/auth.controller'
 
 const router = {
   init: (): void => {
-    const socket = (app as any).rootSocket
+    const socket = (app as CΩExpress).apiSocket
     socket.on('auth:info', () => {
       // TODO:
     })

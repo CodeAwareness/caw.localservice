@@ -3,7 +3,7 @@
     "module": "commonjs",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "target": "es6",
+    "target": "esnext",
     "noImplicitAny": false,
     "moduleResolution": "node",
     "forceConsistentCasingInFileNames": true,
@@ -11,13 +11,14 @@
     "outDir": "dist",
     "baseUrl": ".",
     "paths": {
-      "@/*": [ "*" ]
+      "@/*": [ "src/*" ]
     }
   },
-  "include": [
-    "src/**/*"
-  ],
+  "types": [ "node", "jest" ],
   "rules": {
     "@typescript-eslint/ban-ts-comment": 0
+  },
+  "ts-node": {
+    "require": ["tsconfig-paths/register"]
   }
 }

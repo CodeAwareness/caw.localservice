@@ -1,7 +1,7 @@
 export default {
   apps: [
     {
-      name: 'peer8.local',
+      name: 'codeawareness.local',
       script: 'dist/index.js',
       watch: 'src',
       env: { NODE_ENV: 'development' },

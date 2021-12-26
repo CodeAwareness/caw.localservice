@@ -5,7 +5,7 @@ import logger from '../config/logger'
 
 import root from '../app'
 import git from '../services/git'
-import { Peer8Store } from '../services/cA.store'
+import { CΩStore } from '../services/cA.store'
 
 const add = folder => {
   logger.info('SCM addProject', folder)
@@ -18,32 +18,32 @@ const add = folder => {
   // Setup project origins
   const contributors = {}
   const changes = {}
-  return git.gitRemotes(folder)
+  return git.getRemotes(folder)
     .then(origin => {
       // TODO: Allow other versioning systems (gitlab, etc)
       // TODO: Check all remotes (check if ANY match)
       const root = folder
       const name = path.basename(root)
-      // TODO: cleanup Peer8Store.projects with a timeout of inactivity or something
+      // TODO: cleanup CΩStore.projects with a timeout of inactivity or something
       const project = { name, origin, root, changes, contributors }
-      Peer8Store.projects.push(project)
-      root.rootSocket.emit('repo:added', { project })
+      CΩStore.projects.push(project)
+      root.apiSocket.emit('repo:added', { project })
     })
     .catch(err => logger.error('SCM setupOrigin ERROR', err))
 }
 
 const remove = folder => {
-  const project = Peer8Store.projects.filter(m => m.name === path.basename(folder))[0]
+  const project = CΩStore.projects.filter(m => m.name === path.basename(folder))[0]
   logger.info('SCM removeProject folder', folder, project)
   if (project) {
-    Peer8Store.projects = Peer8Store.projects.filter(m => m.origin !== project.origin)
+    CΩStore.projects = CΩStore.projects.filter(m => m.origin !== project.origin)
   }
-  root.rootSocket.emit('repo:removed', { folder })
+  root.apiSocket.emit('repo:removed', { folder })
 }
 
 const addSubmodules = folder => {
   // TODO: add submodules of submodules ? (recursive)
-  return git.gitCommand(folder, 'git submodule status')
+  return git.command(folder, 'git submodule status')
     .then(out => {
       if (!out) return
       const subs = []
@@ -60,7 +60,7 @@ const addSubmodules = folder => {
 }
 
 const removeSubmodules = folder => {
-  return git.gitCommand(folder, 'git submodule status')
+  return git.command(folder, 'git submodule status')
     .then(out => {
       const subs = out.split('\n').map(line => / ([^\s]+) /.exec(line)[1])
       subs.map(sub => remove(path.join(folder, sub)))

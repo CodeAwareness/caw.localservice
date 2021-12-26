@@ -11,11 +11,11 @@ const uploadOriginal = ({ fpath, origin }) => {
   share
     .uploadOriginal({ fpath, origin })
     .then(data => {
-      root.rootSocket.emit('share:uploaded', { data })
+      root.apiSocket.emit('share:uploaded', { data })
     })
     .catch(err => {
       console.error('startSharing op failure', err)
-      root.rootSocket.emit('error', { op: 'share:start:upload', err })
+      root.apiSocket.emit('error', { op: 'share:start:upload', err })
     })
   // TODO: unzip and create Files records, maybe?
   // await shell.unzip(path.basename(zipFile), extractDir)
@@ -29,7 +29,7 @@ const startSharing = (data) => {
     .then(data => wsEngine.transmit('res:share:start', { data }))
     .catch(err => {
       console.error('startSharing op failure', err)
-      root.rootSocket.emit('error', { op: 'share:start', err })
+      root.apiSocket.emit('error', { op: 'share:start', err })
     })
   // TODO: await shell.unzip(path.basename(zipFile), extractDir)
 }
@@ -37,8 +37,8 @@ const startSharing = (data) => {
 const acceptShare = async origin => {
   const peerFile = await share.acceptShare(origin)
   const peerFile64 = await share.fileToBase64(peerFile)
-  // TODO: this is potentially sending 200MB file to the server and then back
-  root.rootSocket.emit('share:accepted', { peerFile, peerFile64 })
+  // TODO: this is potentially sending large files (e.g. 200+MB) to the server and then back
+  root.apiSocket.emit('share:accepted', { peerFile, peerFile64 })
 }
 
 /**
@@ -47,28 +47,28 @@ const acceptShare = async origin => {
 const setupReceived = async data => {
   // data = { fpath, origin, wsFolder }
   const { fpath, wsFolder } = await share.setupReceived(data)
-  root.rootSocket.emit('share:setupComplete', { fpath, wsFolder })
+  root.apiSocket.emit('share:setupComplete', { fpath, wsFolder })
 }
 
 const getFileOrigin = fpath => {
   const filename = path.basename(fpath)
   if (!filename) {
-    root.rootSocket.emit('error', { op: 'getFileOrigin', err: 'empty filename' })
+    root.apiSocket.emit('error', { op: 'getFileOrigin', err: 'empty filename' })
   }
   share
     .getFileOrigin(filename)
     .then(res => {
-      root.rootSocket.emit('share:setFileOrigin', res.data)
+      root.apiSocket.emit('share:setFileOrigin', res.data)
     })
 }
 
 const getOriginInfo = origin => {
-  if (!origin) return root.rootSocket.emit('error', { op: 'getOriginInfo', err: 'empty origin' })
+  if (!origin) return root.apiSocket.emit('error', { op: 'getOriginInfo', err: 'empty origin' })
   share
     .getOriginInfo(origin)
     .then(res => {
       console.log('origin info', res.data)
-      root.rootSocket.emit('share:setFileOrigin', res.data)
+      root.apiSocket.emit('share:setFileOrigin', res.data)
     })
 }
 
@@ -78,7 +78,7 @@ const getDiffs = async ({ origin, ct, fpath, wsFolder }) => {
   const pptFilename = `${ct._id}.pptx`
   const peerFile = await share.buildPPTX({ extractDir, pptFilename })
   const peerFile64 = await share.fileToBase64(peerFile)
-  root.rootSocket.emit('share:peerFile', peerFile64)
+  root.apiSocket.emit('share:peerFile', peerFile64)
 }
 
 const willOpenPPT = async ({ user, origin, fpath }) => {
@@ -87,7 +87,7 @@ const willOpenPPT = async ({ user, origin, fpath }) => {
   await shareStore.set('fpath', fpath)
   await shareStore.set('configDate', new Date())
   console.log('WILL OPEN PPT', origin)
-  root.rootSocket.emit('share:storeSet')
+  root.apiSocket.emit('share:storeSet')
 }
 
 const checkReceived = async () => {
@@ -103,22 +103,22 @@ const checkReceived = async () => {
   console.log('checkReceived', origin, configDate, timediff)
 
   if (timediff < 60000) {
-    root.rootSocket.emit('share:config', { origin, fpath, user, tokens })
+    root.apiSocket.emit('share:config', { origin, fpath, user, tokens })
   }
 
-  root.rootSocket.emit('share:config', '')
+  root.apiSocket.emit('share:config', '')
 }
 
 const updateFilename = data => {
   // data = { origin, fpath, wsFolder }
   share.unmonitorOrigin(data.origin)
   share.monitorFile(data)
-  root.rootSocket.emit('share:filenameUpdated')
+  root.apiSocket.emit('share:filenameUpdated')
 }
 
 const pptContributors = async ({ origin, fpath }) => {
   const contributors = await diffs.refreshAdhocChanges({ origin, fpath })
-  root.rootSocket.emit('share:contributors', contributors)
+  root.apiSocket.emit('share:contributors', contributors)
 }
 
 const ShareController = {

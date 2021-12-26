@@ -1,4 +1,4 @@
-export const Peer8Store = {
+export const CΩStore = {
   colorTheme: 1, // 1 = Light, 2 = Dark, 3 = High Contrast
   user: undefined,
   tokens: undefined,
@@ -14,7 +14,7 @@ export const Peer8Store = {
   /* projects: [{
    *   name, // convenience property = basename(root)
    *   root, // root path
-   *   origin, // e.g. `https://github.com/cA/peer8.vscode.git`
+   *   origin, // e.g. `https://github.com/codeawareness/codeawareness.vscode.git`
    *   repo, // repo object (vscode or atom specific)
    *   branch, // current branch
    *   branches, // list of local branches
@@ -114,27 +114,27 @@ export const Peer8Store = {
   socket: undefined, // socketIO
 
   clear: () => {
-    Peer8Store.selectedContributor = undefined
+    CΩStore.selectedContributor = undefined
   },
 
   emtpy: () => {
-    Peer8Store.tokens = undefined
-    Peer8Store.user = undefined
-    Peer8Store.panel = undefined
-    Peer8Store.colorTheme = 1
-    Peer8Store.tmpDir = undefined
-    Peer8Store.projects = []
-    Peer8Store.activeProject = undefined
-    Peer8Store.selectedBranch = undefined
-    Peer8Store.selectedContributor = undefined
-    Peer8Store.peerFS = {}
-    Peer8Store.doc = undefined
-    Peer8Store.line = 0
-    Peer8Store.socket = undefined
+    CΩStore.tokens = undefined
+    CΩStore.user = undefined
+    CΩStore.panel = undefined
+    CΩStore.colorTheme = 1
+    CΩStore.tmpDir = undefined
+    CΩStore.projects = []
+    CΩStore.activeProject = undefined
+    CΩStore.selectedBranch = undefined
+    CΩStore.selectedContributor = undefined
+    CΩStore.peerFS = {}
+    CΩStore.doc = undefined
+    CΩStore.line = 0
+    CΩStore.socket = undefined
   },
 }
 
-export const Peer8Work = {
+export const CΩWork = {
   // terminal (optional feature: client side processing using shell commands)
   tokenInterval: 0,
   syncTimer: null,

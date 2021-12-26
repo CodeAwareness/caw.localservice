@@ -1,16 +1,15 @@
 import app from './app'
-import wsEngine from './middlewares/wsio'
 import config from './config/config'
 import logger from './config/logger'
-import { Peer8Store } from './services/cA.store'
+import { CΩStore } from './services/cA.store'
 
 restoreAuthInfo()
 
 async function restoreAuthInfo() {
   const user = await config.authStore.get('user')
   const tokens = await config.authStore.get('tokens')
-  Peer8Store.tokens = tokens
-  Peer8Store.user = user
+  CΩStore.tokens = tokens
+  CΩStore.user = user
 }
 
 const server = app.listen(config.port, config.host, () => {
@@ -28,7 +27,7 @@ const exitHandler = () => {
   }
 }
 
-const unexpectedErrorHandler = (error) => {
+const unexpectedErrorHandler = (error: any) => {
   logger.error(error)
   exitHandler()
 }

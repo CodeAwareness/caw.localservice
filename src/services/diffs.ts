@@ -14,8 +14,8 @@ import Config from '../config/config'
 
 import git from './git'
 import shell from './shell'
-import { Peer8Store } from './cA.store'
-import Peer8API from './api'
+import { CΩStore } from './cA.store'
+import CΩAPI from './api'
 
 const logger = console
 
@@ -30,7 +30,7 @@ const isWindows = !!process.env.ProgramFiles
  *   and create a git repo, while refreshing with changes made on the originals.
  ************************************************************************************/
 
-const tmpDir = Peer8Store.tmpDir
+const tmpDir = CΩStore.tmpDir
 const emptyFile = path.join(tmpDir, 'empty.p8')
 const adhocDir = path.join(tmpDir, 'adhoc') // for adhoc sharing files and folders
 
@@ -41,11 +41,11 @@ const adhocDir = path.join(tmpDir, 'adhoc') // for adhoc sharing files and folde
  ************************************************************************************/
 function diffWithBranch(branch: string): Promise<any> {
   let peerFile
-  let wsFolder = Peer8Store.activeProject.root
-  Peer8Store.selectedBranch = branch
-  Peer8Store.selectedContributor = undefined
-  const userFile = Peer8Store.activeProject.activePath
-  return git.gitCommand(path.join(wsFolder, path.dirname(userFile)), 'git rev-parse --show-toplevel')
+  let wsFolder = CΩStore.activeProject.root
+  CΩStore.selectedBranch = branch
+  CΩStore.selectedContributor = undefined
+  const userFile = CΩStore.activeProject.activePath
+  return git.command(path.join(wsFolder, path.dirname(userFile)), 'git rev-parse --show-toplevel')
     .then(folder => {
       wsFolder = folder.trim()
       const name = path.basename(wsFolder)
@@ -53,11 +53,11 @@ function diffWithBranch(branch: string): Promise<any> {
       const localDir = path.join(tmpDir, name, Config.EXTRACT_BRANCH_DIR)
       mkdirp.sync(path.join(localDir, relativeDir))
       peerFile = path.join(tmpDir, name, Config.EXTRACT_BRANCH_DIR, userFile)
-      return git.gitCommand(wsFolder, `git --work-tree=${localDir} checkout ${branch} -- ${userFile}`)
+      return git.command(wsFolder, `git --work-tree=${localDir} checkout ${branch} -- ${userFile}`)
     })
     .then(() => {
       // TODO: do something with the stderr?
-      const title = `Peer8#${path.basename(userFile)} ↔ Peer changes`
+      const title = `CΩ#${path.basename(userFile)} ↔ Peer changes`
       return { title, peerFile, userFile: path.join(wsFolder, userFile) }
     })
     .catch(logger.error)
@@ -82,7 +82,7 @@ function diffWithBranch(branch: string): Promise<any> {
  * Perhaps this can change in the future.
  ************************************************************************************/
 function diffWithContributor({ ct, userFile, origin, wsFolder }): Promise<any> {
-  // !!!!! Peer8Workspace.selectContributor(ct)
+  // !!!!! CΩWorkspace.selectContributor(ct)
   const wsName = path.basename(wsFolder)
   const archiveDir = path.join(tmpDir, wsName)
   mkdirp.sync(archiveDir)
@@ -98,7 +98,7 @@ function diffWithContributor({ ct, userFile, origin, wsFolder }): Promise<any> {
   const peerFile = path.join(extractDir, userFile)
   logger.log('DIFFS: diffWithContributor (ct, userFile, extractDir)', ct, userFile, extractDir)
 
-  return Peer8API
+  return CΩAPI
     .downloadDiffFile({ origin, fpath: ct.k })
     .then(saveDownloaded)
     .then(gitArchive)
@@ -112,7 +112,7 @@ function diffWithContributor({ ct, userFile, origin, wsFolder }): Promise<any> {
   }
 
   function gitArchive() {
-    return git.gitCommand(wsFolder, `git archive --format=tar -o ${archiveFile} ${ct.s} ${userFile}`)
+    return git.command(wsFolder, `git archive --format=tar -o ${archiveFile} ${ct.s} ${userFile}`)
   }
 
   function untar() {
@@ -120,13 +120,13 @@ function diffWithContributor({ ct, userFile, origin, wsFolder }): Promise<any> {
   }
 
   function applyDiffs() {
-    // return git.gitCommand(extractDir, `git apply --whitespace=nowarn ${downloadedFile}`) // TODO: would be nice if this worked
+    // return git.command(extractDir, `git apply --whitespace=nowarn ${downloadedFile}`) // TODO: would be nice if this worked
     const cmd = isWindows ? '"C:\\Program Files\\Git\\usr\\bin\\patch.exe"' : 'patch'
-    return git.gitCommand(extractDir, `${cmd} -p1 < ${downloadedFile}`)
+    return git.command(extractDir, `${cmd} -p1 < ${downloadedFile}`)
   }
 
   function vscodeOpenDiffs() {
-    const title = `Peer8#${path.basename(userFile)} ↔ Peer changes`
+    const title = `CΩ#${path.basename(userFile)} ↔ Peer changes`
     logger.log('DIFFS: vscodeOpenDiffs (ct, peerFile, userFile)', ct, peerFile, userFile)
     return { title, extractDir, peerFile, userFile: path.join(wsFolder, userFile) }
   }
@@ -146,7 +146,7 @@ function sendCommitLog(project): Promise<string> {
   let localBranches, currentBranch
 
   logger.log('DIFFS: sendCommitLog (wsFolder)', wsFolder)
-  return git.gitCommand(wsFolder, 'git rev-list HEAD -n1')
+  return git.command(wsFolder, 'git rev-list HEAD -n1')
     .then(sha => {
       const head = sha.trim()
       if (project.head === head) {
@@ -163,7 +163,7 @@ function sendCommitLog(project): Promise<string> {
     })
 
   function fetchCommonSHA() {
-    return Peer8API
+    return CΩAPI
       .findCommonSHA(origin)
       .then(res => {
         project.cSHA = res.data.sha || project.head
@@ -174,7 +174,7 @@ function sendCommitLog(project): Promise<string> {
 
   function sendLog(head) {
     logger.log('DIFFS: sendLog HEAD (origin, head)', project.origin, project.head)
-    return git.gitCommand(wsFolder, 'git branch --verbose --no-abbrev --no-color')
+    return git.command(wsFolder, 'git branch --verbose --no-abbrev --no-color')
       .then(extractLog)
       .then(upload)
       .then(res => {
@@ -197,12 +197,12 @@ function sendCommitLog(project): Promise<string> {
         return { label, sha }
       })
       .filter(b => b)
-    return git.gitCommand(wsFolder, `git log -n ${MAX_COMMITS} --pretty=oneline --format="%H" --no-color`) // max 200 commits by default
+    return git.command(wsFolder, `git log -n ${MAX_COMMITS} --pretty=oneline --format="%H" --no-color`) // max 200 commits by default
   }
 
   function upload(stdout) {
     const commits = stdout.split(/[\n\r]/).filter(l => l)
-    return Peer8API.sendCommitLog({
+    return CΩAPI.sendCommitLog({
       origin,
       commits,
       branches: localBranches,
@@ -218,7 +218,7 @@ function createEmpty(file) {
 /************************************************************************************
  * sendDiffs
  *
- * @param Object - Peer8Store project
+ * @param Object - CΩStore project
  *
  * We're running a git diff against the common SHA, archive this with gzip
  * and send it to the server.
@@ -251,11 +251,11 @@ function sendDiffs(project): Promise<void> {
   // TODO: only sendCommitLog at the beginning, and then when the commit history has changed. How do we monitor the git history?
   return sendCommitLog(project)
     .then(() => {
-      return git.gitCommand(wsFolder, 'git ls-files --others --exclude-standard')
+      return git.command(wsFolder, 'git ls-files --others --exclude-standard')
       // TODO: parse .gitignore and don't add (e.g. dot files) for security reasons
     })
     .catch(error => {
-      throw new Error(`Error while sendingCommitLog (gitCommand ls-files). ${error}`)
+      throw new Error(`Error while sendingCommitLog (command ls-files). ${error}`)
     })
     .then(files => {
       if (!files.length) return
@@ -266,11 +266,11 @@ function sendDiffs(project): Promise<void> {
     })
     .then(() => {
       logger.info('DIFFS: appending cSHA and diffs (cSHA, wsFolder, tmpProjectDiff)', project.cSHA, wsFolder, tmpProjectDiff)
-      return git.gitCommand(wsFolder, `git diff -b -U0 --no-color ${project.cSHA} >> ${tmpProjectDiff}`)
+      return git.command(wsFolder, `git diff -b -U0 --no-color ${project.cSHA} >> ${tmpProjectDiff}`)
       // TODO: maybe also include changes not yet saved (all active editors) / realtime mode ?
     })
     .catch(error => {
-      throw new Error(`Error while sendingCommitLog (gitCommand diff). ${error}`)
+      throw new Error(`Error while sendingCommitLog (command diff). ${error}`)
     })
     .then(() => {
       const { cSHA } = project
@@ -285,7 +285,7 @@ function sendDiffs(project): Promise<void> {
     const stream = createWriteStream(tmpProjectDiff)
     const streamPromises = files.map(f => {
       return git
-        .gitCommand(wsFolder, `git --no-pager diff -b -U0 ${emptyFile} ${f}`)
+        .command(wsFolder, `git --no-pager diff -b -U0 ${emptyFile} ${f}`)
         .then(e => stream.write(e))
     })
     return Promise
@@ -310,7 +310,7 @@ function uploadDiffs({ diffDir, origin, cSHA, activePath }): Promise<void> {
   const zipFile = path.join(diffDir, `${cSHA}.gz`)
   return compress(diffFile, zipFile)
     .then(() => {
-      return Peer8API.sendDiffs({ zipFile, cSHA, origin, activePath })
+      return CΩAPI.sendDiffs({ zipFile, cSHA, origin, activePath })
     })
 }
 
@@ -382,28 +382,28 @@ async function setupShare(fPath, groups, isFolder = false): Promise<void> {
   const copyOp = isFolder ? copyFolder : copyFile
   await copyOp(fPath, adhocRepo)
   await initGit({ extractDir: adhocRepo, origin })
-  await git.gitCommand(adhocRepo, `git archive --format zip --output ${zipFile} HEAD`)
-  await git.gitCommand(adhocRepo, 'git rev-list HEAD -n1')
+  await git.command(adhocRepo, `git archive --format zip --output ${zipFile} HEAD`)
+  await git.command(adhocRepo, 'git rev-list HEAD -n1')
   // TODO:
-  // await Peer8API.sendAdhocShare({ zipFile, origin, groups })
+  // await CΩAPI.sendAdhocShare({ zipFile, origin, groups })
 }
 
 async function initGit({ extractDir, origin }): Promise<void> {
-  await git.gitCommand(extractDir, 'git init')
-  await git.gitCommand(extractDir, 'git add .')
-  await git.gitCommand(extractDir, `git remote add origin ${origin}`)
-  await git.gitCommand(extractDir, 'git commit -am "initial commit"')
+  await git.command(extractDir, 'git init')
+  await git.command(extractDir, 'git add .')
+  await git.command(extractDir, `git remote add origin ${origin}`)
+  await git.command(extractDir, 'git commit -am "initial commit"')
 }
 
 async function updateGit(extractDir: string): Promise<void> {
-  // await git.gitCommand(extractDir, 'git add .') // TODO: this conflicts with initGit in the initial receiving phase
-  // await git.gitCommand(extractDir, 'git commit -am "updated"') // We'll keep the original commit for now.
+  // await git.command(extractDir, 'git add .') // TODO: this conflicts with initGit in the initial receiving phase
+  // await git.command(extractDir, 'git commit -am "updated"') // We'll keep the original commit for now.
 }
 
 /************************************************************************************
  * refreshChanges
  *
- * @param object - Peer8Store project
+ * @param object - CΩStore project
  * @param string - the file path of the active document
  *
  * Refresh the peer changes for the active file.
@@ -412,14 +412,14 @@ async function updateGit(extractDir: string): Promise<void> {
  * 3. Shift the line markers received from the server, to account for local changes.
  *
  * TODO: cleanup older changes; the user closes tabs (maybe) but we're still keeping
- * the changes in Peer8Store (project.changes)
+ * the changes in CΩStore (project.changes)
  ************************************************************************************/
 const lastDownloadDiff = []
 function refreshChanges(project: any, fpath: string, doc: string): Promise<void> {
   /* TODO: add caching (so we don't keep on asking for the same file when the user mad-clicks the same contributor) */
   const wsFolder = project.root
 
-  logger.log('DIFFS: downloadDiffs (origin, fpath, user)', project.origin, fpath, Peer8Store.user)
+  logger.log('DIFFS: downloadDiffs (origin, fpath, user)', project.origin, fpath, CΩStore.user)
   PENDING_DIFFS[fpath] = true // this operation can take a while, so we don't want to start it several times per second
   /* @ts-ignore */
   if (lastDownloadDiff[wsFolder] && new Date() - lastDownloadDiff[wsFolder] < Config.SYNC_THRESHOLD) {
@@ -444,15 +444,15 @@ function refreshChanges(project: any, fpath: string, doc: string): Promise<void>
 /************************************************************************************
  * downloadLinesChanged
  *
- * @param object - Peer8Store project
+ * @param object - CΩStore project
  * @param string - the file path of the active document
  *
  * We download the list of contributors for the active file,
  * and aggregate their changes to display the change markers
  ************************************************************************************/
 function downloadLinesChanged(project, fpath): Promise<void> {
-  const currentUserId = Peer8Store.user._id.toString()
-  return Peer8API
+  const currentUserId = CΩStore.user._id.toString()
+  return CΩAPI
     .downloadDiffs({ origin: project.origin, fpath })
     .then(({ data }) => {
       logger.info('DIFFS: downloadDiffs contributors (origin, fpath, data.file.c)', project.origin, data && data.file.f, data && data.file.c)
@@ -492,7 +492,7 @@ function downloadLinesChanged(project, fpath): Promise<void> {
 /************************************************************************************
  * getLinesChangedLocaly
  *
- * @param object - Peer8Store project
+ * @param object - CΩStore project
  * @param string - the file path of the active document
  *
  * Getting the changes from the active document (not yet written to disk).
@@ -521,7 +521,7 @@ function getLinesChangedLocaly(project, fpath, doc): Promise<void> {
     shaPromise = shaPromise
       .then(() => {
         logger.log('DIFFS: ARCHIVE', archiveFile, sha, fpath)
-        return git.gitCommand(wsFolder, `git archive --format=tar -o ${archiveFile} ${sha} ${fpath}`)
+        return git.command(wsFolder, `git archive --format=tar -o ${archiveFile} ${sha} ${fpath}`)
       })
       .catch(err => {
         // TODO: improve error control for chained promises
@@ -536,7 +536,7 @@ function getLinesChangedLocaly(project, fpath, doc): Promise<void> {
       })
       .then(() => {
         logger.log('DIFFS: getLinesChangedLocaly diff', activeFile)
-        return git.gitCommand(wsFolder, `git diff -b -U0 ${path.join(archiveDir, fpath)} ${activeFile}`)
+        return git.command(wsFolder, `git diff -b -U0 ${path.join(archiveDir, fpath)} ${activeFile}`)
       })
       .then(parseDiffFile)
       .then(localChanges => {
@@ -687,14 +687,14 @@ async function sendAdhocDiffs(diffDir): Promise<void> {
     lastSendDiff[diffDir] = new Date()
   }
   const gitDir = path.join(diffDir, Config.EXTRACT_LOCAL_DIR)
-  const origin = (await git.gitCommand(gitDir, 'git remote get-url origin')).trim()
-  const sha = (await git.gitCommand(gitDir, 'git rev-list --max-parents=0 HEAD')).trim()
+  const origin = (await git.command(gitDir, 'git remote get-url origin')).trim()
+  const sha = (await git.command(gitDir, 'git rev-list --max-parents=0 HEAD')).trim()
   const tmpProjectDiff = path.join(diffDir, 'uploaded.diff')
 
   createEmpty(tmpProjectDiff)
   createEmpty(emptyFile)
 
-  await git.gitCommand(gitDir, `git diff -b -U0 --no-color ${sha} >> ${tmpProjectDiff}`)
+  await git.command(gitDir, `git diff -b -U0 --no-color ${sha} >> ${tmpProjectDiff}`)
 
   return uploadDiffs({
     origin,
@@ -707,7 +707,7 @@ async function sendAdhocDiffs(diffDir): Promise<void> {
 async function refreshAdhocChanges({ origin, fpath }): Promise<void> {
   /* TODO: add caching (so we don't keep on asking for the same file when the user mad-clicks the same contributor) */
 
-  logger.log('DIFFS: downloadDiffs (origin, fpath, user)', origin, fpath, Peer8Store.user)
+  logger.log('DIFFS: downloadDiffs (origin, fpath, user)', origin, fpath, CΩStore.user)
   PENDING_DIFFS[fpath] = true // this operation can take a while, so we don't want to start it several times per second
   /* @ts-ignore */
   if (lastDownloadDiff[origin] && new Date() - lastDownloadDiff[origin] < Config.SYNC_THRESHOLD) {
@@ -716,12 +716,12 @@ async function refreshAdhocChanges({ origin, fpath }): Promise<void> {
 
   lastDownloadDiff[origin] = new Date()
 
-  return Peer8API
+  return CΩAPI
     .getPPTSlideContrib({ origin, fpath })
     .then(res => res.data)
 }
 
-const Peer8Diffs = {
+const CΩDiffs = {
   clear,
   compress,
   diffWithContributor,
@@ -741,4 +741,4 @@ const Peer8Diffs = {
   PENDING_DIFFS,
 }
 
-export default Peer8Diffs
+export default CΩDiffs

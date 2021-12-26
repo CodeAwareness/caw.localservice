@@ -2,12 +2,16 @@ import axios from 'axios'
 import FormData from 'form-data'
 import { createReadStream } from 'fs'
 
-import Config from '../config/config'
+import Config from '@/config/config'
 import git from './git'
 
-import { Peer8Store } from './cA.store'
+import { CΩStore } from './cA.store'
 
-Peer8Store.swarmAuthStatus = 0
+CΩStore.swarmAuthStatus = 0
+
+type SHARE_URL_TYPE = {
+  url: string,
+}
 
 export const API_AUTH_LOGIN          = '/auth/login'
 export const API_AUTH_REFRESH_TOKENS = '/auth/refresh-tokens'
@@ -29,7 +33,7 @@ axios.defaults.adapter = require('axios/lib/adapters/http')
 const axiosAPI = axios.create({ baseURL: Config.API_URL })
 
 axiosAPI.interceptors.request.use(config => {
-  const { access } = Peer8Store.tokens || { access: {} }
+  const { access } = CΩStore.tokens || { access: {} }
   if (access.token) config.headers.authorization = `Bearer ${access.token}`
   return config
 })
@@ -39,11 +43,11 @@ axiosAPI.interceptors.response.use(
     if (response.status === 202) { // We are processing the requests as authorized for now, but we need to send the required (or latest) SHA to continue being authorized
       const authPromise = reAuthorize(response.statusText || response.data.statusText) // IMPORTANT: no await! otherwise we interrupt the regular operations for too long, and we also get deeper into a recursive interceptor response.
       // also, we do this strange response.statusText OR response.data.statusText because of a glitch in the test, it seems I can't make it work with supertest
-      if (Peer8Store.swarmAuthStatus) {
+      if (CΩStore.swarmAuthStatus) {
         // TODO: try to disconnect multiple swarmAuth promises (for multiple repos at a time), so one repo doesn't have to wait for all repos to complete swarm authorization.
-        Peer8Store.swarmAuthStatus.then(() => authPromise)
+        CΩStore.swarmAuthStatus.then(() => authPromise)
       } else {
-        Peer8Store.swarmAuthStatus = authPromise
+        CΩStore.swarmAuthStatus = authPromise
       }
     }
     return response
@@ -52,17 +56,17 @@ axiosAPI.interceptors.response.use(
     if (!err.response) return Promise.reject(err)
     return new Promise((resolve, reject) => {
       if (err.response.status === 401 && err.config && err.response.config.url !== API_AUTH_REFRESH_TOKENS) {
-        if (!Peer8Store.tokens) return Peer8API.logout(reject, 'No tokens in the store.', err)
-        const { refresh } = Peer8Store.tokens
-        if (!refresh || refresh.expires < new Date().valueOf()) return Peer8API.logout(reject, 'Refresh token expired ' + refresh.expires, err)
-        return Peer8API.refreshToken(refresh.token)
+        if (!CΩStore.tokens) return CΩAPI.logout(reject, 'No tokens in the store.', err)
+        const { refresh } = CΩStore.tokens
+        if (!refresh || refresh.expires < new Date().valueOf()) return CΩAPI.logout(reject, 'Refresh token expired ' + refresh.expires, err)
+        return CΩAPI.refreshToken(refresh.token)
           .then(() => {
-            const { token } = Peer8Store.tokens.access
+            const { token } = CΩStore.tokens.access
             err.config.headers.authorization = `Bearer: ${token}`
             axiosAPI(err.config).then(resolve, reject)
           })
           .catch(err => {
-            return Peer8API.logout(reject, 'You have been logged out', err)
+            return CΩAPI.logout(reject, 'You have been logged out', err)
           })
       }
       return reject(err)
@@ -84,11 +88,11 @@ function reAuthorize(text) {
   /* @ts-ignore */
   if (lastAuthorization.length && new Date() - lastAuthorization[origin] < 60000) return // TODO: optimize / configure
   lastAuthorization[origin] = new Date()
-  const project = Peer8Store.projects.filter(p => p.origin === origin)[0]
+  const project = CΩStore.projects.filter(p => p.origin === origin)[0]
   if (!project) return
   const wsFolder = project.root
   if (!commitDate) return sendLatestSHA({ wsFolder, origin })
-  return git.gitCommand(wsFolder, 'git fetch')
+  return git.command(wsFolder, 'git fetch')
     .then(() => {
       const cd = new Date(commitDate)
       // TODO: thoroughly test this one with time-zones (vscode official repo is ideal for this)
@@ -100,7 +104,7 @@ function reAuthorize(text) {
       const options = start ? `--since=${start} --until=${end}` : '-n5'
       */
       const options = `--since=${cd.toISOString()} --until=${cd.toISOString()}`
-      return git.gitCommand(wsFolder, `git log --pretty="%cd %H" ${options} --date=iso-strict ${branch}`)
+      return git.command(wsFolder, `git log --pretty="%cd %H" ${options} --date=iso-strict ${branch}`)
     })
     .then(log => {
       // eslint-disable-next-line
@@ -112,14 +116,14 @@ function reAuthorize(text) {
 /* TODO: throttle; when starting up VSCode we may get several such requests in quick succession */
 function sendLatestSHA({ wsFolder, origin }: any): Promise<any> {
   let branch
-  return git.gitCommand(wsFolder, 'git fetch')
+  return git.command(wsFolder, 'git fetch')
     .then(() => {
-      return git.gitCommand(wsFolder, 'git for-each-ref --sort="-committerdate" --count=1 refs/remotes')
+      return git.command(wsFolder, 'git for-each-ref --sort="-committerdate" --count=1 refs/remotes')
     })
     .then(out => {
       const line = /(\t|\s)([^\s]+)$/.exec(out.trim())
       branch = line[2].replace('refs/remotes/', '')
-      return git.gitCommand(wsFolder, `git log --pretty="%cd %H" -n1 --date=iso-strict ${branch}`)
+      return git.command(wsFolder, `git log --pretty="%cd %H" -n1 --date=iso-strict ${branch}`)
     })
     .then(log => {
       // eslint-disable-next-line
@@ -130,8 +134,8 @@ function sendLatestSHA({ wsFolder, origin }: any): Promise<any> {
 }
 
 function logout(reject, msg, err) {
-  Peer8Store.user = ''
-  Peer8Store.tokens = ''
+  CΩStore.user = ''
+  CΩStore.tokens = ''
 
   reject(err)
 }
@@ -140,8 +144,8 @@ function refreshToken(refreshToken: string) {
   return axiosAPI
     .post(API_AUTH_REFRESH_TOKENS, { refreshToken })
     .then((res: any) => {
-      Peer8Store.user = res.data.user
-      Peer8Store.tokens = res.data.tokens
+      CΩStore.user = res.data.user
+      CΩStore.tokens = res.data.tokens
     })
 }
 
@@ -222,11 +226,12 @@ const setupShare = (groups: Array<string>): Promise<any> => {
 
 const acceptShare = link => {
   const uri = encodeURIComponent(link)
-  return axiosAPI(`${API_SHARE_ACCEPT}?origin=${uri}`, { method: 'GET', responseType: 'json' })
+  return axiosAPI.get<SHARE_URL_TYPE>(`${API_SHARE_ACCEPT}?origin=${uri}`)
 }
 
 const getFileOrigin = fpath => {
   const uri = encodeURIComponent(fpath)
+  console.log(`will request ${API_SHARE_FINFO} for fpath ${uri}`)
   return axiosAPI(`${API_SHARE_FINFO}?fpath=${uri}`, { method: 'GET', responseType: 'json' })
 }
 
@@ -238,12 +243,12 @@ const getOriginInfo = origin => {
 const sync = code => {
   return axiosAPI(`${API_AUTH_SYNC}?code=${code}`, { method: 'GET', responseType: 'json' })
     .then((res: any) => {
-      Peer8Store.user = res.data?.user
-      return Peer8API.refreshToken(res.data?.refreshToken?.token)
+      CΩStore.user = res.data?.user
+      return CΩAPI.refreshToken(res.data?.refreshToken?.token)
     })
 }
 
-const Peer8API = {
+const CΩAPI = {
   acceptShare,
   axiosAPI,
   clearAuth,
@@ -272,4 +277,4 @@ const Peer8API = {
   API_REPO_SWARM_AUTH,
 }
 
-export default Peer8API
+export default CΩAPI

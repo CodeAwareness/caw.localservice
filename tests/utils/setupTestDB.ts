@@ -1,6 +1,6 @@
-const mongoose = require('mongoose')
+import mongoose from 'mongoose'
+import config from '@/config/config'
 
-const config = require('@/config/config')
 mongoose.set('debug', false)
 
 const setupTestDB = () => {

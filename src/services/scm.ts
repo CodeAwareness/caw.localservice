@@ -4,25 +4,25 @@ import * as fs from 'fs'
 import logger from '../config/logger'
 import git from './git'
 
-import { Peer8Store } from './cA.store'
+import { CΩStore } from './cA.store'
 
 /**
- * @param string origin (OR) - the URL for this repo (e.g. github.com/cA/peer8.vscode.git)
+ * @param string origin (OR) - the URL for this repo (e.g. github.com/codeawareness/codeawareness.vscode.git)
  * @param string wsFolder (OR) - the local folder path for this repo
  */
 function getProject({ origin, wsFolder }): Array<any> {
   if (origin) {
-    return Peer8Store.projects.filter(m => m.origin === origin)[0]
+    return CΩStore.projects.filter(m => m.origin === origin)[0]
   }
   if (wsFolder) {
-    return Peer8Store.projects.filter(m => m.root === wsFolder)[0]
+    return CΩStore.projects.filter(m => m.root === wsFolder)[0]
   }
 }
 
 async function addSubmodules(workspaceFolder: any): Promise<void> {
   // TODO: add submodules of submodules ? (recursive)
   const wsFolder = workspaceFolder.uri ? workspaceFolder.uri.path : workspaceFolder
-  return git.gitCommand(wsFolder, 'git submodule status')
+  return git.command(wsFolder, 'git submodule status')
     .then(out => {
       if (!out) return
       const subs = []
@@ -51,20 +51,20 @@ function addProject(workspaceFolder: any): Promise<void> {
 
   // TODO: pull changes to local workspace
   // Setup project origins
-  return git.gitRemotes(wsFolder)
+  return git.getRemotes(wsFolder)
     .then(origin => {
       // TODO: Allow other versioning systems (gitlab, etc)
       // TODO: Check all remotes (check if ANY match)
       const root = wsFolder
       const name = path.basename(root)
-      Peer8Store.projects.push({ name, origin, root, changes, contributors })
+      CΩStore.projects.push({ name, origin, root, changes, contributors })
     })
     .catch(err => logger.error('SCM setupOrigin ERROR', err))
 }
 
 async function removeSubmodules(workspaceFolder: any): Promise<void> {
   const wsFolder = workspaceFolder.uri ? workspaceFolder.uri.path : workspaceFolder
-  return git.gitCommand(wsFolder, 'git submodule status')
+  return git.command(wsFolder, 'git submodule status')
     .then(out => {
       if (!out.trim()) return
       const subs = out.split('\n').map(line => / ([^\s]+) /.exec(line)[1])
@@ -73,23 +73,23 @@ async function removeSubmodules(workspaceFolder: any): Promise<void> {
 }
 
 function removeProject(wsFolder: any): void {
-  const project = Peer8Store.projects.filter(m => m.name === wsFolder.name)[0]
+  const project = CΩStore.projects.filter(m => m.name === wsFolder.name)[0]
   logger.info('SCM removeProject wsFolder', wsFolder, project)
   if (!project) return
 
-  Peer8Store.projects = Peer8Store.projects.filter(m => m.origin !== project.origin)
+  CΩStore.projects = CΩStore.projects.filter(m => m.origin !== project.origin)
 }
 
 /**
- * Peer8 SCM only has one resource group, which contains all changes.
+ * CΩ SCM only has one resource group, which contains all changes.
  * There are no commits, as we always handle merging manually.
  */
 function createProjects({ folders }): Promise<Array<any>> {
-  if (!folders) return Promise.resolve(Peer8Store.projects)
+  if (!folders) return Promise.resolve(CΩStore.projects)
   const promises = folders.map(addProject)
   promises.concat(folders.map(addSubmodules))
   return Promise.all(promises)
-    .then(() => Peer8Store.projects)
+    .then(() => CΩStore.projects)
 }
 
 function getFiles(source: string): string[] {
@@ -100,7 +100,7 @@ function getFiles(source: string): string[] {
 
 /*
 const clearProject = project => {
-  Peer8Store.scFiles[project.origin] = []
+  CΩStore.scFiles[project.origin] = []
 }
 */
 
@@ -108,8 +108,8 @@ const clearProject = project => {
  * addFile = registerWithTDP
  *
  * DESIGN:
- * We're adding files to the Peer8 repository, but the user may have multiple repositories open, and we need to show diffs coresponding to multiple contributors.
- * Our Peer8 repository looks like this (where searchLib, microPost are just examples of repo names)
+ * We're adding files to the CΩ repository, but the user may have multiple repositories open, and we need to show diffs coresponding to multiple contributors.
+ * Our CΩ repository looks like this (where searchLib, microPost are just examples of repo names)
 
  * searchLib -> aliceId -> [ services/utils.js, main.js ]
  * searchLib -> bobId ->   [ services/logger.js, main.js ]
@@ -119,9 +119,9 @@ const clearProject = project => {
  ************************************************************************************/
 function addFile(wsFolder: any, fpath: string): void {
   const parts = fpath.split('/').filter(a => a)
-  let prevObj = Peer8Store.peerFS[wsFolder]
+  let prevObj = CΩStore.peerFS[wsFolder]
   if (!prevObj) prevObj = {}
-  Peer8Store.peerFS[wsFolder] = prevObj
+  CΩStore.peerFS[wsFolder] = prevObj
   let leaf
   for (const name of parts) {
     if (!prevObj[name]) prevObj[name] = {}
@@ -131,7 +131,7 @@ function addFile(wsFolder: any, fpath: string): void {
   leaf.prevObj[leaf.name] = 1
 }
 
-export const Peer8SCM = {
+export const CΩSCM = {
   addProject,
   addSubmodules,
   getProject,

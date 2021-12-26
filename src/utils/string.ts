@@ -10,10 +10,10 @@ export function getFirstLine(str: string): string {
 }
 
 export function generateUUID(len) {
- return (crypto as any) // until Crypto types are updated
-  .randomBytes(Math.ceil(len / 2))
-  .toString('hex') // convert to hexadecimal format
-  .slice(0, len) // return required number of characters
+  return (crypto as any) // until Crypto types are updated
+    .randomBytes(Math.ceil(len / 2))
+    .toString('hex') // convert to hexadecimal format
+    .slice(0, len) // return required number of characters
 }
 
 const StringUtils = {
