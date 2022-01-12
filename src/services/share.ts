@@ -5,12 +5,12 @@ import * as https from 'https'
 import * as fs from 'fs/promises'
 import { createWriteStream } from 'fs'
 
-import Config from '../config/config'
-import { generateUUID } from '../utils/string'
-import api from '../services/api'
-import shell from '../services/shell'
-import diffs from '../services/diffs'
-import { CΩStore } from '../services/cA.store'
+import Config from '@/config/config'
+import { generateUUID } from '@/utils/string'
+import api from '@/services/api'
+import shell from '@/services/shell'
+import diffs from '@/services/diffs'
+import { CΩStore } from '@/services/cA.store'
 
 type TypeWS = {
   wsFolder: string,

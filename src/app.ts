@@ -3,12 +3,15 @@ import cors from 'cors'
 
 import config from './config/config'
 import morgan from './config/morgan'
-import httpRoutes from './routes/v1/http.route'
+import httpRoutes from './routes/v1/x-http.route'
 
+// We only need express for PowerPoint auth, since PPT doesn't allow sockets in their extensions.
 export type CΩExpress = Partial<express.Application> &
   {
-    apiSocket: any,
-    localSocket: any,
+    gStationSocket: any,
+    gardenerSocket: any,
+    gardenerNS: any, // websocket Namespace
+    gardenerWS: any, // websocket server
   }
 
 export type CΩRequest = Partial<express.Request>

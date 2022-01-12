@@ -4,7 +4,7 @@ import authController from '@/controllers/auth.controller'
 
 const router = {
   init: (): void => {
-    const socket = (app as CΩExpress).apiSocket
+    const socket = app.gStationSocket
     socket.on('auth:info', () => {
       // TODO:
     })

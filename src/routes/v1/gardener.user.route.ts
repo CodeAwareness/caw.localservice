@@ -4,7 +4,7 @@ import userController from '@/controllers/user.controller'
 
 const router = {
   init: (): void => {
-    const socket = (app as CΩExpress).apiSocket
+    const socket = (app as CΩExpress).gardenerSocket
     socket.on('users:get', userController.getUsers)
   },
 }

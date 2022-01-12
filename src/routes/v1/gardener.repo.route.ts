@@ -4,7 +4,7 @@ import repoController from '@/controllers/repo.controller'
 
 const router = {
   init: (): void => {
-    const socket = (app as CΩExpress).apiSocket
+    const socket = (app as CΩExpress).gardenerSocket
     socket.on('repo:add', repoController.add)
     socket.on('repo:remove', repoController.remove)
     socket.on('repo:add-submodules', repoController.addSubmodules)

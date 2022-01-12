@@ -1,4 +1,4 @@
-import root from '../app'
+import root from '@/app'
 
 const getUsers = () => {
   // TODO

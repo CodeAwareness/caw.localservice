@@ -6,7 +6,7 @@ import tmp from 'tmp'
 import Keyv from 'keyv'
 
 import Joi    from '@hapi/joi'
-import { CΩStore } from '../services/cA.store'
+import { CΩStore } from '@/services/cA.store'
 
 const dbpath = path.join(process.cwd(), 'storage.sqlite')
 

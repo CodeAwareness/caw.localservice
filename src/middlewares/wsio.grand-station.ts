@@ -1,9 +1,9 @@
 import io from 'socket.io-client'
 
-import app from '../app'
-import router from '../routes/v1'
-import config from '../config/config'
-import { CΩStore } from '../services/cA.store'
+import app from '@/app'
+import gStationRouter from '@/routes/v1/x-grand-station'
+import config from '@/config/config'
+import { CΩStore } from '@/services/cA.store'
 
 /*
  * Exponential wait for connection ready
@@ -24,19 +24,19 @@ const resetDelay = () => {
  */
 const transmit = (action, data = undefined) => {
   return new Promise((resolve, reject) => {
-    if (!app.apiSocket) {
+    if (!app.gStationSocket) {
       console.log('While trying to transmit', action)
       return reject(new Error('no socket connection'))
     }
     resetDelay()
     const pendingConnection = () => {
-      console.log('pendingConnection', _delay, app.apiSocket.connected)
-      if (!app.apiSocket.connected) return setTimeout(pendingConnection, expDelay())
+      console.log('pendingConnection', _delay, app.gStationSocket.connected)
+      if (!app.gStationSocket.connected) return setTimeout(pendingConnection, expDelay())
       resetDelay()
       console.log('Will emit (action, data)', action, data)
-      app.apiSocket.emit(action, data)
-      app.apiSocket.on(`res:${action}`, resolve)
-      app.apiSocket.on(`error:${action}`, reject)
+      app.gStationSocket.emit(action, data)
+      app.gStationSocket.on(`res:${action}`, resolve)
+      app.gStationSocket.on(`error:${action}`, reject)
     }
 
     pendingConnection()
@@ -44,7 +44,7 @@ const transmit = (action, data = undefined) => {
 }
 
 const init = (): Promise<void> => {
-  const apiSocket = app.apiSocket || wsEngine.reconnect()
+  const gStationSocket = app.gStationSocket || wsGStation.reconnect()
 
   return new Promise((resolve, reject) => {
     let connected
@@ -52,32 +52,32 @@ const init = (): Promise<void> => {
       if (!connected) reject(new Error('Could not connect to websocket for 5 seconds'))
     }, 5000)
 
-    apiSocket.on('connect', () => {
-      console.log('Websocket CONNECT. Assigning to apiSocket', apiSocket.auth)
-      // auth(socket) // TODO: secure this server connection a bit more than just CORS
-      router.init()
+    gStationSocket.on('connect', () => {
+      console.log('Websocket CONNECT. Assigning to gStationSocket', gStationSocket.auth)
+      // auth(socket) // TODO: SECURITY
+      gStationRouter.init()
       connected = true
       resolve()
     })
 
-    apiSocket.on('disconnect', reason => {
-      console.log('WSIO apiSocket DISCONNECT', reason)
-      return wsEngine.reconnect()
+    gStationSocket.on('disconnect', reason => {
+      console.log('WSIO gStationSocket DISCONNECT', reason)
+      return wsGStation.reconnect()
     })
 
-    apiSocket.onAny(ev => console.log('SOCKET DATA', ev))
-    apiSocket.prependAny(ev => console.log('SOCKET WILL EMIT', ev))
+    gStationSocket.onAny(ev => console.log('SOCKET DATA', ev))
+    gStationSocket.prependAny(ev => console.log('SOCKET WILL EMIT', ev))
 
-    apiSocket.on('CΩ', e => console.log('CODE_AWARENESS EVENT', e))
-    apiSocket.on('error', err => console.error(err.description?.message))
-    apiSocket.on('connect_error', e => console.log('WSIO ERROR apiSocket', e))
+    gStationSocket.on('CΩ', e => console.log('CODE_AWARENESS EVENT', e))
+    gStationSocket.on('error', err => console.error(err.description?.message))
+    gStationSocket.on('connect_error', e => console.log('WSIO ERROR gStationSocket', e))
   })
 }
 
 const reconnect = (): any => {
   console.log('WSIO RECONNECT')
   // TODO: SECURITY: origin: [config.SERVER_WSS],
-  const apiSocket = io(config.SERVER_WSS, {
+  const gStationSocket = io(config.SERVER_WSS, {
     reconnectionDelayMax: 10000,
     forceNew: true,
     transports: ['websocket'],
@@ -88,11 +88,11 @@ const reconnect = (): any => {
     auth: { token: CΩStore.tokens?.access?.token },
   })
 
-  app.apiSocket = apiSocket
-  return apiSocket
+  app.gStationSocket = gStationSocket
+  return gStationSocket
 }
 
-const wsEngine = {
+const wsGStation = {
   init,
   reconnect,
   transmit,
@@ -102,4 +102,4 @@ const wsEngine = {
   },
 }
 
-export default wsEngine
+export default wsGStation

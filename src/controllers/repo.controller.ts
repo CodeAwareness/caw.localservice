@@ -1,11 +1,11 @@
 import { existsSync } from 'fs'
 import path from 'path'
 
-import logger from '../config/logger'
+import logger from '@/config/logger'
 
-import root from '../app'
-import git from '../services/git'
-import { CΩStore } from '../services/cA.store'
+import app from '@/app'
+import git from '@/services/git'
+import { CΩStore } from '@/services/cA.store'
 
 const add = folder => {
   logger.info('SCM addProject', folder)
@@ -27,7 +27,7 @@ const add = folder => {
       // TODO: cleanup CΩStore.projects with a timeout of inactivity or something
       const project = { name, origin, root, changes, contributors }
       CΩStore.projects.push(project)
-      root.apiSocket.emit('repo:added', { project })
+      app.gardenerSocket.emit('repo:added', { project })
     })
     .catch(err => logger.error('SCM setupOrigin ERROR', err))
 }
@@ -38,7 +38,7 @@ const remove = folder => {
   if (project) {
     CΩStore.projects = CΩStore.projects.filter(m => m.origin !== project.origin)
   }
-  root.apiSocket.emit('repo:removed', { folder })
+  app.gardenerSocket.emit('repo:removed', { folder })
 }
 
 const addSubmodules = folder => {

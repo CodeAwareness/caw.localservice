@@ -1,6 +1,13 @@
 # CodeAwareness client system service
 
 This is a local (client) system service that needs to be wrapped and compiled specifically for Windows, MacOS, Linux.
+
+Naming is a serious challenge here, so I'm trying this:
+
+  - the codeawareness.com API is called `grandStation` and is located out there in the cloud
+  - the local service installed on client systems is called `gardener` and does most of the work.
+  - the VSCode extension, vim / emacs plugin, etc, all those are called `poodle`. These poodles are very busy showing people how cute they are.
+
 We could use node-windows, node-mac, and systemd to ensure proper launching, restarting and logging.
 We're also using node-ipc for communication with the editor plugins.
 

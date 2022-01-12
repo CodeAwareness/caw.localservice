@@ -1,4 +1,6 @@
 import app from './app'
+import wsGStation from './middlewares/wsio.grand-station'
+import wsGardener from './middlewares/wsio.gardener'
 import config from './config/config'
 import logger from './config/logger'
 import { CΩStore } from './services/cA.store'
@@ -15,6 +17,12 @@ async function restoreAuthInfo() {
 const server = app.listen(config.port, config.host, () => {
   logger.info(`Listening on HTTP ${config.host}:${config.port}`)
 })
+
+/* Grand Station websockets connect to api.codeawareness.com */
+// wsGStation.init()
+
+/* Gardner websockets listen for request coming from local editors, e.g. VSCode, vim, emacs, etc */
+wsGardener.init(server)
 
 const exitHandler = () => {
   if (server) {

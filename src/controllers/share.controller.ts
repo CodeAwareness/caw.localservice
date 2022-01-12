@@ -1,21 +1,21 @@
 import * as path from 'path'
 
 // TODO: clear up this messed up tangled share/diffs code
-import { authStore, shareStore } from '../config/config'
-import root from '../app'
-import diffs from '../services/diffs'
-import share from '../services/share'
-import wsEngine from '../middlewares/wsio'
+import { authStore, shareStore } from '@/config/config'
+import app from '@/app'
+import diffs from '@/services/diffs'
+import share from '@/services/share'
+import wsGardener from '@/middlewares/wsio.gardener'
 
 const uploadOriginal = ({ fpath, origin }) => {
   share
     .uploadOriginal({ fpath, origin })
     .then(data => {
-      root.apiSocket.emit('share:uploaded', { data })
+      app.gardenerSocket.emit('share:uploaded', { data })
     })
     .catch(err => {
       console.error('startSharing op failure', err)
-      root.apiSocket.emit('error', { op: 'share:start:upload', err })
+      app.gardenerSocket.emit('error', { op: 'share:start:upload', err })
     })
   // TODO: unzip and create Files records, maybe?
   // await shell.unzip(path.basename(zipFile), extractDir)
@@ -26,10 +26,10 @@ const uploadOriginal = ({ fpath, origin }) => {
  */
 const startSharing = (data) => {
   share.startSharing(data.groups)
-    .then(data => wsEngine.transmit('res:share:start', { data }))
+    .then(data => wsGardener.transmit('res:share:start', { data }))
     .catch(err => {
       console.error('startSharing op failure', err)
-      root.apiSocket.emit('error', { op: 'share:start', err })
+      app.gardenerSocket.emit('error', { op: 'share:start', err })
     })
   // TODO: await shell.unzip(path.basename(zipFile), extractDir)
 }
@@ -38,7 +38,7 @@ const acceptShare = async origin => {
   const peerFile = await share.acceptShare(origin)
   const peerFile64 = await share.fileToBase64(peerFile)
   // TODO: this is potentially sending large files (e.g. 200+MB) to the server and then back
-  root.apiSocket.emit('share:accepted', { peerFile, peerFile64 })
+  app.gardenerSocket.emit('share:accepted', { peerFile, peerFile64 })
 }
 
 /**
@@ -47,28 +47,28 @@ const acceptShare = async origin => {
 const setupReceived = async data => {
   // data = { fpath, origin, wsFolder }
   const { fpath, wsFolder } = await share.setupReceived(data)
-  root.apiSocket.emit('share:setupComplete', { fpath, wsFolder })
+  app.gardenerSocket.emit('share:setupComplete', { fpath, wsFolder })
 }
 
 const getFileOrigin = fpath => {
   const filename = path.basename(fpath)
   if (!filename) {
-    root.apiSocket.emit('error', { op: 'getFileOrigin', err: 'empty filename' })
+    app.gardenerSocket.emit('error', { op: 'getFileOrigin', err: 'empty filename' })
   }
   share
     .getFileOrigin(filename)
     .then(res => {
-      root.apiSocket.emit('share:setFileOrigin', res.data)
+      app.gardenerSocket.emit('share:setFileOrigin', res.data)
     })
 }
 
 const getOriginInfo = origin => {
-  if (!origin) return root.apiSocket.emit('error', { op: 'getOriginInfo', err: 'empty origin' })
+  if (!origin) return app.gardenerSocket.emit('error', { op: 'getOriginInfo', err: 'empty origin' })
   share
     .getOriginInfo(origin)
     .then(res => {
       console.log('origin info', res.data)
-      root.apiSocket.emit('share:setFileOrigin', res.data)
+      app.gardenerSocket.emit('share:setFileOrigin', res.data)
     })
 }
 
@@ -78,7 +78,7 @@ const getDiffs = async ({ origin, ct, fpath, wsFolder }) => {
   const pptFilename = `${ct._id}.pptx`
   const peerFile = await share.buildPPTX({ extractDir, pptFilename })
   const peerFile64 = await share.fileToBase64(peerFile)
-  root.apiSocket.emit('share:peerFile', peerFile64)
+  app.gardenerSocket.emit('share:peerFile', peerFile64)
 }
 
 const willOpenPPT = async ({ user, origin, fpath }) => {
@@ -87,7 +87,7 @@ const willOpenPPT = async ({ user, origin, fpath }) => {
   await shareStore.set('fpath', fpath)
   await shareStore.set('configDate', new Date())
   console.log('WILL OPEN PPT', origin)
-  root.apiSocket.emit('share:storeSet')
+  app.gardenerSocket.emit('share:storeSet')
 }
 
 const checkReceived = async () => {
@@ -103,22 +103,22 @@ const checkReceived = async () => {
   console.log('checkReceived', origin, configDate, timediff)
 
   if (timediff < 60000) {
-    root.apiSocket.emit('share:config', { origin, fpath, user, tokens })
+    app.gardenerSocket.emit('share:config', { origin, fpath, user, tokens })
   }
 
-  root.apiSocket.emit('share:config', '')
+  app.gardenerSocket.emit('share:config', '')
 }
 
 const updateFilename = data => {
   // data = { origin, fpath, wsFolder }
   share.unmonitorOrigin(data.origin)
   share.monitorFile(data)
-  root.apiSocket.emit('share:filenameUpdated')
+  app.gardenerSocket.emit('share:filenameUpdated')
 }
 
 const pptContributors = async ({ origin, fpath }) => {
   const contributors = await diffs.refreshAdhocChanges({ origin, fpath })
-  root.apiSocket.emit('share:contributors', contributors)
+  app.gardenerSocket.emit('share:contributors', contributors)
 }
 
 const ShareController = {

@@ -4,7 +4,7 @@ import { CΩStore } from '@/services/cA.store'
 import CΩAPI from '@/services/api'
 import git from '@/services/git'
 import config from '@/config/config'
-import wsEngine from '@/middlewares/wsio'
+import wsGardener from '@/middlewares/wsio.gardener'
 
 let lastAuthorization: Record<string, number> = {}
 
@@ -17,19 +17,19 @@ const logout = () => {
 
 const info = () => {
   const { user, tokens } = CΩStore
-  wsEngine.transmit('info:load', { user, tokens })
+  wsGardener.transmit('info:load', { user, tokens })
 }
 
 /* cA syncing between PPT web and cA local service */
 const sync = code => {
   console.log('AUTH:SYNC controller')
-  if (!code) wsEngine.transmit('error:auth:sync', 'sync code invalid')
+  if (!code) wsGardener.transmit('error:auth:sync', 'sync code invalid')
   return CΩAPI
     .sync(code)
     .then(() => {
-      wsEngine.transmit('res:auth:sync')
+      wsGardener.transmit('res:auth:sync')
     })
-    .catch(_ => wsEngine.transmit('error:auth:sync', 'could not sync with the code provided.'))
+    .catch(_ => wsGardener.transmit('error:auth:sync', 'could not sync with the code provided.'))
 }
 
 const AUTH_COMPLETE_HTML = '<html><body><h4>Code Awareness local service:</h4><h1>Authentication complete.</h1><p>You may now close this window.</p></body><style>body { text-align: center; padding-top: 4em; }</style></html>'
@@ -40,9 +40,8 @@ const httpSync = (req: CΩRequest, res: CΩResponse) => {
   console.log('AUTH:HTTPSYNC controller')
   CΩAPI
     .sync(req.query.code)
-    .then(wsEngine.init)
     .then(() => {
-      wsEngine.transmit('auth:sync:complete')
+      wsGardener.transmit('auth:sync:complete')
       res.send(AUTH_COMPLETE_HTML)
     })
     .catch(err => res.send(AUTH_ERROR_HTML(err)))

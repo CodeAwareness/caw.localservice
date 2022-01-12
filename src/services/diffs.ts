@@ -10,7 +10,7 @@ import { promises as fs, createReadStream, createWriteStream, openSync, closeSyn
 import { pipeline } from 'stream'
 // import replaceStream from 'replacestream' // doesn't work (!
 
-import Config from '../config/config'
+import Config from '@/config/config'
 
 import git from './git'
 import shell from './shell'

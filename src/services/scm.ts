@@ -1,7 +1,7 @@
 import * as path from 'path'
 import * as fs from 'fs'
 
-import logger from '../config/logger'
+import logger from '@/config/logger'
 import git from './git'
 
 import { CΩStore } from './cA.store'
