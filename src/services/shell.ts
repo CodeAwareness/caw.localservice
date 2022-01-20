@@ -2,7 +2,7 @@ import * as path from 'path'
 import * as util from 'util'
 import * as child from 'child_process'
 import * as fs from 'fs/promises'
-import PowerShell from 'node-powershell'
+import { PowerShell } from 'node-powershell'
 
 const exec = util.promisify(child.exec)
 const logger = console
@@ -30,9 +30,14 @@ const copyFile = async (source: string, destDir: string): Promise<string> => {
   const dest = path.join(destDir, 'repo.zip')
   const command = `cp "${source}" "${dest}"`
   if (isWindows) {
-    const ps = new PowerShell({ executionPolicy: 'Bypass', noProfile: true })
-    ps.addCommand(command)
-    await ps.invoke()
+    const ps = new PowerShell({
+      debug: true,
+      executableOptions: {
+        '-ExecutionPolicy': 'Bypass',
+        '-NoProfile': true,
+      },
+    })
+    await ps.invoke(PowerShell.command`${command}`)
   } else {
     await cmd(command)
   }

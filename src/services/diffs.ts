@@ -4,7 +4,7 @@ import tar from 'tar'
 import rimraf from 'rimraf'
 import _ from 'lodash'
 import { createGzip } from 'zlib'
-import PowerShell from 'node-powershell'
+import { PowerShell } from 'node-powershell'
 import childProcess from 'child_process'
 import { promises as fs, createReadStream, createWriteStream, openSync, closeSync } from 'fs'
 import { pipeline } from 'stream'
@@ -346,10 +346,15 @@ function copyFolder(source, dest): Promise<string> {
     const command = `cp -r ${source} ${dest}`
     const options = { windowsHide: true }
     if (isWindows) {
-      const ps = new PowerShell({ executionPolicy: 'Bypass', noProfile: true })
-      ps.addCommand(command)
-      ps.invoke()
-        .then(output => resolve(output))
+      const ps = new PowerShell({
+        debug: true,
+        executableOptions: {
+          '-ExecutionPolicy': 'Bypass',
+          '-NoProfile': true,
+        },
+      })
+      ps.invoke(PowerShell.command`${command}`)
+        .then(output => resolve(output as any))
         .catch(error => {
           ps.dispose()
           console.error('copyFolder exec error', command, error)

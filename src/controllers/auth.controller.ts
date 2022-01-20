@@ -99,10 +99,15 @@ function sendLatestSHA({ wsFolder, origin }) {
     .catch(console.error)
 }
 
+function passwordAssist({ email }) {
+  // return CΩAPI.post(`${SERVER_URL}/auth/forgot-password`, { email })
+}
+
 const authController = {
   logout,
   httpSync,
   info,
+  passwordAssist,
   reAuthorize,
   sendLatestSHA,
   sync,
