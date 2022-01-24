@@ -3,8 +3,6 @@ import { Server } from 'socket.io'
 
 import app from '@/app'
 import gardenerRouter from '@/routes/v1/x-gardener'
-import config from '@/config/config'
-import { CΩStore } from '@/services/cA.store'
 
 /*
  * Exponential wait for connection ready

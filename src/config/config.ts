@@ -42,7 +42,8 @@ if (error) {
 const PORT_LOCAL = envVars.PORT || 48048
 const PORT_LOCAL_API = 3000
 const API_SERVER = process.env.LOCAL ? `localhost:${PORT_LOCAL_API}` : 'api.codeawareness.com'
-const SERVER_WSS = process.env.LOCAL ? `ws://localhost:${PORT_LOCAL_API}/svc` : 'wss://api.codeawareness.com/svc'
+const SERVER_WSS = process.env.LOCAL ? `ws://localhost:${PORT_LOCAL_API}` : 'wss://api.codeawareness.com'
+const WSS_NAMESPACE = 'svc'
 const API_URL = process.env.LOCAL ? `http://${API_SERVER}/v1` : `https://${API_SERVER}/v1`
 
 const CONFIGURATION_FILE = '.CΩ'
@@ -82,6 +83,7 @@ const Config = {
   SERVER_WSS,
   SYNC_INTERVAL,
   SYNC_THRESHOLD,
+  WSS_NAMESPACE,
   authStore,
   env: envVars.NODE_ENV,
   host: '127.0.0.1',

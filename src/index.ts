@@ -1,5 +1,5 @@
 import app from './app'
-import wsGStation from './middlewares/wsio.grand-station'
+import wsStation from './middlewares/wsio.grand-station'
 import wsGardener from './middlewares/wsio.gardener'
 import config from './config/config'
 import logger from './config/logger'
@@ -19,7 +19,7 @@ const server = app.listen(config.port, config.host, () => {
 })
 
 /* Grand Station websockets connect to api.codeawareness.com */
-// wsGStation.init()
+wsStation.init()
 
 /* Gardner websockets listen for request coming from local editors, e.g. VSCode, vim, emacs, etc */
 wsGardener.init(server)

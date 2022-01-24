@@ -111,7 +111,9 @@ export const CΩStore = {
   doc: undefined, // active document (specific doc format for Atom, VSCode)
   line: 0, // cursor line nr in document
 
-  socket: undefined, // socketIO
+  wsStation: undefined, // socketIO Client communicating with CodeAwareness
+
+  wsGardener: undefined, // socketIO Server communicating with the editors
 
   clear: () => {
     CΩStore.selectedContributor = undefined
@@ -130,7 +132,8 @@ export const CΩStore = {
     CΩStore.peerFS = {}
     CΩStore.doc = undefined
     CΩStore.line = 0
-    CΩStore.socket = undefined
+    CΩStore.wsStation = undefined
+    CΩStore.wsGardener = undefined
   },
 }
 

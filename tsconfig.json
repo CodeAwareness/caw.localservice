@@ -1,15 +1,15 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
+    "baseUrl": ".",
+		"target": "esnext",
+    "outDir": "dist",
+    "moduleResolution": "node",
+    "allowJs": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "target": "esnext",
     "noImplicitAny": false,
-    "moduleResolution": "node",
     "forceConsistentCasingInFileNames": true,
     "sourceMap": true,
-    "outDir": "dist",
-    "baseUrl": ".",
     "paths": {
       "@/*": [ "src/*" ]
     }

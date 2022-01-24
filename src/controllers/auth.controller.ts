@@ -29,7 +29,7 @@ const sync = code => {
     .then(() => {
       wsGardener.transmit('res:auth:sync')
     })
-    .catch(_ => wsGardener.transmit('error:auth:sync', 'could not sync with the code provided.'))
+    .catch(() => wsGardener.transmit('error:auth:sync', 'could not sync with the code provided.'))
 }
 
 const AUTH_COMPLETE_HTML = '<html><body><h4>Code Awareness local service:</h4><h1>Authentication complete.</h1><p>You may now close this window.</p></body><style>body { text-align: center; padding-top: 4em; }</style></html>'
@@ -73,8 +73,8 @@ function reAuthorize(text: string) {
       return git.command(wsFolder, `git log --pretty="%cd %H" ${options} --date=iso-strict ${branch}`)
     })
     .then(log => {
-      // eslint-disable-next-line no-unused-vars
-      const [a, d, h] = /(.+) (.+)/.exec(log)
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
+      const [_a, d, h] = /(.+) (.+)/.exec(log)
       return CΩAPI.submitAuthBranch({ origin, branch, sha: h, commitDate: d })
     })
 }
@@ -92,8 +92,8 @@ function sendLatestSHA({ wsFolder, origin }) {
       return git.command(wsFolder, `git log --pretty="%cd %H" -n1 --date=iso-strict ${branch}`)
     })
     .then(log => {
-      // eslint-disable-next-line no-unused-vars
-      const [a, commitDate, sha] = /(.+) (.+)/.exec(log)
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
+      const [_a, commitDate, sha] = /(.+) (.+)/.exec(log)
       return CΩAPI.submitAuthBranch({ origin, sha, commitDate, branch })
     })
     .catch(console.error)
