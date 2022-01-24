@@ -46,7 +46,7 @@ afterAll(() => {
  */
 describe('Share service', () => {
   describe('Starting a share should create groups and invitation links', () => {
-    test.only('should setup a list of share groups', async () => {
+    test('should setup a list of share groups', async () => {
       nock(Config.API_URL)
         .post(API_SHARE_START, () => true)
         .reply(200, {

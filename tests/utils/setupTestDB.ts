@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-empty-function */
 const setupTestDB = () => {
   beforeAll(async () => {
   })
