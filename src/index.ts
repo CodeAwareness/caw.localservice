@@ -19,7 +19,8 @@ const server = app.listen(config.port, config.host, () => {
 })
 
 /* Grand Station websockets connect to api.codeawareness.com */
-wsStation.init()
+// TODO: detect MacOS / Linux and do this instead: ws+unix:///absolute/path/to/uds_socket
+wsStation.connect({ url: config.SERVER_WSS })
 
 /* Gardner websockets listen for request coming from local editors, e.g. VSCode, vim, emacs, etc */
 wsGardener.init(server)

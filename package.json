@@ -34,7 +34,7 @@
         "cross-env": "^7.0.3",
         "dotenv": "^14.2.0",
         "express": "^4.17.2",
-        "express-rate-limit": "^6.1.0",
+        "express-rate-limit": "^6.2.0",
         "express-routemap": "^1.6.0",
         "express-winston": "^4.2.0",
         "form-data": "^4.0.0",
@@ -44,7 +44,7 @@
         "keyv": "^4.0.5",
         "lodash": "^4.17.21",
         "mkdirp": "^1.0.4",
-        "mongoose": "^6.1.7",
+        "mongoose": "^6.1.8",
         "morgan": "^1.10.0",
         "morgan-json": "^1.1.0",
         "node-powershell": "^5.0.1",
@@ -63,7 +63,7 @@
         "zlib": "^1.0.5"
     },
     "devDependencies": {
-        "@babel/preset-env": "^7.16.10",
+        "@babel/preset-env": "^7.16.11",
         "@babel/preset-typescript": "^7.16.7",
         "@types/cors": "^2.8.12",
         "@types/express": "^4.17.13",
@@ -77,15 +77,15 @@
         "@types/pkg-dir": "^2.0.1",
         "@types/supertest": "^2.0.11",
         "@types/tmp": "^0.2.3",
-        "@typescript-eslint/eslint-plugin": "^5.10.0",
-        "@typescript-eslint/parser": "^5.10.0",
+        "@typescript-eslint/eslint-plugin": "^5.10.1",
+        "@typescript-eslint/parser": "^5.10.1",
         "babel-jest": "^27.4.6",
         "chai": "4.3.4",
         "concurrently": "7.0.0",
         "eslint": "8.7.0",
         "eslint-config-standard": "^16.0.3",
         "eslint-plugin-import": "^2.25.4",
-        "eslint-plugin-jest": "^25.7.0",
+        "eslint-plugin-jest": "^26.0.0",
         "eslint-plugin-node": "^11.1.0",
         "eslint-plugin-promise": "^6.0.0",
         "eslint-plugin-security": "^1.4.0",
@@ -93,7 +93,7 @@
         "faker": "^6.6.6",
         "husky": "^7.0.4",
         "jest": "^27.4.7",
-        "lint-staged": "^12.2.1",
+        "lint-staged": "^12.3.1",
         "nock": "^13.2.2",
         "nodemon": "^2.0.15",
         "sass": "1.49.0",
@@ -102,6 +102,6 @@
         "ts-jest": "^27.1.3",
         "ts-node": "^10.4.0",
         "tsconfig-paths": "^3.12.0",
-        "typescript": "4.5.4"
+        "typescript": "4.5.5"
     }
 }

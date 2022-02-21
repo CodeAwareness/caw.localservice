@@ -71,7 +71,7 @@ const init = (httpServer: http.Server): void => {
   httpServer.on('listening', () => console.info('socket.io listening'))
   httpServer.on('disconnect', () => console.info('socket.io disconnected'))
 
-  console.log('initializing websockets', wsServer.engine.cors /*, wsServer.eio.opts, wsServer.eio.corsMiddleware */)
+  console.log(`initializing Gardener websockets (CORS: ${wsServer.engine.cors})`/*, wsServer.eio.opts, wsServer.eio.corsMiddleware */)
   app.gardenerWS = wsServer
   app.gardenerNS = {
     v1: wsServer.of('/v1'),

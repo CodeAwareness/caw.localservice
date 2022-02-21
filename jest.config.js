@@ -1,6 +1,3 @@
-/** @type {import('ts-jest/dist/types').InitialOptionsTsJest} */
-const { pathsToModuleNameMapper } = require('ts-jest')
-
 module.exports = {
   moduleNameMapper: { '^@/(.*)$': '<rootDir>/src/$1' },
   preset: 'ts-jest',
@@ -9,4 +6,4 @@ module.exports = {
   transform: {
     '^.+\\.tsx?$': 'ts-jest',
   },
-};
+}
