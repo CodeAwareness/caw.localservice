@@ -1,9 +1,12 @@
 import app from './app'
-import wsStation from './middlewares/wsio.grand-station'
+import https from 'https'
+import fs from 'fs'
+import wsStation from './middlewares/wsio.grandstation'
 import wsGardener from './middlewares/wsio.gardener'
 import config from './config/config'
 import logger from './config/logger'
 import { CΩStore } from './services/cA.store'
+import os from 'os'
 
 restoreAuthInfo()
 
@@ -14,16 +17,27 @@ async function restoreAuthInfo() {
   CΩStore.user = user
 }
 
-const server = app.listen(config.port, config.host, () => {
-  logger.info(`Listening on HTTP ${config.host}:${config.port}`)
+const homedir = os.homedir()
+// Nice addin that creates a localhost cert. Thank you Microsoft.
+const server = https.createServer(
+  {
+    key:  fs.readFileSync(`${homedir}/.office-addin-dev-certs/localhost.key`),
+    cert: fs.readFileSync(`${homedir}/.office-addin-dev-certs/localhost.crt`),
+    ca:   fs.readFileSync(`${homedir}/.office-addin-dev-certs/ca.crt`),
+  },
+  app as unknown as any,
+)
+
+server.listen(config.port, config.host, () => {
+  logger.info(`Listening on HTTPS ${config.host}:${config.port}`)
 })
 
-/* Grand Station websockets connect to api.codeawareness.com */
 // TODO: detect MacOS / Linux and do this instead: ws+unix:///absolute/path/to/uds_socket
-wsStation.connect({ url: config.SERVER_WSS })
+/* GrandStation websockets listen for request coming from local editors, e.g. VSCode, vim, emacs, etc */
+wsStation.init(server)
 
-/* Gardner websockets listen for request coming from local editors, e.g. VSCode, vim, emacs, etc */
-wsGardener.init(server)
+/* Gardener websocket connects to api.codeawareness.com */
+wsGardener.connect({ url: config.SERVER_WSS })
 
 const exitHandler = () => {
   if (server) {

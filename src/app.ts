@@ -8,10 +8,10 @@ import httpRoutes from './routes/v1/x-http.route'
 // We only need express for PowerPoint auth, since PPT doesn't allow sockets in their extensions.
 export type CΩExpress = Partial<express.Application> &
   {
-    gStationSocket: any,
+    gstationSocket: any,
     gardenerSocket: any,
-    gardenerNS: any, // websocket Namespace
-    gardenerWS: any, // websocket server
+    gstationNS: any, // websocket Namespace
+    gstationWS: any, // websocket server
   }
 
 export type CΩRequest = Partial<express.Request>
