@@ -25,6 +25,8 @@
     "indent": [ "warn", 2, { "SwitchCase": 1 }],
     "linebreak-style": ["error", "unix"],
     "security/detect-non-literal-fs-filename": 0,
+    "node/no-callback-literal": 0,
+    "operator-linebreak": 0,
     "key-spacing": 0,
     "quotes": [
       "warn",

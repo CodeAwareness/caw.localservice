@@ -7,6 +7,12 @@ import git from './git'
 
 import { CΩStore } from './cA.store'
 
+export type TCredentials = {
+  strategy: string
+  email: string
+  password: string
+}
+
 CΩStore.swarmAuthStatus = 0
 
 type SHARE_URL_TYPE = {
@@ -55,19 +61,34 @@ axiosAPI.interceptors.response.use(
   err => {
     if (!err.response) return Promise.reject(err)
     return new Promise((resolve, reject) => {
-      if (err.response.status === 401 && err.config && err.response.config.url !== API_AUTH_REFRESH_TOKENS) {
-        if (!CΩStore.tokens) return CΩAPI.logout(reject, 'No tokens in the store.', err)
+      if (
+        err.response.status === 401
+        && err.config
+        && ![API_AUTH_REFRESH_TOKENS, API_AUTH_LOGIN].includes(err.response.config.url)
+      ) {
+        if (!CΩStore.tokens) {
+          CΩAPI.logout()
+          return reject(new Error('No tokens in store'))
+        }
         const { refresh } = CΩStore.tokens
-        if (!refresh || refresh.expires < new Date().valueOf()) return CΩAPI.logout(reject, 'Refresh token expired ' + refresh.expires, err)
-        return CΩAPI.refreshToken(refresh.token)
+        if (!refresh || refresh.expires < new Date().valueOf()) {
+          CΩAPI.logout()
+          return reject(new Error(`Refresh token expired ${refresh.expires}`))
+        }
+        console.log('Will try again after refreshing the tokens')
+        CΩAPI.refreshToken(refresh.token)
           .then(() => {
             const { token } = CΩStore.tokens.access
             err.config.headers.authorization = `Bearer: ${token}`
+            console.log('Token refreshed', token)
             axiosAPI(err.config).then(resolve, reject)
           })
+          .catch(reject)
+          /*
           .catch(err => {
-            return CΩAPI.logout(reject, 'You have been logged out', err)
+            return CΩAPI.logout(reject, 'You have been logged out', err.response)
           })
+          */
       }
       return reject(err)
     })
@@ -133,11 +154,9 @@ function sendLatestSHA({ wsFolder, origin }: any): Promise<any> {
     .catch(console.error)
 }
 
-function logout(reject, msg, err) {
+function logout() {
   CΩStore.user = ''
   CΩStore.tokens = ''
-
-  reject(err)
 }
 
 function refreshToken(refreshToken: string) {
@@ -198,8 +217,6 @@ const sendDiffs = ({ zipFile, origin, cSHA, activePath }: any): Promise<any> => 
     .catch(err => console.error('API error', err.status, err.code, err.request._currentUrl, err.request._currentRequest?.method)) // TODO: error handling
 }
 
-const login = ({ email, password }: any): Promise<any> => axiosAPI.post(API_AUTH_LOGIN, { email, password })
-
 const submitAuthBranch = ({ origin, sha, branch, commitDate }: any): Promise<any> => axiosAPI.post(API_REPO_SWARM_AUTH, { origin, sha, branch, commitDate })
 
 const shareFile = ({ origin, zipFile }: any): Promise<any> => {
@@ -259,7 +276,6 @@ const CΩAPI = {
   getOriginInfo,
   getPPTSlideContrib,
   getRepo,
-  login,
   logout,
   refreshToken,
   sendCommitLog,

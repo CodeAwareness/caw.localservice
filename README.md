@@ -4,12 +4,13 @@ This is a local (client) system service that needs to be wrapped and compiled sp
 
 Naming is a serious challenge here, so I'm trying this:
 
-  - the codeawareness.com API is called `grandStation` and is located out there in the cloud
-  - the local service installed on client systems is called `gardener` and does most of the work.
-  - the VSCode extension, vim / emacs plugin, etc, all those are called `poodle`. These poodles are very busy showing people how cute they are.
+  - the codeawareness.com API is called `API` and is located out there in the cloud
+  - the local server (client side) is called `grandStation` and listens to all applications which have CodeAwareness extension installed
+  - the local socket client is called `gardener` and is responsible for receiving websocket messages from the `API`
+  - the VSCode extension, vim / emacs plugin, etc, every single one is a `poodle`. These poodles are very busy showing people how cute they are.
 
 We could use node-windows, node-mac, and systemd to ensure proper launching, restarting and logging.
-We're also using node-ipc for communication with the editor plugins.
+We're also using node-ipc for communication with editor plugins when we have access to unix pipes, or secure webSockets when we don't.
 
 The service listens on port 48408. We have the port customization on our TODO list, since it's a complex problem involving coordination between this service and various clients, such as PowerPoint addons, VSCode extensions, vim/emacs plugins, etc.
 
@@ -62,19 +63,16 @@ yarn lint:fix
 
 ## Architecture
 
-`cA.localservice` is an OS service that listens to HTTP requests from your editors (Visual Studio Code, vim, etc) and performs the necessary actions for CodeAwareness.
+`cA.localservice` is an OS service that listens to requests from your editors (Visual Studio Code, vim, etc) and performs the necessary actions for CodeAwareness.
 
 This service is composed of the following components:
 
 ### Authorization
 
-ACTIONS: login, logout
+ACTIONS: login, logout, info, passwordAssist, reAuthorize, sendLatestSHA
 
 NOTES:
-
-When it's possible to run a web component as an editor plugin/extension/add-on, the registration and proper login are handled by the web component. We only need a mechanism to keep the token alive, and two methods for storing the tokens (login) and clearing them out (logout).
-
-In the case of editors like vim, I have to decide whether to reproduce the web component functionality inside the vim plugin, or write them inside the OS service instead. I've decided to keep it inside the plugin, simply because making a call to an external API is almost no different from communicating with a system socket. In addition, one OS service should be able to handle requests from multiple editors, and that makes things a lot more complicated for the OS service. Instead, making each editor instance responsible for their own authentication improves the security of the overall system and simplifies the logic of each component.
+For now, the grandStation takes care of authentication with the API, and it's only done once for any number of CodeAwareness enabled applications on one client.
 
 ### Users
 
