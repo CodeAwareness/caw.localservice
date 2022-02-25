@@ -1,25 +1,14 @@
 import type { TCredentials } from '@/services/api'
 
 import { CΩStore } from '@/services/cA.store'
-import CΩAPI, { API_AUTH_LOGIN } from '@/services/api'
+import CΩAPI, { API_AUTH_LOGIN, API_AUTH_SIGNUP } from '@/services/api'
 import git from '@/services/git'
 import config from '@/config/config'
-import wsGardener from '@/middlewares/wsio.gardener'
-import type { Response } from '@/middlewares/wsio.grandstation'
 
 let lastAuthorization: Record<string, number> = {}
 
 function login(credentials: TCredentials) {
-  CΩAPI.axiosAPI
-    .post(API_AUTH_LOGIN, credentials)
-    .then(data => {
-      console.log('login data', data)
-      this.emit('res:auth:login', JSON.stringify(data))
-    })
-    .catch(err => {
-      console.log('LOGIN ERROR: ', err.response.statusText, err.response.data)
-      this.emit('error:auth:login', err.response.statusText)
-    })
+  CΩAPI.post(API_AUTH_LOGIN, credentials, 'auth:login', this)
 }
 
 function logout() {
@@ -31,11 +20,11 @@ function logout() {
 
 function info() {
   const { user, tokens } = CΩStore
-  wsGardener.transmit('info:load', { user, tokens })
+  this.emit('info:load', { user, tokens })
 }
 
-function signup(...args: any[]) {
-  console.log('SIGNUP ', args)
+function signup(credentials: TCredentials) {
+  CΩAPI.post(API_AUTH_SIGNUP, credentials, 'auth:signup', this)
 }
 
 /**

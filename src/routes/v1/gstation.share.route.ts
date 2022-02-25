@@ -1,10 +1,8 @@
-import type { CΩExpress } from '@/app'
-import app from '@/app'
+import type { Socket } from 'socket.io'
 import shareController from '@/controllers/share.controller'
 
 const router = {
-  init: (): void => {
-    const socket = (app as CΩExpress).gardenerSocket
+  init: (socket: Socket): void => {
     socket.on('share:start', shareController.startSharing)
     socket.on('share:uploadOriginal', shareController.startSharing)
     socket.on('share:accept', shareController.acceptShare)

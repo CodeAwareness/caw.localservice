@@ -26,7 +26,7 @@ function auth(socket: Socket) {
   // socket.join(room)
   // const room = data._id.toString()
   // if (!token) return
-  gstationRouter.init(socket)
+  gstationRouter.init(ns, socket)
 }
 
 const init = (httpServer: http.Server): void => {

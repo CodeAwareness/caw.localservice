@@ -20,8 +20,8 @@ type SHARE_URL_TYPE = {
 }
 
 export const API_AUTH_LOGIN          = '/auth/login'
+export const API_AUTH_SIGNUP         = '/auth/register'
 export const API_AUTH_REFRESH_TOKENS = '/auth/refresh-tokens'
-export const API_AUTH_SYNC           = '/auth/sync'
 export const API_REPO_GET_INFO       = '/repos/info'
 export const API_REPO_SWARM_AUTH     = '/repos/swarm-auth'
 export const API_REPO_COMMITS        = '/repos/commits'
@@ -257,35 +257,42 @@ const getOriginInfo = origin => {
   return axiosAPI(`${API_SHARE_OINFO}?origin=${uri}`, { method: 'GET', responseType: 'json' })
 }
 
-const sync = code => {
-  return axiosAPI(`${API_AUTH_SYNC}?code=${code}`, { method: 'GET', responseType: 'json' })
-    .then((res: any) => {
-      CΩStore.user = res.data?.user
-      return CΩAPI.refreshToken(res.data?.refreshToken?.token)
-    })
+function post(url, data, action, socket) {
+  CΩAPI.axiosAPI
+    .post(url, data)
+    .then(res => socket.emit(`res:${action}`, res.data))
+    .catch(err => socket.emit(`error:${action}`, err?.response?.data))
 }
 
 const CΩAPI = {
-  acceptShare,
+  // common
   axiosAPI,
+  getOriginInfo,
+  logout,
+  post,
+  refreshToken,
+
+  // code repo
   clearAuth,
   downloadDiffFile,
   downloadDiffs,
   findCommonSHA,
-  getFileOrigin,
-  getOriginInfo,
-  getPPTSlideContrib,
   getRepo,
-  logout,
-  refreshToken,
   sendCommitLog,
   sendDiffs,
   sendLatestSHA,
+  submitAuthBranch,
+
+  // powerpoint
+  acceptShare,
+  getFileOrigin,
+  getPPTSlideContrib,
   setupShare,
   shareFile,
-  submitAuthBranch,
-  sync,
+
+  // API routes
   API_AUTH_LOGIN,
+  API_AUTH_SIGNUP,
   API_REPO_COMMITS,
   API_REPO_COMMON_SHA,
   API_REPO_CONTRIB,
