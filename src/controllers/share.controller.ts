@@ -24,12 +24,12 @@ const uploadOriginal = ({ fpath, origin }) => {
 /**
  * @param Object data = { origin, links }
  */
-const startSharing = (data) => {
+function startSharing(data) {
   share.startSharing(data.groups)
-    .then(data => wsGardener.transmit('res:share:start', { data }))
+    .then(data => this.emit('res:share:start', { data }))
     .catch(err => {
-      console.error('startSharing op failure', err)
-      app.gardenerSocket.emit('error', { op: 'share:start', err })
+      console.error('startSharing op failure', err.response.data)
+      this.emit('error:share:start', err)
     })
   // TODO: await shell.unzip(path.basename(zipFile), extractDir)
 }

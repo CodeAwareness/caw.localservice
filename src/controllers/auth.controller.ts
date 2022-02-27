@@ -8,7 +8,15 @@ import config from '@/config/config'
 let lastAuthorization: Record<string, number> = {}
 
 function login(credentials: TCredentials) {
-  CΩAPI.post(API_AUTH_LOGIN, credentials, 'auth:login', this)
+  CΩAPI
+    .post(API_AUTH_LOGIN, credentials, 'auth:login', this)
+    .then(data => {
+      CΩStore.tokens = data.tokens
+      CΩStore.user = data.user
+    })
+    .catch(err => {
+      console.log('auth error', err)
+    })
 }
 
 function logout() {

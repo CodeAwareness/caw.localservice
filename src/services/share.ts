@@ -12,7 +12,7 @@ import shell from '@/services/shell'
 import diffs from '@/services/diffs'
 import { CΩStore } from '@/services/cA.store'
 
-type TypeWS = {
+type TWebSocket = {
   wsFolder: string,
   origin: string,
 }
@@ -22,7 +22,7 @@ function generateWSFolder() {
   return path.join(tmpDir, generateUUID(16))
 }
 
-async function uploadOriginal({ fpath, origin }): Promise<TypeWS> {
+async function uploadOriginal({ fpath, origin }): Promise<TWebSocket> {
   const wsFolder = generateWSFolder()
   const extractDir = path.join(wsFolder, Config.EXTRACT_LOCAL_DIR)
   mkdirp.sync(extractDir)
@@ -45,13 +45,13 @@ async function uploadOriginal({ fpath, origin }): Promise<TypeWS> {
     })
 }
 
-type TypeLinks = {
+type TLinks = {
   origin: string,
   links: Array<string>,
 }
 
-async function startSharing(groups): Promise<TypeLinks> {
-  console.log('SHARE.js', groups)
+async function startSharing(groups: string[]): Promise<TLinks> {
+  console.info('share.ts:startSharing groups', groups)
   const data = await api.setupShare(groups)
   console.log('got origin and links', data)
   return data

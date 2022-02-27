@@ -238,7 +238,6 @@ const setupShare = (groups: Array<string>): Promise<any> => {
   return axiosAPI
     .post(API_SHARE_START, { groups })
     .then(res => res.data)
-    .catch(err => console.error('API error', err.status, err.code, err.request._currentUrl, err.request._currentRequest?.method)) // todo: error handling
 }
 
 const acceptShare = link => {
@@ -258,10 +257,16 @@ const getOriginInfo = origin => {
 }
 
 function post(url, data, action, socket) {
-  CΩAPI.axiosAPI
+  return CΩAPI.axiosAPI
     .post(url, data)
-    .then(res => socket.emit(`res:${action}`, res.data))
-    .catch(err => socket.emit(`error:${action}`, err?.response?.data))
+    .then(res => {
+      socket.emit(`res:${action}`, res.data)
+      return res.data
+    })
+    .catch(err => {
+      socket.emit(`error:${action}`, err?.response?.data)
+      throw new Error(err?.response?.data)
+    })
 }
 
 const CΩAPI = {
