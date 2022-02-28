@@ -1,3 +1,5 @@
+import logger from '@/logger'
+
 class ApiError extends Error {
   private statusCode
   private isOperational
@@ -8,10 +10,8 @@ class ApiError extends Error {
     this.isOperational = isOperational
     /* TODO: better error logging, something here spits out errors with stacks even when FORBIDDEN, UNAUTHORIZED */
     if (stack) {
-      console.log('API ERROR STACK:', stack)
+      logger.log('API ERROR STACK:', stack)
       this.stack = stack
-    } else {
-      console.log('API ERROR CAPTURE STACK:')
     }
   }
 }

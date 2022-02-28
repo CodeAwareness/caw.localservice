@@ -5,6 +5,7 @@ import { authStore, shareStore } from '@/config/config'
 import app from '@/app'
 import diffs from '@/services/diffs'
 import share from '@/services/share'
+import logger from '@/logger'
 
 function uploadOriginal(data: any) {
   share
@@ -13,7 +14,7 @@ function uploadOriginal(data: any) {
       app.gardenerSocket.emit('share:uploaded', { data })
     })
     .catch(err => {
-      console.error('startSharing op failure', err)
+      logger.error('startSharing op failure', err)
       this.emit('error:start:upload', err)
     })
   // TODO: unzip and create Files records, maybe?
@@ -27,7 +28,7 @@ function startSharing(data) {
   share.startSharing(data.groups)
     .then(data => this.emit('res:share:start', { data }))
     .catch(err => {
-      console.error('startSharing op failure', err)
+      logger.error('startSharing op failure', err)
       this.emit('error:share:start', err)
     })
   // TODO: await shell.unzip(path.basename(zipFile), extractDir)
@@ -66,7 +67,7 @@ const getOriginInfo = origin => {
   share
     .getOriginInfo(origin)
     .then(res => {
-      console.log('origin info', res.data)
+      logger.info('origin info', res.data)
       app.gardenerSocket.emit('share:setFileOrigin', res.data)
     })
 }
@@ -85,7 +86,7 @@ const willOpenPPT = async ({ user, origin, fpath }) => {
   await shareStore.set('origin', origin)
   await shareStore.set('fpath', fpath)
   await shareStore.set('configDate', new Date())
-  console.log('WILL OPEN PPT', origin)
+  logger.log('WILL OPEN PPT', origin)
   app.gardenerSocket.emit('share:storeSet')
 }
 
@@ -99,7 +100,7 @@ const checkReceived = async () => {
 
   /* @ts-ignore */
   const timediff = new Date() - configDate
-  console.log('checkReceived', origin, configDate, timediff)
+  logger.log('checkReceived', origin, configDate, timediff)
 
   if (timediff < 60000) {
     app.gardenerSocket.emit('share:config', { origin, fpath, user, tokens })

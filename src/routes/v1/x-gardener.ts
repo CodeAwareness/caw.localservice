@@ -1,6 +1,8 @@
+import logger from '@/logger'
+
 const router = {
   init: (): void => {
-    console.log('init gardener sockets')
+    logger.log('init gardener sockets')
   },
 }
 

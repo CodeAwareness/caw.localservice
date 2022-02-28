@@ -1,6 +1,7 @@
 import http from 'http'
 import { Server } from 'socket.io'
 import type { Socket } from 'socket.io'
+import logger from '@/logger'
 
 import app from '@/app'
 import gstationRouter from '@/routes/v1/x-grand-station'
@@ -22,7 +23,7 @@ export type Response<T> = Error | Success<T>
 function auth(socket: Socket) {
   const ns = socket.nsp.name.substr(1)
   const token = socket.handshake.auth?.token
-  console.log(`AUTH ${ns} socket with ${token}`)
+  logger.log(`AUTH ${ns} socket with ${token}`)
   // socket.join(room)
   // const room = data._id.toString()
   // if (!token) return
@@ -37,9 +38,9 @@ const init = (httpServer: http.Server): void => {
     }
   })
 
-  wsServer.on('error', console.error)
-  wsServer.on('listening', () => console.info('socket.io listening'))
-  wsServer.on('disconnect', () => console.info('socket.io disconnected'))
+  wsServer.on('error', logger.error)
+  wsServer.on('listening', () => logger.info('socket.io listening'))
+  wsServer.on('disconnect', () => logger.info('socket.io disconnected'))
 
   /* See https://github.com/socketio/socket.io/blob/master/examples/private-messaging/server/index.js */
   /*
@@ -65,7 +66,7 @@ const init = (httpServer: http.Server): void => {
   })
   */
 
-  console.log(`initializing GStation websockets (CORS: ${wsServer.engine.cors})`/*, wsServer.eio.opts, wsServer.eio.corsMiddleware */)
+  logger.log(`initializing GStation websockets (CORS: ${wsServer.engine.cors})`/*, wsServer.eio.opts, wsServer.eio.corsMiddleware */)
   app.gstationWS = wsServer
   app.gstationNS = {
     users: wsServer.of('/users'),

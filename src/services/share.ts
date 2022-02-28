@@ -11,6 +11,7 @@ import api from '@/services/api'
 import shell from '@/services/shell'
 import diffs from '@/services/diffs'
 import { CΩStore } from '@/services/cA.store'
+import logger from '@/logger'
 
 type TWebSocket = {
   wsFolder: string,
@@ -51,14 +52,14 @@ type TLinks = {
 }
 
 async function startSharing(groups: string[]): Promise<TLinks> {
-  console.info('share.ts:startSharing groups', groups)
+  logger.info('share.ts:startSharing groups', groups)
   const data = await api.setupShare(groups)
-  console.log('got origin and links', data)
+  logger.log('got origin and links', data)
   return data
 }
 
 async function refreshDiffs({ wsFolder, fpath }) {
-  console.log('File has been saved, refreshing diffs.')
+  logger.log('File has been saved, refreshing diffs.')
   const extractDir = path.join(wsFolder, Config.EXTRACT_LOCAL_DIR)
   await copyToWorkspace({ fpath, extractDir })
   await diffs.updateGit(extractDir)
@@ -72,7 +73,7 @@ async function copyToWorkspace({ fpath, extractDir }) {
 // TODO: create a hash table to not do double action when a file with the same name is downloaded in the same folder as before
 const cwatchers = {}
 function monitorFile({ origin, fpath, wsFolder }): void {
-  console.log('will monitor file', fpath, origin, wsFolder)
+  logger.log('will monitor file', fpath, origin, wsFolder)
   cwatchers[origin] = chokidar.watch(fpath)
     .on('change', () => {
       refreshDiffs({ fpath, wsFolder })

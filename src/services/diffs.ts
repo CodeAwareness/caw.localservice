@@ -11,13 +11,12 @@ import { pipeline } from 'stream'
 // import replaceStream from 'replacestream' // doesn't work (!
 
 import Config from '@/config/config'
+import logger from '@/logger'
 
 import git from './git'
 import shell from './shell'
 import { CΩStore } from './cA.store'
 import CΩAPI from './api'
-
-const logger = console
 
 const PENDING_DIFFS = {}
 const isWindows = !!process.env.ProgramFiles
@@ -96,7 +95,7 @@ function diffWithContributor({ ct, userFile, origin, wsFolder }): Promise<any> {
   mkdirp.sync(path.join(extractDir, path.dirname(userFile)))
   /* peerFile: we finally instruct VSCode to open a diff window between the active file and the extracted file, which now has applied diffs to it */
   const peerFile = path.join(extractDir, userFile)
-  logger.log('DIFFS: diffWithContributor (ct, userFile, extractDir)', ct, userFile, extractDir)
+  logger.info('DIFFS: diffWithContributor (ct, userFile, extractDir)', ct, userFile, extractDir)
 
   return CΩAPI
     .downloadDiffFile({ origin, fpath: ct.k })
@@ -105,7 +104,7 @@ function diffWithContributor({ ct, userFile, origin, wsFolder }): Promise<any> {
     .then(untar)
     .then(applyDiffs)
     .then(vscodeOpenDiffs)
-    .catch(console.error)
+    .catch(logger.error)
 
   function saveDownloaded({ data }) {
     return fs.writeFile(downloadedFile, data + '\n')
@@ -127,7 +126,7 @@ function diffWithContributor({ ct, userFile, origin, wsFolder }): Promise<any> {
 
   function vscodeOpenDiffs() {
     const title = `CΩ#${path.basename(userFile)} ↔ Peer changes`
-    logger.log('DIFFS: vscodeOpenDiffs (ct, peerFile, userFile)', ct, peerFile, userFile)
+    logger.info('DIFFS: vscodeOpenDiffs (ct, peerFile, userFile)', ct, peerFile, userFile)
     return { title, extractDir, peerFile, userFile: path.join(wsFolder, userFile) }
   }
 }
@@ -145,7 +144,7 @@ function sendCommitLog(project): Promise<string> {
   const { origin } = project
   let localBranches, currentBranch
 
-  logger.log('DIFFS: sendCommitLog (wsFolder)', wsFolder)
+  logger.info('DIFFS: sendCommitLog (wsFolder)', wsFolder)
   return git.command(wsFolder, 'git rev-list HEAD -n1')
     .then(sha => {
       const head = sha.trim()
@@ -167,18 +166,18 @@ function sendCommitLog(project): Promise<string> {
       .findCommonSHA(origin)
       .then(res => {
         project.cSHA = res.data.sha || project.head
-        logger.log('DIFF: getCommonSHA for (origin, cSHA)', project.origin, project.cSHA)
+        logger.info('DIFF: getCommonSHA for (origin, cSHA)', project.origin, project.cSHA)
         return project.cSHA
       })
   }
 
   function sendLog(head) {
-    logger.log('DIFFS: sendLog HEAD (origin, head)', project.origin, project.head)
+    logger.info('DIFFS: sendLog HEAD (origin, head)', project.origin, project.head)
     return git.command(wsFolder, 'git branch --verbose --no-abbrev --no-color')
       .then(extractLog)
       .then(upload)
       .then(res => {
-        logger.log('DIFFS: uploadLog received a cSHA from the server (origin, sha)', project.origin, res.data)
+        logger.info('DIFFS: uploadLog received a cSHA from the server (origin, sha)', project.origin, res.data)
         project.cSHA = res.data || project.head
         return project.cSHA
       })
@@ -240,7 +239,7 @@ function sendDiffs(project): Promise<void> {
   const wsName = path.basename(wsFolder)
   const diffDir = path.join(tmpDir, wsName)
   const { origin } = project
-  logger.log('DIFFS: sendDiffs (wsFolder, origin)', wsFolder, origin)
+  logger.info('DIFFS: sendDiffs (wsFolder, origin)', wsFolder, origin)
   mkdirp.sync(diffDir)
   const tmpProjectDiff = path.join(diffDir, 'uploaded.diff')
 
@@ -281,7 +280,7 @@ function sendDiffs(project): Promise<void> {
     })
 
   function gatherUntrackedFiles(files) {
-    logger.log('DIFFS: gatherUntrackedFiles (files)', files)
+    logger.info('DIFFS: gatherUntrackedFiles (files)', files)
     const stream = createWriteStream(tmpProjectDiff)
     const streamPromises = files.map(f => {
       return git
@@ -291,7 +290,7 @@ function sendDiffs(project): Promise<void> {
     return Promise
       .all(streamPromises)
       .then(() => {
-        logger.log('DIFFS: finished writing all streams')
+        logger.info('DIFFS: finished writing all streams')
         return new Promise((resolve, reject) => {
           stream
             .on('error', err => reject(new Error('DIFF: error streaming files.' + err))) // TODO: is this failing if we simplify to `on('error', reject)` ?
@@ -315,13 +314,13 @@ function uploadDiffs({ diffDir, origin, cSHA, activePath }): Promise<void> {
 }
 
 function compress(input: string, output: string): Promise<void> {
-  logger.log('DIFFS: compress (input, output)', input, output)
+  logger.info('DIFFS: compress (input, output)', input, output)
   return new Promise((resolve, reject) => {
     const gzip = createGzip()
     const source = createReadStream(input)
     const destination = createWriteStream(output)
     pipeline(source, gzip, destination, err => {
-      logger.log('DIFFS: compress finished; (err ?)', err)
+      logger.info('DIFFS: compress finished; (err ?)', err)
       if (err) reject(err)
       resolve()
     })
@@ -357,11 +356,11 @@ function copyFolder(source, dest): Promise<string> {
         .then(output => resolve(output as any))
         .catch(error => {
           ps.dispose()
-          console.error('copyFolder exec error', command, error)
+          logger.error('copyFolder exec error', command, error)
         })
     } else {
       childProcess.exec(command, options, (error, stdout, stderr) => {
-        if (stderr || error) console.error('copyFolder exec error', command, error, stderr)
+        if (stderr || error) logger.error('copyFolder exec error', command, error, stderr)
         resolve(stdout)
       })
     }
@@ -424,7 +423,7 @@ function refreshChanges(project: any, fpath: string, doc: string): Promise<void>
   /* TODO: add caching (so we don't keep on asking for the same file when the user mad-clicks the same contributor) */
   const wsFolder = project.root
 
-  logger.log('DIFFS: downloadDiffs (origin, fpath, user)', project.origin, fpath, CΩStore.user)
+  logger.info('DIFFS: downloadDiffs (origin, fpath, user)', project.origin, fpath, CΩStore.user)
   PENDING_DIFFS[fpath] = true // this operation can take a while, so we don't want to start it several times per second
   /* @ts-ignore */
   if (lastDownloadDiff[wsFolder] && new Date() - lastDownloadDiff[wsFolder] < Config.SYNC_THRESHOLD) {
@@ -438,12 +437,12 @@ function refreshChanges(project: any, fpath: string, doc: string): Promise<void>
       return getLinesChangedLocaly(project, fpath, doc)
     })
     .then(() => {
-      logger.log('DIFFS: will shift markers (changes)', project.changes[fpath])
+      logger.info('DIFFS: will shift markers (changes)', project.changes[fpath])
       shiftWithGitDiff(project, fpath)
       shiftWithLiveEdits(project, fpath) // include editing operations since the git diff was initiated
       delete PENDING_DIFFS[fpath] // pending diffs complete
     })
-    .catch(console.error)
+    .catch(logger.error)
 }
 
 /************************************************************************************
@@ -486,11 +485,11 @@ function downloadLinesChanged(project, fpath): Promise<void> {
           })
         })
         project.changes[fpath].alines = lines
-        logger.log('DIFFS: aggregate lines: (lines, changes[fpath])', lines, project.changes[fpath])
+        logger.info('DIFFS: aggregate lines: (lines, changes[fpath])', lines, project.changes[fpath])
       }
     })
     .catch(err => {
-      logger.log('DIFFS: no contributors for this file', err)
+      logger.info('DIFFS: no contributors for this file', err)
     })
 }
 
@@ -508,7 +507,7 @@ function getLinesChangedLocaly(project, fpath, doc): Promise<void> {
   if (!project.changes[fpath]) return Promise.resolve()
   /* TODO: right now we're limiting the git archive and diff operations to maximum 5 different commits; optimize and improve if possible */
   const shas = Object.keys(project.changes[fpath].alines).slice(0, Config.MAX_NR_OF_SHA_TO_COMPARE)
-  logger.log('DIFFS: getLinesChangedLocaly shas', shas)
+  logger.info('DIFFS: getLinesChangedLocaly shas', shas)
 
   const tmpCompareDir = path.join(tmpDir, wsName, Config.EXTRACT_LOCAL_DIR)
   const activeFile = path.join(tmpCompareDir, fpath)
@@ -525,27 +524,27 @@ function getLinesChangedLocaly(project, fpath, doc): Promise<void> {
     const archiveFile = path.join(archiveDir, `_cA.archive-${sha}`)
     shaPromise = shaPromise
       .then(() => {
-        logger.log('DIFFS: ARCHIVE', archiveFile, sha, fpath)
+        logger.info('DIFFS: ARCHIVE', archiveFile, sha, fpath)
         return git.command(wsFolder, `git archive --format=tar -o ${archiveFile} ${sha} ${fpath}`)
       })
       .catch(err => {
         // TODO: improve error control for chained promises
         // when git archive fails it's usually because the ${sha} is not present locally.
         delete project.changes[fpath].alines[sha]
-        logger.log('DIFFS: git archive failed', err)
+        logger.info('DIFFS: git archive failed', err)
         throw new Error(`Could not git archive with sha: ${sha} ${fpath}`)
       })
       .then(() => {
-        logger.log('DIFFS: tar.x', archiveDir)
+        logger.info('DIFFS: tar.x', archiveDir)
         return tar.x({ file: archiveFile, cwd: archiveDir })
       })
       .then(() => {
-        logger.log('DIFFS: getLinesChangedLocaly diff', activeFile)
+        logger.info('DIFFS: getLinesChangedLocaly diff', activeFile)
         return git.command(wsFolder, `git diff -b -U0 ${path.join(archiveDir, fpath)} ${activeFile}`)
       })
       .then(parseDiffFile)
       .then(localChanges => {
-        logger.log('DIFFS: getLinesChangedLocaly localChanges', localChanges)
+        logger.info('DIFFS: getLinesChangedLocaly localChanges', localChanges)
         if (!project.gitDiff) project.gitDiff = {}
         if (!project.gitDiff[fpath]) project.gitDiff[fpath] = {}
         project.gitDiff[fpath][sha] = localChanges
@@ -676,7 +675,7 @@ function clear() {
 }
 
 async function unzip({ extractDir, zipFile }): Promise<void> {
-  console.log('unzip in ', extractDir)
+  logger.info('unzip in ', extractDir)
   const filename = path.basename(zipFile)
   await shell.unzip(filename, extractDir)
   await shell.rmFile(zipFile)

@@ -4,6 +4,7 @@ import { CΩStore } from '@/services/cA.store'
 import CΩAPI, { API_AUTH_LOGIN, API_AUTH_SIGNUP } from '@/services/api'
 import git from '@/services/git'
 import config from '@/config/config'
+import logger from '@/logger'
 
 let lastAuthorization: Record<string, number> = {}
 
@@ -15,7 +16,7 @@ function login(credentials: TCredentials) {
       CΩStore.user = data.user
     })
     .catch(err => {
-      console.log('auth error', err)
+      logger.log('auth error', err)
     })
 }
 
@@ -84,7 +85,7 @@ function sendLatestSHA({ wsFolder, origin }) {
       const [_a, commitDate, sha] = /(.+) (.+)/.exec(log)
       return CΩAPI.submitAuthBranch({ origin, sha, commitDate, branch })
     })
-    .catch(console.error)
+    .catch(logger.error)
 }
 
 function passwordAssist({ email }) {

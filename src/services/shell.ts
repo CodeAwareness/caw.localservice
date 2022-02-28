@@ -3,9 +3,9 @@ import * as util from 'util'
 import * as child from 'child_process'
 import * as fs from 'fs/promises'
 import { PowerShell } from 'node-powershell'
+import logger from '@/logger'
 
 const exec = util.promisify(child.exec)
-const logger = console
 
 const isWindows = !!process.env.ProgramFiles
 
@@ -18,7 +18,7 @@ async function cmd(command: string, dir: string = undefined): Promise<string> {
   }
   if (dir) {
     options.cwd = isWindows && ['\\', '/'].includes(dir[0]) ? dir.substr(1).replace(/\//g, '\\') : dir
-    console.log(`executing '${command}' in folder`, options.cwd)
+    logger.log(`executing '${command}' in folder`, options.cwd)
   }
   const { stdout, stderr } = await exec(command, options)
   if (stderr) logger.log('shell exec warning or error', command, stderr)

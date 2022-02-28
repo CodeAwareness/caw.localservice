@@ -1,9 +1,11 @@
+import logger from '@/logger'
+
 const getThreads: any = data => {
-  console.log('getThreads') // TODO
+  logger.log('getThreads') // TODO
 }
 
 const comment: any = data => {
-  console.log('comment') // TODO
+  logger.log('comment') // TODO
 }
 
 const threadController = {

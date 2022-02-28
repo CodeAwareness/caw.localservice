@@ -4,6 +4,7 @@ import { createReadStream } from 'fs'
 
 import Config from '@/config/config'
 import git from './git'
+import logger from '@/logger'
 
 import { CΩStore } from './cA.store'
 
@@ -22,6 +23,7 @@ type SHARE_URL_TYPE = {
 export const API_AUTH_LOGIN          = '/auth/login'
 export const API_AUTH_SIGNUP         = '/auth/register'
 export const API_AUTH_REFRESH_TOKENS = '/auth/refresh-tokens'
+export const API_LOG                 = '/log'
 export const API_REPO_GET_INFO       = '/repos/info'
 export const API_REPO_SWARM_AUTH     = '/repos/swarm-auth'
 export const API_REPO_COMMITS        = '/repos/commits'
@@ -75,12 +77,12 @@ axiosAPI.interceptors.response.use(
           CΩAPI.logout()
           return reject(new Error(`Refresh token expired ${refresh.expires}`))
         }
-        console.log('Will try again after refreshing the tokens')
+        logger.log('Will try again after refreshing the tokens')
         CΩAPI.refreshToken(refresh.token)
           .then(() => {
             const { token } = CΩStore.tokens.access
             err.config.headers.authorization = `Bearer: ${token}`
-            console.log('Token refreshed', token)
+            logger.log('Token refreshed', token)
             axiosAPI(err.config).then(resolve, reject)
           })
           .catch(reject)
@@ -151,7 +153,7 @@ function sendLatestSHA({ wsFolder, origin }: any): Promise<any> {
       const [a, commitDate, sha] = /(.+) (.+)/.exec(log)
       return submitAuthBranch({ origin, sha, commitDate, branch })
     })
-    .catch(console.error)
+    .catch(logger.error)
 }
 
 function logout() {
@@ -214,7 +216,7 @@ const sendDiffs = ({ zipFile, origin, cSHA, activePath }: any): Promise<any> => 
         maxBodyLength: Infinity,
       })
     .then(res => res.data)
-    .catch(err => console.error('API error', err.status, err.code, err.request._currentUrl, err.request._currentRequest?.method)) // TODO: error handling
+    .catch(err => logger.error('API error', err.status, err.code, err.request._currentUrl, err.request._currentRequest?.method)) // TODO: error handling
 }
 
 const submitAuthBranch = ({ origin, sha, branch, commitDate }: any): Promise<any> => axiosAPI.post(API_REPO_SWARM_AUTH, { origin, sha, branch, commitDate })
@@ -231,7 +233,7 @@ const shareFile = ({ origin, zipFile }: any): Promise<any> => {
         maxBodyLength: Infinity,
       })
     .then(res => res.data)
-    .catch(err => console.error('API error', err.status, err.code, err.request._currentUrl, err.request._currentRequest?.method)) // todo: error handling
+    .catch(err => logger.error('API error', err.status, err.code, err.request._currentUrl, err.request._currentRequest?.method)) // todo: error handling
 }
 
 const setupShare = (groups: Array<string>): Promise<any> => {
@@ -247,7 +249,7 @@ const acceptShare = link => {
 
 const getFileOrigin = fpath => {
   const uri = encodeURIComponent(fpath)
-  console.log(`will request ${API_SHARE_FINFO} for fpath ${uri}`)
+  logger.log(`will request ${API_SHARE_FINFO} for fpath ${uri}`)
   return axiosAPI(`${API_SHARE_FINFO}?fpath=${uri}`, { method: 'GET', responseType: 'json' })
 }
 
@@ -298,11 +300,20 @@ const CΩAPI = {
   // API routes
   API_AUTH_LOGIN,
   API_AUTH_SIGNUP,
+  API_AUTH_REFRESH_TOKENS,
+  API_LOG,
+  API_REPO_GET_INFO,
+  API_REPO_SWARM_AUTH,
   API_REPO_COMMITS,
   API_REPO_COMMON_SHA,
   API_REPO_CONTRIB,
-  API_AUTH_REFRESH_TOKENS,
-  API_REPO_SWARM_AUTH,
+  API_REPO_DIFF_FILE,
+  API_SHARE_SLIDE_CONTRIB,
+  API_SHARE_START,
+  API_SHARE_UPLOAD,
+  API_SHARE_ACCEPT,
+  API_SHARE_FINFO,
+  API_SHARE_OINFO,
 }
 
 export default CΩAPI
