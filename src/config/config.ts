@@ -4,7 +4,6 @@ import path   from 'path'
 import mkdirp from 'mkdirp'
 import tmp from 'tmp'
 import Keyv from 'keyv'
-import logger from '@/logger'
 
 import Joi    from '@hapi/joi'
 import { CΩStore } from '@/services/cA.store'
@@ -12,10 +11,10 @@ import { CΩStore } from '@/services/cA.store'
 const dbpath = path.join(process.cwd(), 'storage.sqlite')
 
 export const shareStore = new Keyv(`sqlite://${dbpath}`, { namespace: 'share' })
-shareStore.on('error', err => logger.error('SQLite storage: connection error', err))
+shareStore.on('error', err => console.error('SQLite storage: connection error', err))
 
 export const authStore = new Keyv(`sqlite://${dbpath}`, { namespace: 'auth' })
-authStore.on('error', err => logger.error('SQLite storage: connection error', err))
+authStore.on('error', err => console.error('SQLite storage: connection error', err))
 
 // Setting up a temporary folder to work in
 CΩStore.tmpDir = tmp.dirSync({ prefix: 'cA', keep: true, unsafeCleanup: true }).name
@@ -53,7 +52,7 @@ const SYNC_INTERVAL = 100 * 1000 // download diffs from the server every some ti
 const SYNC_THRESHOLD = 1000 // don't sync too often
 const MAX_NR_OF_SHA_TO_COMPARE = 5
 
-// logger.log('CONFIG: (local, SYNC_INTERVAL, API_URL, EXT_URL)', process.env.LOCAL, SYNC_INTERVAL, API_URL, EXT_URL)
+// console.log('CONFIG: (local, SYNC_INTERVAL, API_URL, EXT_URL)', process.env.LOCAL, SYNC_INTERVAL, API_URL, EXT_URL)
 
 const LOG_LEVEL = process.env.LOG_LEVEL || 'debug' // ['verbose', 'debug', 'error']
 
