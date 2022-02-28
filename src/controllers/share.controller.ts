@@ -5,17 +5,16 @@ import { authStore, shareStore } from '@/config/config'
 import app from '@/app'
 import diffs from '@/services/diffs'
 import share from '@/services/share'
-import wsGardener from '@/middlewares/wsio.gardener'
 
-const uploadOriginal = ({ fpath, origin }) => {
+function uploadOriginal(data: any) {
   share
-    .uploadOriginal({ fpath, origin })
+    .uploadOriginal(data)
     .then(data => {
       app.gardenerSocket.emit('share:uploaded', { data })
     })
     .catch(err => {
       console.error('startSharing op failure', err)
-      app.gardenerSocket.emit('error', { op: 'share:start:upload', err })
+      this.emit('error:start:upload', err)
     })
   // TODO: unzip and create Files records, maybe?
   // await shell.unzip(path.basename(zipFile), extractDir)
@@ -28,7 +27,7 @@ function startSharing(data) {
   share.startSharing(data.groups)
     .then(data => this.emit('res:share:start', { data }))
     .catch(err => {
-      console.error('startSharing op failure', err.response.data)
+      console.error('startSharing op failure', err)
       this.emit('error:share:start', err)
     })
   // TODO: await shell.unzip(path.basename(zipFile), extractDir)
