@@ -1,5 +1,4 @@
 import dotenv from 'dotenv'
-import packageRoot from 'pkg-dir'
 import path   from 'path'
 import mkdirp from 'mkdirp'
 import tmp from 'tmp'
@@ -19,7 +18,7 @@ authStore.on('error', err => console.error('SQLite storage: connection error', e
 // Setting up a temporary folder to work in
 CΩStore.tmpDir = tmp.dirSync({ prefix: 'cA', keep: true, unsafeCleanup: true }).name
 
-const API_ROOT = packageRoot.sync(__dirname)
+const API_ROOT = path.join(__dirname, '../../')
 
 dotenv.config({ path: path.join(API_ROOT, '.env') })
 

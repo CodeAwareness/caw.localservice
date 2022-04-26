@@ -1,4 +1,5 @@
 import axios from 'axios'
+import httpAdapter from 'axios/lib/adapters/http'
 import FormData from 'form-data'
 import { createReadStream } from 'fs'
 
@@ -37,7 +38,7 @@ export const API_SHARE_ACCEPT        = '/share/accept'
 export const API_SHARE_FINFO         = '/share/getFileOrigin'
 export const API_SHARE_OINFO         = '/share/getOriginInfo'
 
-axios.defaults.adapter = require('axios/lib/adapters/http')
+axios.defaults.adapter = httpAdapter
 const axiosAPI = axios.create({ baseURL: Config.API_URL })
 
 axiosAPI.interceptors.request.use(config => {
