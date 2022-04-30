@@ -1,5 +1,4 @@
 import axios from 'axios'
-import httpAdapter from 'axios/lib/adapters/http'
 import FormData from 'form-data'
 import { createReadStream } from 'fs'
 
@@ -31,15 +30,19 @@ export const API_REPO_COMMITS        = '/repos/commits'
 export const API_REPO_COMMON_SHA     = '/repos/common-sha'
 export const API_REPO_CONTRIB        = '/repos/contrib'
 export const API_REPO_DIFF_FILE      = '/repos/diff'
-export const API_SHARE_SLIDE_CONTRIB = '/share/slideContrib'
-export const API_SHARE_START         = '/share/start'
-export const API_SHARE_UPLOAD        = '/share/uploadOriginal'
+
 export const API_SHARE_ACCEPT        = '/share/accept'
 export const API_SHARE_FINFO         = '/share/getFileOrigin'
+export const API_SHARE_CREATE_FILEID = '/share/new'
+export const API_SHARE_DOWNLOAD      = '/share/download'
 export const API_SHARE_OINFO         = '/share/getOriginInfo'
+export const API_SHARE_SLIDE_CONTRIB = '/share/slideContrib'
+export const API_SHARE_START         = '/share/start'
+export const API_SHARE_UPLOAD        = '/share/upload'
 
-axios.defaults.adapter = httpAdapter
+axios.defaults.adapter = require('axios/lib/adapters/http')
 const axiosAPI = axios.create({ baseURL: Config.API_URL })
+console.log('BASE API', Config.API_URL)
 
 axiosAPI.interceptors.request.use(config => {
   const { access } = CΩStore.tokens || { access: {} }
@@ -217,15 +220,27 @@ const sendDiffs = ({ zipFile, origin, cSHA, activePath }: any): Promise<any> => 
         maxBodyLength: Infinity,
       })
     .then(res => res.data)
-    .catch(err => logger.error('API error', err.status, err.code, err.request._currentUrl, err.request._currentRequest?.method)) // TODO: error handling
+    .catch(err => logger.error('API error in sendDiffs', err)) // TODO: error handling
 }
 
 const submitAuthBranch = ({ origin, sha, branch, commitDate }: any): Promise<any> => axiosAPI.post(API_REPO_SWARM_AUTH, { origin, sha, branch, commitDate })
 
-const shareFile = ({ origin, zipFile }: any): Promise<any> => {
+/**
+ * Setup the share based on either <fileId, userId> or <origin, userId> when fileId is not available.
+ *
+ * @params { origin, groups }
+ *
+ * @return [ url ] links
+ */
+const setupShare = (data: any): Promise<any> => {
+  const { origin, groups } = data
+  logger.log('SHARE FILE', data)
   const zipForm = new FormData()
   zipForm.append('origin', origin)
-  zipForm.append('zipFile', createReadStream(zipFile), { filename: zipFile }) // !! the file has to be last appended to formdata
+  zipForm.append('groups', JSON.stringify(groups))
+  logger.log('Now reading file', origin)
+  zipForm.append('file', createReadStream(origin), { filename: origin }) // !! the file has to be last appended to formdata
+  logger.log('UPLOADING FILE', origin)
   return axiosAPI
     .post(API_SHARE_UPLOAD, zipForm,
       {
@@ -233,13 +248,6 @@ const shareFile = ({ origin, zipFile }: any): Promise<any> => {
         maxContentLength: Infinity,
         maxBodyLength: Infinity,
       })
-    .then(res => res.data)
-    .catch(err => logger.error('API error', err.status, err.code, err.request._currentUrl, err.request._currentRequest?.method)) // todo: error handling
-}
-
-const setupShare = (groups: Array<string>): Promise<any> => {
-  return axiosAPI
-    .post(API_SHARE_START, { groups })
     .then(res => res.data)
 }
 
@@ -259,16 +267,24 @@ const getOriginInfo = origin => {
   return axiosAPI(`${API_SHARE_OINFO}?origin=${uri}`, { method: 'GET', responseType: 'json' })
 }
 
-function post(url, data, action, socket) {
-  return CΩAPI.axiosAPI
+function post(url, data, action?: string, socket?: any) {
+  logger.log('POST to CodeAwareness', url)
+  const promise = CΩAPI.axiosAPI
     .post(url, data)
+
+  if (!socket) {
+    return promise
+  }
+
+  return promise
     .then(res => {
-      socket.emit(`res:${action}`, res.data)
+      if (action) socket.emit(`res:${action}`, res.data)
       return res.data
     })
     .catch(err => {
+      logger.error(`API call failed for ${action}`)
       socket.emit(`error:${action}`, err?.response?.data)
-      throw new Error(err?.response?.data)
+      throw err
     })
 }
 
@@ -296,7 +312,6 @@ const CΩAPI = {
   getFileOrigin,
   getPPTSlideContrib,
   setupShare,
-  shareFile,
 
   // API routes
   API_AUTH_LOGIN,

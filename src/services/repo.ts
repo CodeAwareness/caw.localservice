@@ -25,6 +25,34 @@ function generateWSFolder() {
 }
 
 /**
+ * uploadOriginal
+ * scope: GIT
+ * desc : repos diffs are sent to CodeAwareness
+ */
+async function uploadOriginal({ fpath, origin }): Promise<TWebSocket> {
+  const wsFolder = generateWSFolder()
+  const extractDir = path.join(wsFolder, Config.EXTRACT_LOCAL_DIR)
+  mkdirp.sync(extractDir)
+  const zipFile = await copyToWorkspace({ fpath, extractDir })
+  const promises = []
+  promises.push(api.shareFile({ zipFile: fpath, origin }))
+  promises.push(diffs.unzip({ extractDir, zipFile }))
+  return Promise.all(promises)
+    .then(() => {
+      return diffs.initGit({ extractDir, origin })
+    })
+    .then(() => {
+      return diffs.sendAdhocDiffs(wsFolder)
+    })
+    .then(() => {
+      monitorFile({ origin, wsFolder, fpath })
+    })
+    .then(() => {
+      return { wsFolder, origin }
+    })
+}
+
+/**
  * refreshDiffs
  * scope: GIT
  * desc : updates repo diffs and sends them to CodeAwareness
@@ -87,15 +115,12 @@ async function downloadPPT(data): Promise<string> {
  * startSharing
  * scope: PPT
  * desc : create groups of users to share the PPT file with
- *
- * @params { origin, groups }
- *
- * @return [url] links
  */
-async function startSharing(data: any): Promise<TLinks> {
-  const res = await api.setupShare(data)
-  logger.log('got origin and links', res)
-  return res
+async function startSharing(groups: string[]): Promise<TLinks> {
+  logger.info('share.ts:startSharing groups', groups)
+  const data = await api.setupShare(groups)
+  logger.log('got origin and links', data)
+  return data
 }
 
 /**
@@ -204,6 +229,7 @@ const ShareService = {
   setupReceived,
   startSharing,
   unmonitorOrigin,
+  uploadOriginal,
 }
 
 export default ShareService

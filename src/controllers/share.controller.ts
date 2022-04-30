@@ -6,28 +6,29 @@ import app from '@/app'
 import diffs from '@/services/diffs'
 import share from '@/services/share'
 import logger from '@/logger'
+import api, { API_SHARE_CREATE_FILEID } from '@/services/api'
 
-function uploadOriginal(data: any) {
-  share
-    .uploadOriginal(data)
-    .then(data => {
-      app.gardenerSocket.emit('share:uploaded', { data })
-    })
-    .catch(err => {
-      logger.error('startSharing op failure', err)
-      this.emit('error:start:upload', err)
-    })
-  // TODO: unzip and create Files records, maybe?
-  // await shell.unzip(path.basename(zipFile), extractDir)
+async function downloadPPT(data) {
+  if (data.sliceIndex === 0) share.createWorkspace(data.fpath)
+  const fpath = await share.downloadPPT(data)
+  this.emit('res:share:downloadPPT', { fpath })
+}
+
+async function createFileId(fpath) {
+  // TODO: IMPORTANT! find a way to re-authenticate when restarting the server
+  const fileId = await api.post(API_SHARE_CREATE_FILEID, { fpath }, 'share:createFileId', this)
+  logger.log('FILE ID', fileId)
+  return { fileId }
 }
 
 /**
  * @param Object data = { origin, links }
  */
 function startSharing(data) {
-  share.startSharing(data.groups)
+  share.startSharing(data)
     .then(data => this.emit('res:share:start', { data }))
     .catch(err => {
+      console.error(err)
       logger.error('startSharing op failure', err)
       this.emit('error:share:start', err)
     })
@@ -124,6 +125,8 @@ const pptContributors = async ({ origin, fpath }) => {
 const ShareController = {
   acceptShare,
   checkReceived,
+  createFileId,
+  downloadPPT,
   getDiffs,
   getFileOrigin,
   getOriginInfo,
@@ -131,7 +134,6 @@ const ShareController = {
   setupReceived,
   startSharing,
   updateFilename,
-  uploadOriginal,
   willOpenPPT,
 }
 
