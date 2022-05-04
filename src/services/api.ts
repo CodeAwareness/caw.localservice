@@ -42,7 +42,6 @@ export const API_SHARE_UPLOAD        = '/share/upload'
 
 axios.defaults.adapter = require('axios/lib/adapters/http')
 const axiosAPI = axios.create({ baseURL: Config.API_URL })
-console.log('BASE API', Config.API_URL)
 
 axiosAPI.interceptors.request.use(config => {
   const { access } = CΩStore.tokens || { access: {} }
@@ -161,17 +160,13 @@ function sendLatestSHA({ wsFolder, origin }: any): Promise<any> {
 }
 
 function logout() {
-  CΩStore.user = ''
-  CΩStore.tokens = ''
+  // TODO: logout from API
 }
 
 function refreshToken(refreshToken: string) {
   return axiosAPI
     .post(API_AUTH_REFRESH_TOKENS, { refreshToken })
-    .then((res: any) => {
-      CΩStore.user = res.data.user
-      CΩStore.tokens = res.data.tokens
-    })
+    .then((res: any) => CΩStore.setAuth(res.data))
 }
 
 function downloadDiffs({ origin, fpath }: any): Promise<any> {

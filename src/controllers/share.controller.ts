@@ -24,8 +24,8 @@ async function createFileId(fpath) {
 /**
  * @param Object data = { origin, links }
  */
-function startSharing(data) {
-  share.startSharing(data)
+function startSharing(config) {
+  share.startSharing(config)
     .then(data => this.emit('res:share:start', { data }))
     .catch(err => {
       console.error(err)
@@ -35,63 +35,68 @@ function startSharing(data) {
   // TODO: await shell.unzip(path.basename(zipFile), extractDir)
 }
 
-const acceptShare = async origin => {
+async function acceptShare (origin) {
   const peerFile = await share.acceptShare(origin)
   const peerFile64 = await share.fileToBase64(peerFile)
   // TODO: this is potentially sending large files (e.g. 200+MB) to the server and then back
-  app.gardenerSocket.emit('share:accepted', { peerFile, peerFile64 })
+  this.emit('res:share:acceptShare', { peerFile, peerFile64 })
 }
 
 /**
  * @param { fpath, origin, wsFolder }
  */
-const setupReceived = async data => {
+async function setupReceived(data) {
   // data = { fpath, origin, wsFolder }
   const { fpath, wsFolder } = await share.setupReceived(data)
-  app.gardenerSocket.emit('share:setupComplete', { fpath, wsFolder })
+  this.emit('res:share:setupReceived', { fpath, wsFolder })
 }
 
-const getFileOrigin = fpath => {
+async function getFileOrigin(fpath) {
   const filename = path.basename(fpath)
   if (!filename) {
-    app.gardenerSocket.emit('error', { op: 'getFileOrigin', err: 'empty filename' })
+    this.emit('error:share:getFileOrigin', { op: 'getFileOrigin', err: 'empty filename' })
   }
   share
     .getFileOrigin(filename)
     .then(res => {
-      app.gardenerSocket.emit('share:setFileOrigin', res.data)
+      console.log('GOT FILE ORIGIN', res.data)
+      this.emit('res:share:getFileOrigin', res.data)
+    })
+    .catch(err => {
+      console.log('Error getting file origin', err)
+      this.emit('error:share.getFileOrigin', err)
     })
 }
 
-const getOriginInfo = origin => {
-  if (!origin) return app.gardenerSocket.emit('error', { op: 'getOriginInfo', err: 'empty origin' })
+async function getOriginInfo(origin) {
+  if (!origin) return this.emit('error:share:getOriginInfo', { op: 'getOriginInfo', err: 'empty origin' })
   share
     .getOriginInfo(origin)
     .then(res => {
       logger.info('origin info', res.data)
-      app.gardenerSocket.emit('share:setFileOrigin', res.data)
+      this.emit('res:share:setFileOrigin', res.data)
     })
 }
 
-const getDiffs = async ({ origin, ct, fpath, wsFolder }) => {
+async function getDiffs({ origin, ct, fpath, wsFolder }) {
   const userFile = fpath
   const { extractDir } = await diffs.diffWithContributor({ ct, origin, userFile, wsFolder })
   const pptFilename = `${ct._id}.pptx`
   const peerFile = await share.buildPPTX({ extractDir, pptFilename })
   const peerFile64 = await share.fileToBase64(peerFile)
-  app.gardenerSocket.emit('share:peerFile', peerFile64)
+  this.emit('res:share:peerFile', peerFile64)
 }
 
-const willOpenPPT = async ({ user, origin, fpath }) => {
+async function willOpenPPT({ user, origin, fpath }) {
   await shareStore.set('uid', user?._id)
   await shareStore.set('origin', origin)
   await shareStore.set('fpath', fpath)
   await shareStore.set('configDate', new Date())
   logger.log('WILL OPEN PPT', origin)
-  app.gardenerSocket.emit('share:storeSet')
+  this.emit('res:share:willOpenPPT')
 }
 
-const checkReceived = async () => {
+async function checkReceived() {
   const origin     = await shareStore.get('origin')
   const fpath      = await shareStore.get('fpath')
   const configDate = new Date(await shareStore.get('configDate'))
@@ -104,22 +109,22 @@ const checkReceived = async () => {
   logger.log('checkReceived', origin, configDate, timediff)
 
   if (timediff < 60000) {
-    app.gardenerSocket.emit('share:config', { origin, fpath, user, tokens })
+    this.emit('res:share:checkReceived', { origin, fpath, user, tokens })
   }
 
-  app.gardenerSocket.emit('share:config', '')
+  this.emit('res:share:checkReceived', '')
 }
 
-const updateFilename = data => {
+async function updateFilename(data) {
   // data = { origin, fpath, wsFolder }
   share.unmonitorOrigin(data.origin)
   share.monitorFile(data)
-  app.gardenerSocket.emit('share:filenameUpdated')
+  this.emit('res:share:updateFilename')
 }
 
-const pptContributors = async ({ origin, fpath }) => {
+async function pptContributors({ origin, fpath }) {
   const contributors = await diffs.refreshAdhocChanges({ origin, fpath })
-  app.gardenerSocket.emit('share:contributors', contributors)
+  this.emit('res:share:pptContributors', contributors)
 }
 
 const ShareController = {

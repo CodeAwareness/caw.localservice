@@ -8,13 +8,11 @@ import logger from './config/logger'
 import { CΩStore } from './services/cA.store'
 import os from 'os'
 
-restoreAuthInfo()
+restoreAuthInfo() // TODO: this is not resolving async, but it should be ok
 
 async function restoreAuthInfo() {
-  const user = await config.authStore.get('user')
-  const tokens = await config.authStore.get('tokens')
-  CΩStore.tokens = tokens
-  CΩStore.user = user
+  CΩStore.user = await config.authStore.get('user')
+  CΩStore.tokens = await config.authStore.get('tokens')
 }
 
 const homedir = os.homedir()

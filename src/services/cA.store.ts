@@ -1,3 +1,5 @@
+import config from '@/config/config'
+
 export const CΩStore = {
   colorTheme: 1, // 1 = Light, 2 = Dark, 3 = High Contrast
   user: undefined,
@@ -119,7 +121,7 @@ export const CΩStore = {
     CΩStore.selectedContributor = undefined
   },
 
-  emtpy: () => {
+  reset: () => {
     CΩStore.tokens = undefined
     CΩStore.user = undefined
     CΩStore.panel = undefined
@@ -135,6 +137,13 @@ export const CΩStore = {
     CΩStore.wsStation = undefined
     CΩStore.wsGardener = undefined
   },
+
+  setAuth: async ({ user, tokens }) => {
+    CΩStore.user = user
+    CΩStore.tokens = tokens
+    await config.authStore.set('user', CΩStore.user)
+    await config.authStore.set('tokens', CΩStore.tokens)
+  }
 }
 
 export const CΩWork = {

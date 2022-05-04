@@ -11,25 +11,18 @@ let lastAuthorization: Record<string, number> = {}
 function login(credentials: TCredentials) {
   CΩAPI
     .post(API_AUTH_LOGIN, credentials, 'auth:login', this)
-    .then(data => {
-      CΩStore.tokens = data.tokens
-      CΩStore.user = data.user
-    })
-    .catch(err => {
-      logger.log('auth error', err)
-    })
+    .then(data => CΩStore.setAuth(data))
+    .catch(err => logger.log('auth error', err))
 }
 
-function logout() {
-  config.authStore.clear()
-  CΩStore.tokens = undefined
-  CΩStore.user = undefined
+async function logout() {
+  await CΩStore.reset()
   lastAuthorization = {}
 }
 
 function info() {
   const { user, tokens } = CΩStore
-  this.emit('info:load', { user, tokens })
+  this.emit('res:auth:info', { user, tokens })
 }
 
 function signup(credentials: TCredentials) {
