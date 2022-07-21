@@ -42,7 +42,8 @@ const init = (httpServer: http.Server): void => {
   wsServer.on('listening', () => logger.info('socket.io listening'))
   wsServer.on('disconnect', () => logger.info('socket.io disconnected'))
 
-  /* See https://github.com/socketio/socket.io/blob/master/examples/private-messaging/server/index.js */
+  /*
+   * See https://github.com/socketio/socket.io/blob/master/examples/private-messaging/server/index.js */
   /*
   wsServer.use(async (socket, next) => {
     const sessionID = socket.handshake.auth.sessionID

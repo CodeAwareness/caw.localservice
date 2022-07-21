@@ -20,8 +20,15 @@ async function logout() {
   lastAuthorization = {}
 }
 
-function info() {
+async function info() {
   const { user, tokens } = CΩStore
+  if (tokens?.refresh?.expires < new Date().toISOString()) {
+    this.emit('res:auth:info')
+    return
+  }
+  if (tokens?.access?.expires < new Date().toISOString()) {
+    await CΩAPI.refreshToken(tokens?.refreshToken.token)
+  }
   this.emit('res:auth:info', { user, tokens })
 }
 
