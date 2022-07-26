@@ -27,7 +27,7 @@ async function info() {
     return
   }
   if (tokens?.access?.expires < new Date().toISOString()) {
-    await CΩAPI.refreshToken(tokens?.refreshToken.token)
+    await CΩAPI.refreshToken(tokens?.refresh.token)
   }
   this.emit('res:auth:info', { user, tokens })
 }
