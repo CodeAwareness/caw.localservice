@@ -1,5 +1,6 @@
 import type { Socket } from 'socket.io'
 import authRoute from './gstation.auth.route'
+import repoRoute from './gstation.repo.route'
 import shareRoute from './gstation.share.route'
 
 const router = {
@@ -10,6 +11,7 @@ const router = {
 
     if (ns === 'repos') {
       shareRoute.init(socket)
+      repoRoute.init(socket)
     }
   },
 }
