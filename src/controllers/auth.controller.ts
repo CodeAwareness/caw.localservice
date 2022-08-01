@@ -8,19 +8,24 @@ import logger from '@/logger'
 
 let lastAuthorization: Record<string, number> = {}
 
-function login(credentials: TCredentials) {
+type TLoginReq = {
+  credentials: TCredentials
+  cΩ: string
+}
+
+function login({ credentials, cΩ }: TLoginReq) {
   CΩAPI
     .post(API_AUTH_LOGIN, credentials, 'auth:login', this)
     .then(data => CΩStore.setAuth(data))
     .catch(err => logger.log('auth error', err))
 }
 
-async function logout() {
+async function logout({ cΩ }) {
   await CΩStore.reset()
   lastAuthorization = {}
 }
 
-async function info() {
+async function info({ cΩ }) {
   const { user, tokens } = CΩStore
   if (tokens?.refresh?.expires < new Date().toISOString()) {
     this.emit('res:auth:info')
@@ -32,21 +37,26 @@ async function info() {
   this.emit('res:auth:info', { user, tokens })
 }
 
-function signup(credentials: TCredentials) {
+function signup({ credentials, cΩ }: TLoginReq) {
   CΩAPI.post(API_AUTH_SIGNUP, credentials, 'auth:signup', this)
+}
+
+type TReauthReq = {
+  text: string
+  cΩ: string
 }
 
 /**
  * reAuthorize: fetch and send the latest SHA
  */
-function reAuthorize(text: string) {
+function reAuthorize({ text, cΩ }: TReauthReq) {
   const { origin, branch, commitDate } = JSON.parse(text)
   if (Object.keys(lastAuthorization).length && (new Date()).valueOf() - lastAuthorization[origin] < 60000) return // TODO: optimize / configure
   lastAuthorization[origin] = (new Date()).valueOf()
   const project = CΩStore.projects.filter(p => p.origin === origin)[0]
   if (!project) return
   const wsFolder = project.root
-  if (!commitDate) return sendLatestSHA({ wsFolder, origin })
+  if (!commitDate) return sendLatestSHA({ wsFolder, origin, cΩ })
   return git.command(wsFolder, 'git fetch')
     .then(() => {
       const cd = new Date(commitDate)
@@ -68,8 +78,14 @@ function reAuthorize(text: string) {
     })
 }
 
+type TLatestShaReq = {
+  wsFolder: string
+  origin: string
+  cΩ: string
+}
+
 /* TODO: throttle; when starting up VSCode we may get several such requests in quick succession */
-function sendLatestSHA({ wsFolder, origin }) {
+function sendLatestSHA({ wsFolder, origin, cΩ }: TLatestShaReq) {
   let branch: string
   return git.command(wsFolder, 'git fetch')
     .then(() => {
@@ -88,7 +104,12 @@ function sendLatestSHA({ wsFolder, origin }) {
     .catch(logger.error)
 }
 
-function passwordAssist({ email }) {
+type TPassAssistReq = {
+  email: string
+  cΩ: string
+}
+
+function passwordAssist({ email, cΩ }: TPassAssistReq) {
   // return CΩAPI.post(`${SERVER_URL}/auth/forgot-password`, { email })
 }
 

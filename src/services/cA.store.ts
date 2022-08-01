@@ -13,6 +13,15 @@ export const CΩStore = {
    */
   tmpDir: undefined,
 
+  /*
+   * instance based temp directories (one for each GUID)
+   * uTmpDir: {
+   *   qwe123: '/tmp/cΩ_-12750-bA2L/',
+   *   dfk230: '/tmp/cΩ_-2245h-hJ2k',
+   * }
+   */
+  uTmpDir: {},
+
   /* projects: [{
    *   name, // convenience property = basename(root)
    *   root, // root path

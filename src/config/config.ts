@@ -16,7 +16,8 @@ export const authStore = new Keyv(`sqlite://${dbpath}`, { namespace: 'auth' })
 authStore.on('error', err => console.error('SQLite storage: connection error', err))
 
 // Setting up a temporary folder to work in
-CΩStore.tmpDir = tmp.dirSync({ prefix: 'cA', keep: true, unsafeCleanup: true }).name
+CΩStore.tmpDir = tmp.dirSync({ prefix: 'cΩ', keep: true, unsafeCleanup: true }).name
+CΩStore.uTmpDir = {} // instance based temp dir
 
 const API_ROOT = path.join(__dirname, '../../')
 

@@ -1,4 +1,4 @@
-import { existsSync } from 'fs'
+import { existsSync, mkdirSync } from 'fs'
 import path from 'path'
 
 import logger from '@/config/logger'
@@ -7,7 +7,12 @@ import app from '@/app'
 import git from '@/services/git'
 import { CΩStore } from '@/services/cA.store'
 
-const add = folder => {
+type TRepoAddReq = {
+  folder: string
+  cΩ: string // the VSCode guid (supporting multiple instances of VSCode)
+}
+
+function add({ folder, cΩ }: TRepoAddReq) {
   logger.info('SCM addProject', folder)
   const hasGit = existsSync(path.join(folder, '.git'))
   if (!hasGit) {
@@ -27,21 +32,21 @@ const add = folder => {
       // TODO: cleanup CΩStore.projects with a timeout of inactivity or something
       const project = { name, origin, root, changes, contributors }
       CΩStore.projects.push(project)
-      app.gardenerSocket.emit('repo:added', { project })
+      this.emit('res:repo:added', { project })
     })
     .catch(err => logger.error('SCM setupOrigin ERROR', err))
 }
 
-const remove = folder => {
+function remove({ folder, cΩ }: TRepoAddReq) {
   const project = CΩStore.projects.filter(m => m.name === path.basename(folder))[0]
   logger.info('SCM removeProject folder', folder, project)
   if (project) {
     CΩStore.projects = CΩStore.projects.filter(m => m.origin !== project.origin)
   }
-  app.gardenerSocket.emit('repo:removed', { folder })
+  this.emit('res:repo:removed', { folder })
 }
 
-const addSubmodules = folder => {
+function addSubmodules({ folder, cΩ }: TRepoAddReq) {
   // TODO: add submodules of submodules ? (recursive)
   return git.command(folder, 'git submodule status')
     .then(out => {
@@ -52,24 +57,36 @@ const addSubmodules = folder => {
         if (res) subs.push(res[2])
       })
       logger.log('SCM git submodules: ', out, subs)
-      subs.map(sub => add(path.join(folder, sub)))
+      subs.map(sub => add.bind(this)({ folder: path.join(folder, sub), cΩ }))
     })
     .catch(err => {
       logger.error('SCM git submodule error', err)
     })
 }
 
-const removeSubmodules = folder => {
+function removeSubmodules({ folder, cΩ }: TRepoAddReq) {
   return git.command(folder, 'git submodule status')
     .then(out => {
       const subs = out.split('\n').map(line => / ([^\s]+) /.exec(line)[1])
-      subs.map(sub => remove(path.join(folder, sub)))
+      subs.map(sub => remove({ folder: path.join(folder, sub), cΩ }))
     })
+}
+
+function getTmpDir({ cΩ }) {
+  if (!CΩStore.uTmpDir[cΩ]) {
+    const uPath = path.join(CΩStore.tmpDir, cΩ)
+    mkdirSync(uPath)
+    CΩStore.uTmpDir[cΩ] = uPath
+    logger.info('GARDENER: created temp dir', uPath)
+  }
+
+  this.emit('res:repo:get-tmp-dir', CΩStore.uTmpDir[cΩ])
 }
 
 const repoController = {
   add,
   addSubmodules,
+  getTmpDir,
   remove,
   removeSubmodules,
 }
