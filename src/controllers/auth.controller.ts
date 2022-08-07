@@ -14,6 +14,7 @@ type TLoginReq = {
 }
 
 function login({ credentials, cΩ }: TLoginReq) {
+  console.info('LC: login', credentials)
   CΩAPI
     .post(API_AUTH_LOGIN, credentials, 'auth:login', this)
     .then(data => CΩStore.setAuth(data))
@@ -25,7 +26,7 @@ async function logout({ cΩ }) {
   lastAuthorization = {}
 }
 
-async function info({ cΩ }) {
+async function info() {
   const { user, tokens } = CΩStore
   if (tokens?.refresh?.expires < new Date().toISOString()) {
     this.emit('res:auth:info')
