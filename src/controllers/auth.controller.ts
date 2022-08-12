@@ -26,16 +26,21 @@ async function logout({ cΩ }) {
   lastAuthorization = {}
 }
 
-async function info() {
+function info() {
   const { user, tokens } = CΩStore
   if (tokens?.refresh?.expires < new Date().toISOString()) {
     this.emit('res:auth:info')
     return
   }
   if (tokens?.access?.expires < new Date().toISOString()) {
-    await CΩAPI.refreshToken(tokens?.refresh.token)
+    CΩAPI.refreshToken(tokens?.refresh.token)
+      .then(() => {
+        this.emit('res:auth:info', { user, tokens })
+      })
+      .catch(err => {
+        console.log('ERROR IN REFRESH TOKEN', err.code, err.response.statusText, err.response.data)
+      })
   }
-  this.emit('res:auth:info', { user, tokens })
 }
 
 function signup({ credentials, cΩ }: TLoginReq) {
