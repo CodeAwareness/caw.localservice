@@ -1,0 +1,6 @@
+This project implements an [Atom package transpiler]() that transpiles your package's Svelte files.
+
+(TODO: ...)
+This is another line of TODOs
+
+## Usage

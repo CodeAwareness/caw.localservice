@@ -1,0 +1,9 @@
+```
+
+test
+
+**3.** Finally, install Svelte and other plugins you may wish:
+
+    npm install --save svelte
+
+### Options

@@ -1,0 +1,5 @@
+**1.** First, install the package from the npm registry:
+
+    `npm install --save atom-svelte-transpiler`
+
+**2.** Next, modify your `package.json` to include a reference to the transpiler for all Svelte files.
