@@ -4,7 +4,7 @@ import * as fs from 'fs'
 import logger from '@/config/logger'
 import git from './git'
 
-import { CΩStore } from './cA.store'
+import { CΩStore } from './store'
 
 /**
  * @param string origin (OR) - the URL for this repo (e.g. github.com/codeawareness/codeawareness.vscode.git)

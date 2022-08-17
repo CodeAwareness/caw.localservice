@@ -15,7 +15,7 @@ import logger from '@/logger'
 
 import git from './git'
 import shell from './shell'
-import { CΩStore } from './cA.store'
+import { CΩStore } from './store'
 import CΩAPI from './api'
 
 const PENDING_DIFFS = {}

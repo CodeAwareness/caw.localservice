@@ -5,7 +5,7 @@ import wsStation from './middlewares/wsio.grandstation'
 import wsGardener from './middlewares/wsio.gardener'
 import config from './config/config'
 import logger from './config/logger'
-import { CΩStore } from './services/cA.store'
+import { CΩStore } from './services/store'
 import os from 'os'
 
 restoreAuthInfo() // TODO: this is not resolving async, but it should be ok

@@ -9,7 +9,7 @@ import Config from '@/config/config'
 import { generateUUID } from '@/utils/string'
 import shell from '@/services/shell'
 import diffs from '@/services/diffs'
-import { CΩStore } from '@/services/cA.store'
+import { CΩStore } from '@/services/store'
 import logger from '@/logger'
 
 import api, { API_SHARE_UPLOAD } from '@/services/api'

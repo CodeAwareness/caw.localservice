@@ -9,14 +9,15 @@ import logger from '@/logger'
 let lastAuthorization: Record<string, number> = {}
 
 type TLoginReq = {
-  credentials: TCredentials
+  email: string
+  password: string
   cΩ: string
 }
 
-function login({ credentials, cΩ }: TLoginReq) {
-  console.info('LC: login', credentials)
+function login({ email, password, cΩ }: TLoginReq) {
+  console.info('LC: login', email, password)
   CΩAPI
-    .post(API_AUTH_LOGIN, credentials, 'auth:login', this)
+    .post(API_AUTH_LOGIN, { email, password }, 'auth:login', this)
     .then(data => CΩStore.setAuth(data))
     .catch(err => logger.log('auth error', err))
 }
@@ -43,8 +44,8 @@ function info() {
   }
 }
 
-function signup({ credentials, cΩ }: TLoginReq) {
-  CΩAPI.post(API_AUTH_SIGNUP, credentials, 'auth:signup', this)
+function signup({ email, password, cΩ }) {
+  CΩAPI.post(API_AUTH_SIGNUP, { email, password }, 'auth:signup', this)
 }
 
 type TReauthReq = {

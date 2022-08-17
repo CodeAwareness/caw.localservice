@@ -6,7 +6,7 @@ import Config from '@/config/config'
 import git from './git'
 import logger from '@/logger'
 
-import { CΩStore } from './cA.store'
+import { CΩStore } from './store'
 
 export type TCredentials = {
   strategy: string

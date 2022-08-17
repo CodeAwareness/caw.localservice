@@ -25,6 +25,11 @@ function add({ folder, cΩ }: TRepoAddReq) {
   const changes = {}
   return git.getRemotes(folder)
     .then(origin => {
+      const existing = CΩStore.projects.filter(p => p.origin === origin)
+      if (existing) {
+        this.emit('res:repo:add', { project: existing })
+        return
+      }
       // TODO: Allow other versioning systems (gitlab, etc)
       // TODO: Check all remotes (check if ANY match)
       const root = folder
@@ -32,7 +37,7 @@ function add({ folder, cΩ }: TRepoAddReq) {
       // TODO: cleanup CΩStore.projects with a timeout of inactivity or something
       const project = { name, origin, root, changes, contributors }
       CΩStore.projects.push(project)
-      this.emit('res:repo:added', { project })
+      this.emit('res:repo:add', { project })
     })
     .catch(err => logger.error('SCM setupOrigin ERROR', err))
 }
@@ -58,6 +63,8 @@ function addSubmodules({ folder, cΩ }: TRepoAddReq) {
       })
       logger.log('SCM git submodules: ', out, subs)
       subs.map(sub => add.bind(this)({ folder: path.join(folder, sub), cΩ }))
+
+      this.emit('res:repo:add-submodules', subs)
     })
     .catch(err => {
       logger.error('SCM git submodule error', err)
