@@ -1,6 +1,6 @@
 import type { TCredentials } from '@/services/api'
 
-import { CΩStore } from '@/services/cA.store'
+import { CΩStore } from '@/services/store'
 import CΩAPI, { API_AUTH_LOGIN, API_AUTH_SIGNUP } from '@/services/api'
 import git from '@/services/git'
 import config from '@/config/config'

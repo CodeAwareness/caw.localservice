@@ -5,7 +5,7 @@ import logger from '@/config/logger'
 
 import app from '@/app'
 import git from '@/services/git'
-import { CΩStore } from '@/services/cA.store'
+import { CΩStore } from '@/services/store'
 
 type TRepoAddReq = {
   folder: string
