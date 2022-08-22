@@ -41,8 +41,8 @@ if (error) {
 
 const PORT_LOCAL = envVars.PORT || 48048
 const PORT_LOCAL_API = 3008
-const API_SERVER = 'api.codeawareness.com'
-const API_URL    = `https://${API_SERVER}/v1`
+const API_SERVER = process.env.LOCAL ? `localhost:${PORT_LOCAL_API}`      : 'api.codeawareness.com'
+const API_URL    = process.env.LOCAL ? `http://${API_SERVER}/v1`          : `https://${API_SERVER}/v1`
 const SERVER_WSS = process.env.LOCAL ? `ws://localhost:${PORT_LOCAL_API}` : 'wss://api.codeawareness.com'
 const WSS_NAMESPACE = 'svc'
 

@@ -3,7 +3,7 @@ import mkdirp from 'mkdirp'
 import * as chokidar from 'chokidar'
 import * as https from 'https'
 import * as fs from 'fs/promises'
-import { createWriteStream } from 'fs'
+import { createWriteStream } from 'node:fs'
 
 import Config from '@/config/config'
 import { generateUUID } from '@/utils/string'

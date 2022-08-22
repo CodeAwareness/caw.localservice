@@ -1,6 +1,6 @@
 import axios from 'axios'
 import FormData from 'form-data'
-import { createReadStream } from 'fs'
+import fs from 'node:fs'
 
 import Config from '@/config/config'
 import git from './git'
@@ -206,7 +206,7 @@ const sendDiffs = ({ zipFile, origin, cSHA, activePath }: any): Promise<any> => 
   zipForm.append('activePath', activePath)
   zipForm.append('origin', origin)
   zipForm.append('sha', cSHA)
-  zipForm.append('zipFile', createReadStream(zipFile), { filename: zipFile }) // !! the file HAS to be last appended to FormData
+  zipForm.append('zipFile', fs.createReadStream(zipFile), { filename: zipFile }) // !! the file HAS to be last appended to FormData
   return axiosAPI
     .post(API_REPO_CONTRIB, zipForm,
       {
@@ -234,7 +234,7 @@ const setupShare = (data: any): Promise<any> => {
   zipForm.append('origin', origin)
   zipForm.append('groups', JSON.stringify(groups))
   logger.log('Now reading file', origin)
-  zipForm.append('file', createReadStream(origin), { filename: origin }) // !! the file has to be last appended to formdata
+  zipForm.append('file', fs.createReadStream(origin), { filename: origin }) // !! the file has to be last appended to formdata
   logger.log('UPLOADING FILE', origin)
   return axiosAPI
     .post(API_SHARE_UPLOAD, zipForm,

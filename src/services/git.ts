@@ -8,11 +8,12 @@ const exec = util.promisify(child.exec)
 const isWindows = !!process.env.ProgramFiles
 
 async function gitExec(command: string, options = {}): Promise<string> {
-  // TODO: maybe use spawn instead of exec (more efficient since it doesn't spin up any shell; also allows larger data to be returned, but we have to handle streaming data instead of a simple assignment)
-  const { stdout } = await exec(command, options)
-  logger.log(`GIT: command ${command} returned.`)
-  // if (stderr) logger.log('git exec warning or error (command, error, stderr)', command, error, stderr)
-  return stdout
+  // TODO: maybe use spawn instead of exec (more efficient since it doesn't spin up any shell;
+  // also allows larger data to be returned, but we have to handle streaming data instead of a simple assignment)
+  // however, git execution context may be affected...
+  const data = await exec(command, options)
+  if (data.stderr) logger.log('GIT: exec warning or error', command, data.stderr)
+  return data.stdout
 }
 
 function command(wsFolder: string, cmd: string): Promise<string> {

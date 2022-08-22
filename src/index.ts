@@ -1,6 +1,6 @@
 import app from './app'
 import https from 'https'
-import fs from 'fs'
+import fs from 'node:fs'
 import wsStation from './middlewares/wsio.grandstation'
 import wsGardener from './middlewares/wsio.gardener'
 import config from './config/config'

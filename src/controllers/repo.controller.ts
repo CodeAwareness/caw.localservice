@@ -1,34 +1,86 @@
-import { existsSync, mkdirSync } from 'fs'
+import fs from 'node:fs'
 import path from 'path'
+import type { Socket } from 'socket.io'
 
 import logger from '@/config/logger'
 
 import app from '@/app'
 import git from '@/services/git'
 import { CΩStore } from '@/services/store'
+import CΩDiffs from '@/services/diffs'
 
 type TRepoAddReq = {
   folder: string
   cΩ: string // the VSCode guid (supporting multiple instances of VSCode)
 }
 
-function add({ folder, cΩ }: TRepoAddReq) {
-  logger.info('SCM addProject', folder)
-  const hasGit = existsSync(path.join(folder, '.git'))
-  if (!hasGit) {
-    logger.log('SCM Not a git folder', folder)
+type TRepoActivateReq = {
+  fpath: string // activated file's path
+  doc: string // activated file's content
+  cΩ: string
+}
+
+// TODO: group CΩStore projects by cΩ value
+
+async function activatePath(data: any): Promise<any> {
+  const { fpath, cΩ, doc }: TRepoActivateReq = data
+  logger.log('REPO: activate path', fpath, cΩ)
+  if (fpath.toLowerCase().includes(CΩStore.tmpDir.toLowerCase())) return Promise.reject()
+
+  const project = await selectProject(fpath, cΩ, this)
+  logger.log('REPO: activate path (project)', project)
+  this.emit('res:repo:active-path')
+  return Promise.resolve()
+  // TODO: do we still need refresh changes here? Since we're doing add(project) which sends all diffs anyway...
+  /*
+  return CΩDiffs
+    .refreshChanges(project, project.activePath, doc)
+    .then(() => {
+      this.emit('res:repo:active-path')
+    })
+   */
+}
+
+function selectProject(fpath, cΩ, socket): Promise<any> {
+  const plist = CΩStore.projects.filter(p => fpath.includes(p.root))
+  let len = 0
+  let project
+  // select longest path to guarantee working properly even on git submodules
+  plist.map(p => (p.length > len) && (project = p))
+  if (!project) {
+    return git.command(path.dirname(fpath), 'git rev-parse --show-toplevel')
+      .then(folder => add({ folder, cΩ }, socket))
+      .then(project => {
+        logger.info('REPO: the relative active path is', fpath.substr(project.root.length))
+        project.activePath = fpath.substr(project.root)
+        CΩDiffs.sendDiffs(project)
+        return project
+      })
+  }
+  return Promise.resolve(project)
+}
+
+function add(requested: TRepoAddReq, socket?: Socket): Promise<any> {
+  const folder = requested.folder.trim()
+  logger.info('REPO: addProject', folder)
+  let hasGit
+  try {
+    fs.accessSync(path.join(folder, '.git'))
+  } catch (err) {
+    logger.log('SCM Not a git folder', folder, err)
     return Promise.resolve() // TODO: maybe allow other source control tools, besides git?
   }
   // TODO: pull changes to local workspace
   // Setup project origins
   const contributors = {}
   const changes = {}
+  const ws = socket || this
   return git.getRemotes(folder)
     .then(origin => {
-      const existing = CΩStore.projects.filter(p => p.origin === origin)
+      const existing = CΩStore.projects.filter(p => p.origin === origin)[0]
       if (existing) {
-        this.emit('res:repo:add', { project: existing })
-        return
+        ws.emit('res:repo:add', { project: existing })
+        return existing
       }
       // TODO: Allow other versioning systems (gitlab, etc)
       // TODO: Check all remotes (check if ANY match)
@@ -37,7 +89,9 @@ function add({ folder, cΩ }: TRepoAddReq) {
       // TODO: cleanup CΩStore.projects with a timeout of inactivity or something
       const project = { name, origin, root, changes, contributors }
       CΩStore.projects.push(project)
-      this.emit('res:repo:add', { project })
+      logger.log('REPO: adding new project', project)
+      ws.emit('res:repo:add', { project })
+      return project
     })
     .catch(err => logger.error('SCM setupOrigin ERROR', err))
 }
@@ -81,8 +135,9 @@ function removeSubmodules({ folder, cΩ }: TRepoAddReq) {
 
 function getTmpDir({ cΩ }) {
   if (!CΩStore.uTmpDir[cΩ]) {
+    console.log('GET TMP DIR', CΩStore.tmpDir, cΩ)
     const uPath = path.join(CΩStore.tmpDir, cΩ)
-    mkdirSync(uPath)
+    fs.mkdirSync(uPath)
     CΩStore.uTmpDir[cΩ] = uPath
     logger.info('GARDENER: created temp dir', uPath)
   }
@@ -91,6 +146,7 @@ function getTmpDir({ cΩ }) {
 }
 
 const repoController = {
+  activatePath,
   add,
   addSubmodules,
   getTmpDir,

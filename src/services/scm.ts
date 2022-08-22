@@ -1,5 +1,5 @@
 import * as path from 'path'
-import * as fs from 'fs'
+import fs from 'node:fs'
 
 import logger from '@/config/logger'
 import git from './git'

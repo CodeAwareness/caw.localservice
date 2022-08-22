@@ -21,3 +21,6 @@ _uploadDiffs
 
 # DB
 storage.sqlite
+
+# ctags
+tags

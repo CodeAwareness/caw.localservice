@@ -15,7 +15,6 @@ type TLoginReq = {
 }
 
 function login({ email, password, cΩ }: TLoginReq) {
-  console.info('LC: login', email, password)
   CΩAPI
     .post(API_AUTH_LOGIN, { email, password }, 'auth:login', this)
     .then(data => CΩStore.setAuth(data))
@@ -23,25 +22,34 @@ function login({ email, password, cΩ }: TLoginReq) {
 }
 
 async function logout({ cΩ }) {
-  await CΩStore.reset()
+  await CΩStore.reset(cΩ)
   lastAuthorization = {}
 }
 
-function info() {
+function info(cΩ: string) {
   const { user, tokens } = CΩStore
+  logger.log('AUTH: checking auth info')
   if (tokens?.refresh?.expires < new Date().toISOString()) {
+    logger.log('AUTH: Refresh token expired')
     this.emit('res:auth:info')
     return
   }
-  if (tokens?.access?.expires < new Date().toISOString()) {
-    CΩAPI.refreshToken(tokens?.refresh.token)
-      .then(() => {
-        this.emit('res:auth:info', { user, tokens })
-      })
-      .catch(err => {
-        console.log('ERROR IN REFRESH TOKEN', err.code, err.response.statusText, err.response.data)
-      })
+
+  logger.log('AUTH: Access token expired. Refreshing.')
+  if (!tokens?.refresh?.token) {
+    this.emit('res:auth:info')
+    return
   }
+
+  CΩAPI.refreshToken(tokens?.refresh.token)
+    .then(() => {
+      logger.log('AUTH: token refreshed', { user })
+      this.emit('res:auth:info', { user, tokens })
+    })
+    .catch(err => {
+      console.log('ERROR IN REFRESH TOKEN', err.code, err.response.statusText, err.response.data)
+      CΩStore.reset(cΩ)
+    })
 }
 
 function signup({ email, password, cΩ }) {

@@ -35,7 +35,7 @@ async function uploadOriginal({ fpath, origin }): Promise<TWebSocket> {
   mkdirp.sync(extractDir)
   const zipFile = await copyToWorkspace({ fpath, extractDir })
   const promises = []
-  promises.push(api.shareFile({ zipFile: fpath, origin }))
+  // TODO: promises.push(api.shareFile({ zipFile: fpath, origin }))
   promises.push(diffs.unzip({ extractDir, zipFile }))
   return Promise.all(promises)
     .then(() => {

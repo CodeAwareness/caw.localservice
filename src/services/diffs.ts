@@ -6,7 +6,7 @@ import _ from 'lodash'
 import { createGzip } from 'zlib'
 import { PowerShell } from 'node-powershell'
 import childProcess from 'child_process'
-import { promises as fs, createReadStream, createWriteStream, openSync, closeSync } from 'fs'
+import { promises as fs, createReadStream, createWriteStream, openSync, closeSync } from 'node:fs'
 import { pipeline } from 'stream'
 // import replaceStream from 'replacestream' // doesn't work (!
 
@@ -38,12 +38,12 @@ const adhocDir = path.join(tmpDir, 'adhoc') // for adhoc sharing files and folde
  *
  * Open the VSCode standard diff window...
  ************************************************************************************/
-function diffWithBranch(branch: string): Promise<any> {
+function diffWithBranch(project: any, branch: string): Promise<any> {
   let peerFile
-  let wsFolder = CΩStore.activeProject.root
+  let wsFolder = project.root
   CΩStore.selectedBranch = branch
   CΩStore.selectedContributor = undefined
-  const userFile = CΩStore.activeProject.activePath
+  const userFile = project.activePath
   return git.command(path.join(wsFolder, path.dirname(userFile)), 'git rev-parse --show-toplevel')
     .then(folder => {
       wsFolder = folder.trim()
@@ -250,6 +250,7 @@ function sendDiffs(project): Promise<void> {
   // TODO: only sendCommitLog at the beginning, and then when the commit history has changed. How do we monitor the git history?
   return sendCommitLog(project)
     .then(() => {
+      logger.info('DIFFS: sendDiffs wsFolder=', wsFolder)
       return git.command(wsFolder, 'git ls-files --others --exclude-standard')
       // TODO: parse .gitignore and don't add (e.g. dot files) for security reasons
     })
@@ -307,6 +308,7 @@ function uploadDiffs({ diffDir, origin, cSHA, activePath }): Promise<void> {
   // TODO: I think we sometimes get a file error (cSHA.gz does not exist) -- verify
   const diffFile = path.join(diffDir, 'uploaded.diff')
   const zipFile = path.join(diffDir, `${cSHA}.gz`)
+  logger.info('DIFFS: uploadDiffs (diffFile, zipFile)', diffFile, zipFile)
   return compress(diffFile, zipFile)
     .then(() => {
       return CΩAPI.sendDiffs({ zipFile, cSHA, origin, activePath })
@@ -409,6 +411,7 @@ async function updateGit(extractDir: string): Promise<void> {
  *
  * @param object - CΩStore project
  * @param string - the file path of the active document
+ * @param string - the file contents
  *
  * Refresh the peer changes for the active file.
  * 1. Download the changes (line numbers only) from the server

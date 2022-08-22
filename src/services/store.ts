@@ -36,6 +36,8 @@ export const CΩStore = {
    *   cSHA, // the common SHA against which we diff all peers
    *   contributors, // comments, code contributors
    *   pendingGitDiff, // true / false - the local git diff operation is pending
+   *   activePath, // currently opened file, relative path
+   *   line, // current cursor line
    *   gitDiff: {
    *     'src/index.js': {
    *       range: { line: 12, len: 0 }, // len: 0 indicates an insert op
@@ -70,13 +72,13 @@ export const CΩStore = {
    */
   projects: [],
 
-  /* activeProject: {
-   *   (same as projects, plus:)
-   *   activePath, // currently opened file, relative path
-   *   line, // current cursor line
+  /*
+   * activeProjects: {
+   *   'sjwk123': { ... }, // active project for cΩ = 'sjwk123'
+   *   'dh84hjk': { ... }, // active project for cΩ = 'dh84hjk'
    * }
-  */
-  activeProject: undefined,
+   */
+   activeProjects: {},
 
   /* selectedContributor: {
    *   diffDir, // the temp folder where the file is extracted
@@ -130,14 +132,13 @@ export const CΩStore = {
     CΩStore.selectedContributor = undefined
   },
 
-  reset: () => {
+  reset: (cΩ: string) => {
     CΩStore.tokens = undefined
     CΩStore.user = undefined
     CΩStore.panel = undefined
     CΩStore.colorTheme = 1
-    CΩStore.tmpDir = undefined
     CΩStore.projects = []
-    CΩStore.activeProject = undefined
+    CΩStore.activeProjects[cΩ] = undefined
     CΩStore.selectedBranch = undefined
     CΩStore.selectedContributor = undefined
     CΩStore.peerFS = {}
