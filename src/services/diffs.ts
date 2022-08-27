@@ -457,8 +457,9 @@ function refreshChanges(project: any, fpath: string, doc: string): Promise<void>
  * We download the list of contributors for the active file,
  * and aggregate their changes to display the change markers
  ************************************************************************************/
-function downloadLinesChanged(project, fpath): Promise<void> {
+function downloadLinesChanged(project, filePath): Promise<void> {
   const currentUserId = CΩStore.user._id.toString()
+  const fpath = filePath.includes(project.root) ? filePath.substr(project.root.length + 1) : filePath
   return CΩAPI
     .downloadDiffs({ origin: project.origin, fpath })
     .then(({ data }) => {

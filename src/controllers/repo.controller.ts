@@ -27,26 +27,28 @@ async function activatePath(data: any): Promise<any> {
   logger.log('REPO: activate path', fpath, cΩ)
   if (fpath.toLowerCase().includes(CΩStore.tmpDir.toLowerCase())) return Promise.reject()
 
+  /* select the project corresponding to the activated path; if there is no project matching, we add as new project */
   const project = await selectProject(fpath, cΩ, this)
   logger.log('REPO: activate path (project)', project)
   this.emit('res:repo:active-path')
-  return Promise.resolve()
-  // TODO: do we still need refresh changes here? Since we're doing add(project) which sends all diffs anyway...
-  /*
+
+  /* next up: download changes from peers */
   return CΩDiffs
     .refreshChanges(project, project.activePath, doc)
     .then(() => {
-      this.emit('res:repo:active-path')
+      this.emit('res:repo:active-path', project)
     })
-   */
 }
 
 function selectProject(fpath, cΩ, socket): Promise<any> {
   const plist = CΩStore.projects.filter(p => fpath.includes(p.root))
-  let len = 0
-  let project
+  console.log('PROJECTS', fpath, CΩStore.projects)
+  let project, len = 0
   // select longest path to guarantee working properly even on git submodules
-  plist.map(p => (p.length > len) && (project = p))
+  plist.map(p => {
+    if (p.root.length > len) project = p
+    len = p.root.length
+  })
   if (!project) {
     return git.command(path.dirname(fpath), 'git rev-parse --show-toplevel')
       .then(folder => add({ folder, cΩ }, socket))
@@ -57,6 +59,7 @@ function selectProject(fpath, cΩ, socket): Promise<any> {
         return project
       })
   }
+  // TODO: send diffs if more than 5 minutes have passed
   return Promise.resolve(project)
 }
 

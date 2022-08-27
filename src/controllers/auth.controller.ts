@@ -49,6 +49,7 @@ function info(cΩ: string) {
     .catch(err => {
       console.log('ERROR IN REFRESH TOKEN', err.code, err.response.statusText, err.response.data)
       CΩStore.reset(cΩ)
+      this.emit('res:auth:info', {})
     })
 }
 

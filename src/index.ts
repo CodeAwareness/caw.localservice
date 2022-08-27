@@ -8,7 +8,7 @@ import logger from './config/logger'
 import { CΩStore } from './services/store'
 import os from 'os'
 
-restoreAuthInfo() // TODO: this is not resolving async, but it should be ok
+// restoreAuthInfo() // TODO: this is not resolving async, but it should be ok
 
 async function restoreAuthInfo() {
   CΩStore.user = await config.authStore.get('user')

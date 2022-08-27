@@ -5,7 +5,7 @@ This is a local (client) system service that needs to be wrapped and compiled sp
 Naming is a serious challenge here, so I'm trying this:
 
   - the codeawareness.com API is called `API` and is located out there in the cloud
-  - the local server (client side) is called `grandStation` and listens to all applications which have CodeAwareness extension installed
+  - the local server (client side) is called `grandStation` and listens to a wss 48408 port, to which all applications which have CodeAwareness extension installed can connect.
   - the local socket client is called `gardener` and is responsible for receiving websocket messages from the `API`
   - the VSCode extension, vim / emacs plugin, etc, every single one is a `poodle`. These poodles are very busy showing people how cute they are.
 

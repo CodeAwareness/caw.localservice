@@ -52,8 +52,8 @@ axiosAPI.interceptors.request.use(config => {
 axiosAPI.interceptors.response.use(
   (response: any) => {
     if (response.status === 202) { // We are processing the requests as authorized for now, but we need to send the required (or latest) SHA to continue being authorized
+      // we do this strange response.statusText OR response.data.statusText because of a glitch in the test, it seems I can't make it work with supertest
       const authPromise = reAuthorize(response.statusText || response.data.statusText) // IMPORTANT: no await! otherwise we interrupt the regular operations for too long, and we also get deeper into a recursive interceptor response.
-      // also, we do this strange response.statusText OR response.data.statusText because of a glitch in the test, it seems I can't make it work with supertest
       if (CΩStore.swarmAuthStatus) {
         // TODO: try to disconnect multiple swarmAuth promises (for multiple repos at a time), so one repo doesn't have to wait for all repos to complete swarm authorization.
         CΩStore.swarmAuthStatus.then(() => authPromise)
