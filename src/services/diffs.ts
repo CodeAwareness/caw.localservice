@@ -426,7 +426,7 @@ function refreshChanges(project: any, fpath: string, doc: string): Promise<void>
   /* TODO: add caching (so we don't keep on asking for the same file when the user mad-clicks the same contributor) */
   const wsFolder = project.root
 
-  logger.info('DIFFS: downloadDiffs (origin, fpath, user)', project.origin, fpath, CΩStore.user)
+  logger.info('DIFFS: downloadDiffs (origin, fpath, user)', project.origin, fpath, CΩStore.user?.email)
   PENDING_DIFFS[fpath] = true // this operation can take a while, so we don't want to start it several times per second
   /* @ts-ignore */
   if (lastDownloadDiff[wsFolder] && new Date() - lastDownloadDiff[wsFolder] < Config.SYNC_THRESHOLD) {

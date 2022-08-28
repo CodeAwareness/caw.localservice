@@ -219,7 +219,6 @@ describe('CΩDiffs', () => {
       })
     })
   })
-
 })
 
 async function setupChanges(vscodeChanges, alines) {
@@ -241,4 +240,3 @@ async function setupChanges(vscodeChanges, alines) {
   project.changes[fpath] = { alines: alines || { sha1: [1, 2, 5, 6, 7, 8, 14, 35] } }
   return project.changes[fpath]
 }
-

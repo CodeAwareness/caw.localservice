@@ -15,9 +15,6 @@
     }
   },
   "types": [ "node", "jest" ],
-  "rules": {
-    "@typescript-eslint/ban-ts-comment": 0
-  },
   "ts-node": {
     "require": ["tsconfig-paths/register"]
   }

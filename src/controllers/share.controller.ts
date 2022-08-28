@@ -35,7 +35,7 @@ function startSharing(config) {
   // TODO: await shell.unzip(path.basename(zipFile), extractDir)
 }
 
-async function acceptShare (origin) {
+async function acceptShare(origin) {
   const peerFile = await share.acceptShare(origin)
   const peerFile64 = await share.fileToBase64(peerFile)
   // TODO: this is potentially sending large files (e.g. 200+MB) to the server and then back
