@@ -42,9 +42,10 @@
     "no-console": [
       "off"
     ],
-    "no-unused-vars": [
-      "warn"
-    ],
+    "no-unused-vars": "warn",
+    "@typescript-eslint/no-unused-vars": "warn",
+    "@typescript-eslint/no-empty-function": "warn",
+    "no-new-object": 0,
     "no-mixed-operators": 0,
     "no-mixed-spaces-and-tabs": [ "warn" ],
     "no-multi-spaces": 0,
@@ -70,6 +71,7 @@
     ],
     "security/detect-child-process": 0,
     "security/detect-object-injection": 0,
-    "@typescript-eslint/ban-ts-comment": 0
+    "@typescript-eslint/ban-ts-comment": 0,
+    "@typescript-eslint/no-explicit-any": 0
   }
 }
