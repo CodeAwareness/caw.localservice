@@ -25,7 +25,7 @@ type TRepoActivateReq = {
 async function activatePath(data: any): Promise<any> {
   const { fpath, cΩ, doc }: TRepoActivateReq = data
   logger.log('REPO: activate path', fpath, cΩ)
-  if (fpath.toLowerCase().includes(CΩStore.tmpDir.toLowerCase())) return Promise.reject()
+  if (fpath.toLowerCase().includes(CΩStore.tmpDir.toLowerCase())) return Promise.reject(new Error('file is temp'))
 
   /* select the project corresponding to the activated path; if there is no project matching, we add as new project */
   const project = await selectProject(fpath, cΩ, this)
@@ -43,7 +43,8 @@ async function activatePath(data: any): Promise<any> {
 function selectProject(fpath, cΩ, socket): Promise<any> {
   const plist = CΩStore.projects.filter(p => fpath.includes(p.root))
   console.log('PROJECTS', fpath, CΩStore.projects)
-  let project, len = 0
+  let project
+  let len = 0
   // select longest path to guarantee working properly even on git submodules
   plist.map(p => {
     if (p.root.length > len) project = p
@@ -55,7 +56,7 @@ function selectProject(fpath, cΩ, socket): Promise<any> {
       .then(project => {
         logger.info('REPO: the relative active path is', fpath.substr(project.root.length))
         project.activePath = fpath.substr(project.root)
-        CΩDiffs.sendDiffs(project)
+        CΩDiffs.sendDiffs(project, cΩ)
         return project
       })
   }

@@ -78,7 +78,7 @@ export const CΩStore = {
    *   'dh84hjk': { ... }, // active project for cΩ = 'dh84hjk'
    * }
    */
-   activeProjects: {},
+  activeProjects: {},
 
   /* selectedContributor: {
    *   diffDir, // the temp folder where the file is extracted
@@ -149,6 +149,7 @@ export const CΩStore = {
   },
 
   setAuth: async ({ user, tokens }) => {
+    console.log('SET AUTH', user, tokens)
     CΩStore.user = user
     CΩStore.tokens = tokens
     await config.authStore.set('user', CΩStore.user)

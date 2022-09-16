@@ -16,6 +16,8 @@ export type TCredentials = {
 
 CΩStore.swarmAuthStatus = 0
 
+let lastAuthorization = []
+
 type SHARE_URL_TYPE = {
   url: string,
 }
@@ -29,7 +31,7 @@ export const API_REPO_SWARM_AUTH     = '/repos/swarm-auth'
 export const API_REPO_COMMITS        = '/repos/commits'
 export const API_REPO_COMMON_SHA     = '/repos/common-sha'
 export const API_REPO_CONTRIB        = '/repos/contrib'
-export const API_REPO_DIFF_FILE      = '/repos/diff'
+export const API_REPO_DIFF_FILE      = '/repos/diffs'
 
 export const API_SHARE_ACCEPT        = '/share/accept'
 export const API_SHARE_FINFO         = '/share/getFileOrigin'
@@ -41,7 +43,7 @@ export const API_SHARE_START         = '/share/start'
 export const API_SHARE_UPLOAD        = '/share/upload'
 
 axios.defaults.adapter = require('axios/lib/adapters/http')
-const axiosAPI = axios.create({ baseURL: Config.API_URL })
+export const axiosAPI = axios.create({ baseURL: Config.API_URL })
 
 axiosAPI.interceptors.request.use(config => {
   const { access } = CΩStore.tokens || { access: {} }
@@ -53,7 +55,11 @@ axiosAPI.interceptors.response.use(
   (response: any) => {
     if (response.status === 202) { // We are processing the requests as authorized for now, but we need to send the required (or latest) SHA to continue being authorized
       // we do this strange response.statusText OR response.data.statusText because of a glitch in the test, it seems I can't make it work with supertest
-      const authPromise = reAuthorize(response.statusText || response.data.statusText) // IMPORTANT: no await! otherwise we interrupt the regular operations for too long, and we also get deeper into a recursive interceptor response.
+      // if (!response.statusText && !response.data.statusText) return response
+      console.log(response.data, response.statusText, response.status)
+      const cΩ = response.data.cΩ
+      const text = response.statusText || response.data.statusText
+      const authPromise = reAuthorize({ text, cΩ }) // IMPORTANT: no await! otherwise we interrupt the regular operations for too long, and we also get deeper into a recursive interceptor response.
       if (CΩStore.swarmAuthStatus) {
         // TODO: try to disconnect multiple swarmAuth promises (for multiple repos at a time), so one repo doesn't have to wait for all repos to complete swarm authorization.
         CΩStore.swarmAuthStatus.then(() => authPromise)
@@ -89,60 +95,56 @@ axiosAPI.interceptors.response.use(
             axiosAPI(err.config).then(resolve, reject)
           })
           .catch(reject)
-          /*
-          .catch(err => {
-            return CΩAPI.logout(reject, 'You have been logged out', err.response)
-          })
-          */
       }
       return reject(err)
     })
   },
 )
 
-let lastAuthorization = []
-
 function clearAuth() {
   lastAuthorization = []
+}
+
+type TReauthReq = {
+  text: string
+  cΩ: string
 }
 
 /**
  * reAuthorize: fetch and send the latest SHA
  */
-function reAuthorize(text) {
+function reAuthorize({ text, cΩ }: TReauthReq) {
+  console.log('RE AUTH', text)
   const { origin, branch, commitDate } = JSON.parse(text)
-  /* @ts-ignore */
-  if (lastAuthorization.length && new Date() - lastAuthorization[origin] < 60000) return // TODO: optimize / configure
-  lastAuthorization[origin] = new Date()
+  if (Object.keys(lastAuthorization).length && (new Date()).valueOf() - lastAuthorization[origin] < 120) return // TODO: optimize / configure; for now we'll only allow reauth once every 2 min
+  lastAuthorization[origin] = (new Date()).valueOf()
   const project = CΩStore.projects.filter(p => p.origin === origin)[0]
   if (!project) return
   const wsFolder = project.root
-  if (!commitDate) return sendLatestSHA({ wsFolder, origin })
+  if (!commitDate) return sendLatestSHA({ wsFolder, origin, cΩ })
   return git.command(wsFolder, 'git fetch')
     .then(() => {
       const cd = new Date(commitDate)
       // TODO: thoroughly test this one with time-zones (vscode official repo is ideal for this)
-      /*
-      cd.setMinute(cd.getMinute() - 5)
-      const start = cd.toISOString()
-      cd.setMinute(cd.getMinute() + 11)
-      const end = cd.toISOString()
-      const options = start ? `--since=${start} --until=${end}` : '-n5'
-      */
       const options = `--since=${cd.toISOString()} --until=${cd.toISOString()}`
       return git.command(wsFolder, `git log --pretty="%cd %H" ${options} --date=iso-strict ${branch}`)
     })
     .then(log => {
-      // eslint-disable-next-line
-      const [a, d, h] = /(.+) (.+)/.exec(log)
-      return submitAuthBranch({ origin, branch, sha: h, commitDate: d })
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
+      const [_a, d, h] = /(.+) (.+)/.exec(log)
+      return CΩAPI.submitAuthBranch({ origin, branch, sha: h, commitDate: d })
     })
 }
 
 /* TODO: throttle; when starting up VSCode we may get several such requests in quick succession */
-function sendLatestSHA({ wsFolder, origin }: any): Promise<any> {
-  let branch
-  return git.command(wsFolder, 'git fetch')
+function sendLatestSHA({ wsFolder, origin, cΩ }: any): Promise<any> {
+  let branch: string
+  return git.command(wsFolder, 'git branch -a --sort=committerdate')
+    .then(out => {
+      branch = out.split('\n')[0].replace('remotes/origin/', '').replace(/ /g, '')
+      console.log('SEND LATEST SHA', branch, out)
+      return git.command(wsFolder, `git fetch origin ${branch}:${branch}`)
+    })
     .then(() => {
       return git.command(wsFolder, 'git for-each-ref --sort="-committerdate" --count=1 refs/remotes')
     })
@@ -152,15 +154,23 @@ function sendLatestSHA({ wsFolder, origin }: any): Promise<any> {
       return git.command(wsFolder, `git log --pretty="%cd %H" -n1 --date=iso-strict ${branch}`)
     })
     .then(log => {
-      // eslint-disable-next-line
-      const [a, commitDate, sha] = /(.+) (.+)/.exec(log)
-      return submitAuthBranch({ origin, sha, commitDate, branch })
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
+      const [_a, commitDate, sha] = /(.+) (.+)/.exec(log)
+      return CΩAPI.submitAuthBranch({ origin, sha, commitDate, branch })
     })
     .catch(logger.error)
 }
 
+function login({ email, password, socket }) {
+  return CΩAPI.post(API_AUTH_LOGIN, { email, password }, 'auth:login', socket)
+}
+
 function logout() {
   // TODO: logout from API
+}
+
+function signup({ email, password, socket }) {
+  CΩAPI.post(API_AUTH_SIGNUP, { email, password }, 'auth:signup', socket)
 }
 
 function refreshToken(refreshToken: string) {
@@ -187,35 +197,6 @@ function getRepo(origin: string): Promise<any> {
 function getPPTSlideContrib({ origin, fpath }) {
   const uri = encodeURIComponent(origin)
   return axiosAPI(`${API_SHARE_SLIDE_CONTRIB}?origin=${uri}&fpath=${fpath}`, { method: 'GET', responseType: 'json' })
-}
-
-/**
- * data: { origin, list }
- */
-function sendCommitLog(data: any): Promise<any> {
-  return axiosAPI.post(API_REPO_COMMITS, data)
-}
-
-function findCommonSHA(origin: string): Promise<any> {
-  const uri = encodeURIComponent(origin)
-  return axiosAPI(`${API_REPO_COMMON_SHA}?origin=${uri}`, { method: 'GET', responseType: 'json' })
-}
-
-const sendDiffs = ({ zipFile, origin, cSHA, activePath }: any): Promise<any> => {
-  const zipForm = new FormData()
-  zipForm.append('activePath', activePath)
-  zipForm.append('origin', origin)
-  zipForm.append('sha', cSHA)
-  zipForm.append('zipFile', fs.createReadStream(zipFile), { filename: zipFile }) // !! the file HAS to be last appended to FormData
-  return axiosAPI
-    .post(API_REPO_CONTRIB, zipForm,
-      {
-        headers: zipForm.getHeaders(),
-        maxContentLength: Infinity,
-        maxBodyLength: Infinity,
-      })
-    .then(res => res.data)
-    .catch(err => logger.error('API error in sendDiffs', err)) // TODO: error handling
 }
 
 const submitAuthBranch = ({ origin, sha, branch, commitDate }: any): Promise<any> => axiosAPI.post(API_REPO_SWARM_AUTH, { origin, sha, branch, commitDate })
@@ -264,21 +245,22 @@ const getOriginInfo = origin => {
 
 function post(url, data, action?: string, socket?: any) {
   logger.log('POST to CodeAwareness', url)
-  const promise = CΩAPI.axiosAPI
-    .post(url, data)
+  const promise = CΩAPI.axiosAPI.post(url, data)
 
   if (!socket) {
+    logger.log('no socket when posting to API')
     return promise
   }
 
   return promise
     .then(res => {
+      console.log('POST result', action, res.data)
       if (action) socket.emit(`res:${action}`, res.data)
       return res.data
     })
     .catch(err => {
       logger.error(`API call failed for ${action}`)
-      socket.emit(`error:${action}`, err?.response?.data)
+      if (action) socket.emit(`error:${action}`, err?.response?.data)
       throw err
     })
 }
@@ -287,18 +269,17 @@ const CΩAPI = {
   // common
   axiosAPI,
   getOriginInfo,
+  login,
   logout,
   post,
   refreshToken,
+  signup,
 
   // code repo
   clearAuth,
   downloadDiffFile,
   downloadDiffs,
-  findCommonSHA,
   getRepo,
-  sendCommitLog,
-  sendDiffs,
   sendLatestSHA,
   submitAuthBranch,
 

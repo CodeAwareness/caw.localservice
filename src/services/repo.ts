@@ -29,7 +29,7 @@ function generateWSFolder() {
  * scope: GIT
  * desc : repos diffs are sent to CodeAwareness
  */
-async function uploadOriginal({ fpath, origin }): Promise<TWebSocket> {
+async function uploadOriginal({ fpath, origin, cΩ }): Promise<TWebSocket> {
   const wsFolder = generateWSFolder()
   const extractDir = path.join(wsFolder, Config.EXTRACT_LOCAL_DIR)
   mkdirp.sync(extractDir)
@@ -42,10 +42,10 @@ async function uploadOriginal({ fpath, origin }): Promise<TWebSocket> {
       return diffs.initGit({ extractDir, origin })
     })
     .then(() => {
-      return diffs.sendAdhocDiffs(wsFolder)
+      return diffs.sendAdhocDiffs(wsFolder, cΩ)
     })
     .then(() => {
-      monitorFile({ origin, wsFolder, fpath })
+      monitorFile({ origin, wsFolder, fpath, cΩ })
     })
     .then(() => {
       return { wsFolder, origin }
@@ -57,12 +57,12 @@ async function uploadOriginal({ fpath, origin }): Promise<TWebSocket> {
  * scope: GIT
  * desc : updates repo diffs and sends them to CodeAwareness
  */
-async function refreshDiffs({ wsFolder, fpath }) {
+async function refreshDiffs({ wsFolder, fpath, cΩ }) {
   logger.log('File has been saved, refreshing diffs.')
   const extractDir = path.join(wsFolder, Config.EXTRACT_LOCAL_DIR)
   await copyToWorkspace({ fpath, extractDir })
   await diffs.updateGit(extractDir)
-  await diffs.sendAdhocDiffs(wsFolder)
+  await diffs.sendAdhocDiffs(wsFolder, cΩ)
 }
 
 async function copyToWorkspace({ fpath, extractDir }) {
@@ -83,11 +83,11 @@ const cwatchers = {}
  * desc : monitor a path for changes in the file
  *        this is necessary, because we don't have a good enough file change event system in PPT
  */
-function monitorFile({ origin, fpath, wsFolder }): void {
+function monitorFile({ origin, fpath, wsFolder, cΩ }): void {
   logger.log('will monitor file', fpath, origin, wsFolder)
   cwatchers[origin] = chokidar.watch(fpath)
     .on('change', () => {
-      refreshDiffs({ fpath, wsFolder })
+      refreshDiffs({ fpath, wsFolder, cΩ })
     })
 }
 
@@ -166,7 +166,7 @@ async function acceptShare(origin: string): Promise<string> {
  * scope: PPT
  * desc : extract the PPT (zip) file, setup contributors and monitoring
  */
-function setupReceived({ fpath, origin, wsFolder }: any): Promise<any> {
+function setupReceived({ fpath, origin, wsFolder, cΩ }: any): Promise<any> {
   wsFolder = wsFolder || generateWSFolder()
   logger.log('setup received file', wsFolder, fpath, origin)
   const extractDir = path.join(wsFolder, Config.EXTRACT_LOCAL_DIR)
@@ -182,7 +182,7 @@ function setupReceived({ fpath, origin, wsFolder }: any): Promise<any> {
       return diffs.initGit({ extractDir, origin })
     })
     .then(() =>  {
-      monitorFile({ origin, fpath, wsFolder })
+      monitorFile({ origin, fpath, wsFolder, cΩ })
       return { fpath, wsFolder }
     })
 }

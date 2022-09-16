@@ -3,6 +3,8 @@ import path from 'path'
 import tar from 'tar'
 import rimraf from 'rimraf'
 import _ from 'lodash'
+import FormData from 'form-data'
+
 import { createGzip } from 'zlib'
 import { PowerShell } from 'node-powershell'
 import childProcess from 'child_process'
@@ -16,7 +18,7 @@ import logger from '@/logger'
 import git from './git'
 import shell from './shell'
 import { CΩStore } from './store'
-import CΩAPI from './api'
+import CΩAPI, { API_REPO_COMMITS, API_REPO_COMMON_SHA, API_REPO_CONTRIB } from './api'
 
 const PENDING_DIFFS = {}
 const isWindows = !!process.env.ProgramFiles
@@ -137,7 +139,7 @@ function diffWithContributor({ ct, userFile, origin, wsFolder }): Promise<any> {
  * We're sending a number of commit SHA values (e.g. latest 100) to the server,
  * in order to compute the common ancestor SHA for everyone in a team.
  ************************************************************************************/
-function sendCommitLog(project): Promise<string> {
+function sendCommitLog(project, cΩ): Promise<string> {
   // TODO: make MAX_COMMITS something configurable by the server instead. That way we can automatically accommodate a rescale in team size.
   const MAX_COMMITS = 1000
   const wsFolder = project.root
@@ -162,10 +164,13 @@ function sendCommitLog(project): Promise<string> {
     })
 
   function fetchCommonSHA() {
-    return CΩAPI
-      .findCommonSHA(origin)
+    const uri = encodeURIComponent(origin)
+    return CΩAPI.axiosAPI(
+      `${API_REPO_COMMON_SHA}?origin=${uri}&cΩ=${cΩ}`,
+      { method: 'GET', responseType: 'json' }
+    )
       .then(res => {
-        project.cSHA = res.data.sha || project.head
+        project.cSHA = res.data?.sha || project.head
         logger.info('DIFF: getCommonSHA for (origin, cSHA)', project.origin, project.cSHA)
         return project.cSHA
       })
@@ -178,7 +183,7 @@ function sendCommitLog(project): Promise<string> {
       .then(upload)
       .then(res => {
         logger.info('DIFFS: uploadLog received a cSHA from the server (origin, sha)', project.origin, res.data)
-        project.cSHA = res.data || project.head
+        project.cSHA = res.data?.cSHA || project.head
         return project.cSHA
       })
   }
@@ -201,12 +206,18 @@ function sendCommitLog(project): Promise<string> {
 
   function upload(stdout) {
     const commits = stdout.split(/[\n\r]/).filter(l => l)
-    return CΩAPI.sendCommitLog({
+    const data = {
       origin,
+      cΩ,
       commits,
       branches: localBranches,
       branch: currentBranch,
-    })
+    }
+    return CΩAPI.axiosAPI.post(API_REPO_COMMITS, data)
+      .then(res => {
+        console.log('POST RETURNED', res)
+        return res
+      })
   }
 }
 
@@ -218,6 +229,7 @@ function createEmpty(file) {
  * sendDiffs
  *
  * @param Object - CΩStore project
+ * @param string - the app unique ID (cΩ)
  *
  * We're running a git diff against the common SHA, archive this with gzip
  * and send it to the server.
@@ -225,7 +237,7 @@ function createEmpty(file) {
  * or the files modified (if file system event)
  ************************************************************************************/
 const lastSendDiff = []
-function sendDiffs(project): Promise<void> {
+function sendDiffs(project, cΩ): Promise<void> {
   if (!project) return Promise.resolve()
   const wsFolder = project.root
   const activePath = project.activePath || ''
@@ -248,13 +260,14 @@ function sendDiffs(project): Promise<void> {
 
   // TODO: get all remotes instead of just origin
   // TODO: only sendCommitLog at the beginning, and then when the commit history has changed. How do we monitor the git history?
-  return sendCommitLog(project)
+  return sendCommitLog(project, cΩ)
     .then(() => {
       logger.info('DIFFS: sendDiffs wsFolder=', wsFolder)
       return git.command(wsFolder, 'git ls-files --others --exclude-standard')
       // TODO: parse .gitignore and don't add (e.g. dot files) for security reasons
     })
     .catch(error => {
+      console.log('command ls-files', error)
       throw new Error(`Error while sendingCommitLog (command ls-files). ${error}`)
     })
     .then(files => {
@@ -262,21 +275,25 @@ function sendDiffs(project): Promise<void> {
       return gatherUntrackedFiles(files.split(/[\n\r]/).filter(f => f))
     })
     .catch(error => {
+      console.log('gatherUntrackedFiles', error)
       throw new Error(`Error while sendingCommitLog (gatherUntrackedFiles). ${error}`)
     })
     .then(() => {
       logger.info('DIFFS: appending cSHA and diffs (cSHA, wsFolder, tmpProjectDiff)', project.cSHA, wsFolder, tmpProjectDiff)
+      console.log('REV LIST', project)
       return git.command(wsFolder, `git diff -b -U0 --no-color ${project.cSHA} >> ${tmpProjectDiff}`)
       // TODO: maybe also include changes not yet saved (all active editors) / realtime mode ?
     })
     .catch(error => {
+      console.log('command diff', error)
       throw new Error(`Error while sendingCommitLog (command diff). ${error}`)
     })
     .then(() => {
       const { cSHA } = project
-      return uploadDiffs({ origin, diffDir, cSHA, activePath })
+      return uploadDiffs({ origin, diffDir, cSHA, activePath, cΩ })
     })
     .catch(error => {
+      console.log('uploadDiffs', error)
       throw new Error(`Error while sendingCommitLog (uploadDiffs). ${error}`)
     })
 
@@ -304,14 +321,30 @@ function sendDiffs(project): Promise<void> {
   }
 }
 
-function uploadDiffs({ diffDir, origin, cSHA, activePath }): Promise<void> {
+function uploadDiffs({ diffDir, origin, cSHA, activePath, cΩ }): Promise<void> {
   // TODO: I think we sometimes get a file error (cSHA.gz does not exist) -- verify
   const diffFile = path.join(diffDir, 'uploaded.diff')
   const zipFile = path.join(diffDir, `${cSHA}.gz`)
   logger.info('DIFFS: uploadDiffs (diffFile, zipFile)', diffFile, zipFile)
   return compress(diffFile, zipFile)
     .then(() => {
-      return CΩAPI.sendDiffs({ zipFile, cSHA, origin, activePath })
+      const zipForm = new FormData()
+      zipForm.append('activePath', activePath)
+      zipForm.append('origin', origin)
+      zipForm.append('sha', cSHA)
+      zipForm.append('cΩ', cΩ)
+      /* @ts-ignore */
+      zipForm.append('zipFile', createReadStream(zipFile), { filename: zipFile }) // !! the file HAS to be last appended to FormData
+      const options = {
+        /* @ts-ignore */
+        headers: zipForm.getHeaders(),
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity,
+      }
+      return CΩAPI.axiosAPI
+        .post(API_REPO_CONTRIB, zipForm, options)
+        .then(res => res.data)
+        .catch(err => logger.error('API error in sendDiffs', err)) // TODO: error handling
     })
 }
 
@@ -425,10 +458,12 @@ const lastDownloadDiff = []
 function refreshChanges(project: any, fpath: string, doc: string): Promise<void> {
   /* TODO: add caching (so we don't keep on asking for the same file when the user mad-clicks the same contributor) */
   const wsFolder = project.root
+  return Promise.resolve()
 
+  /*
   logger.info('DIFFS: downloadDiffs (origin, fpath, user)', project.origin, fpath, CΩStore.user?.email)
   PENDING_DIFFS[fpath] = true // this operation can take a while, so we don't want to start it several times per second
-  /* @ts-ignore */
+  // @ts-ignore
   if (lastDownloadDiff[wsFolder] && new Date() - lastDownloadDiff[wsFolder] < Config.SYNC_THRESHOLD) {
     return Promise.resolve()
   }
@@ -440,12 +475,15 @@ function refreshChanges(project: any, fpath: string, doc: string): Promise<void>
       return getLinesChangedLocaly(project, fpath, doc)
     })
     .then(() => {
-      logger.info('DIFFS: will shift markers (changes)', project.changes[fpath])
-      shiftWithGitDiff(project, fpath)
-      shiftWithLiveEdits(project, fpath) // include editing operations since the git diff was initiated
-      delete PENDING_DIFFS[fpath] // pending diffs complete
+      logger.info(`DIFFS: will shift markers (changes) for ${fpath}`, project.changes[fpath])
+      if (project.changes[fpath]) {
+        shiftWithGitDiff(project, fpath)
+        shiftWithLiveEdits(project, fpath) // include editing operations since the git diff was initiated
+        delete PENDING_DIFFS[fpath] // pending diffs complete
+      }
     })
     .catch(logger.error)
+    */
 }
 
 /************************************************************************************
@@ -687,7 +725,7 @@ async function unzip({ extractDir, zipFile }): Promise<void> {
 
 // TODO: error handling of all these awaits
 // TODO: it seems this crashes when closing the file (with save): `spawn C:\WINDOWS\system32\cmd.exe ENOENT`
-async function sendAdhocDiffs(diffDir): Promise<void> {
+async function sendAdhocDiffs(diffDir, cΩ): Promise<void> {
   if (lastSendDiff[diffDir]) {
     /* @ts-ignore */
     if (new Date() - lastSendDiff[diffDir] < Config.SYNC_THRESHOLD) return Promise.resolve()
@@ -706,6 +744,7 @@ async function sendAdhocDiffs(diffDir): Promise<void> {
 
   return uploadDiffs({
     origin,
+    cΩ,
     diffDir,
     cSHA: sha,
     activePath: '', // TODO: add slide number, and connect to receive updates via socket
