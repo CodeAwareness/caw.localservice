@@ -10,6 +10,7 @@ import { PowerShell } from 'node-powershell'
 import childProcess from 'child_process'
 import { promises as fs, createReadStream, createWriteStream, openSync, closeSync } from 'node:fs'
 import { pipeline } from 'stream'
+import { AxiosResponse } from 'axios'
 // import replaceStream from 'replacestream' // doesn't work (!
 
 import Config from '@/config/config'
@@ -147,13 +148,14 @@ function sendCommitLog(project, cΩ): Promise<string> {
   let localBranches, currentBranch
 
   logger.info('DIFFS: sendCommitLog (wsFolder)', wsFolder)
-  return git.command(wsFolder, 'git rev-list HEAD -n1')
+  return git.command(wsFolder, 'git rev-list HEAD -n1') // get the latest commit sha for the current branch
     .then(sha => {
       const head = sha.trim()
       if (project.head === head) {
+        // we've already sent this HEAD value, just fetch the common SHA value, in case it's changed
         return fetchCommonSHA()
       } else {
-        // only send the commit log when there are new commits from previous send
+        // when there are new commits since our last sendDiffs, we resend a block of SHA values from the current branch
         project.head = head
         return sendLog(head)
       }
@@ -171,7 +173,7 @@ function sendCommitLog(project, cΩ): Promise<string> {
     )
       .then(res => {
         project.cSHA = res.data?.sha || project.head
-        logger.info('DIFF: getCommonSHA for (origin, cSHA)', project.origin, project.cSHA)
+        logger.info('DIFF: getCommonSHA for (origin, cSHA, head)', project.origin, project.cSHA, project.head)
         return project.cSHA
       })
   }
@@ -182,7 +184,7 @@ function sendCommitLog(project, cΩ): Promise<string> {
       .then(extractLog)
       .then(upload)
       .then(res => {
-        logger.info('DIFFS: uploadLog received a cSHA from the server (origin, sha)', project.origin, res.data)
+        logger.info('DIFFS: uploadLog received a cSHA from the server (origin, sha)', project.origin, res.data?.cSHA)
         project.cSHA = res.data?.cSHA || project.head
         return project.cSHA
       })
@@ -204,6 +206,11 @@ function sendCommitLog(project, cΩ): Promise<string> {
     return git.command(wsFolder, `git log -n ${MAX_COMMITS} --pretty=oneline --format="%H" --no-color`) // max 200 commits by default
   }
 
+  type TCommonSHA = {
+    cΩ: string
+    cSHA: string
+  }
+
   function upload(stdout) {
     const commits = stdout.split(/[\n\r]/).filter(l => l)
     const data = {
@@ -213,11 +220,7 @@ function sendCommitLog(project, cΩ): Promise<string> {
       branches: localBranches,
       branch: currentBranch,
     }
-    return CΩAPI.axiosAPI.post(API_REPO_COMMITS, data)
-      .then(res => {
-        console.log('POST RETURNED', res)
-        return res
-      })
+    return CΩAPI.axiosAPI.post<TCommonSHA>(API_REPO_COMMITS, data)
   }
 }
 
@@ -250,6 +253,12 @@ function sendDiffs(project, cΩ): Promise<void> {
   }
   const wsName = path.basename(wsFolder)
   const diffDir = path.join(tmpDir, wsName)
+  /* TODO: only send Diffs if requested by the server or if additional changes were made since the last diff.
+   * To do that we can run a git diff, plus untracked file diffs, and get a checksum from each: save and compare on next call.
+   * if (!project.diffRequested) return Promise.resolve()
+   * if (!(await areChangesSinceLastSent(wsFolder))) return Promise.resolve()
+   * project.diffRequested = false
+   */
   const { origin } = project
   logger.info('DIFFS: sendDiffs (wsFolder, origin)', wsFolder, origin)
   mkdirp.sync(diffDir)
@@ -266,27 +275,15 @@ function sendDiffs(project, cΩ): Promise<void> {
       return git.command(wsFolder, 'git ls-files --others --exclude-standard')
       // TODO: parse .gitignore and don't add (e.g. dot files) for security reasons
     })
-    .catch(error => {
-      console.log('command ls-files', error)
-      throw new Error(`Error while sendingCommitLog (command ls-files). ${error}`)
-    })
     .then(files => {
       if (!files.length) return
       return gatherUntrackedFiles(files.split(/[\n\r]/).filter(f => f))
-    })
-    .catch(error => {
-      console.log('gatherUntrackedFiles', error)
-      throw new Error(`Error while sendingCommitLog (gatherUntrackedFiles). ${error}`)
     })
     .then(() => {
       logger.info('DIFFS: appending cSHA and diffs (cSHA, wsFolder, tmpProjectDiff)', project.cSHA, wsFolder, tmpProjectDiff)
       console.log('REV LIST', project)
       return git.command(wsFolder, `git diff -b -U0 --no-color ${project.cSHA} >> ${tmpProjectDiff}`)
       // TODO: maybe also include changes not yet saved (all active editors) / realtime mode ?
-    })
-    .catch(error => {
-      console.log('command diff', error)
-      throw new Error(`Error while sendingCommitLog (command diff). ${error}`)
     })
     .then(() => {
       const { cSHA } = project
@@ -458,9 +455,6 @@ const lastDownloadDiff = []
 function refreshChanges(project: any, fpath: string, doc: string): Promise<void> {
   /* TODO: add caching (so we don't keep on asking for the same file when the user mad-clicks the same contributor) */
   const wsFolder = project.root
-  return Promise.resolve()
-
-  /*
   logger.info('DIFFS: downloadDiffs (origin, fpath, user)', project.origin, fpath, CΩStore.user?.email)
   PENDING_DIFFS[fpath] = true // this operation can take a while, so we don't want to start it several times per second
   // @ts-ignore
@@ -483,7 +477,6 @@ function refreshChanges(project: any, fpath: string, doc: string): Promise<void>
       }
     })
     .catch(logger.error)
-    */
 }
 
 /************************************************************************************

@@ -9,7 +9,7 @@ import * as child from 'child_process'
 import app from '@/app'
 import { API_REPO_CONTRIB, API_SHARE_ACCEPT, API_SHARE_START, API_SHARE_UPLOAD } from '@/services/api'
 import Config from '@/config/config'
-import { CΩStore } from '@/services/cA.store'
+import { CΩStore } from '@/services/store'
 
 // TODO: Windows env setup
 const tmpDir = '/tmp/codeawareness.local'
@@ -22,7 +22,7 @@ beforeAll(() => {
 beforeEach(() => {
   jest.clearAllMocks()
   nock.cleanAll()
-  CΩStore.emtpy()
+  CΩStore.reset()
   // TODO: Windows env setup
   CΩStore.tmpDir = tmpDir
   mkdirp.sync(CΩStore.tmpDir)

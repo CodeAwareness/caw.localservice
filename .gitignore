@@ -1,6 +1,7 @@
 # Dependencies
 node_modules
 dist
+docs
 flow-typed
 
 package-lock.json

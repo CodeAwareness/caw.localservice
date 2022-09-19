@@ -132,13 +132,14 @@ export const CΩStore = {
     CΩStore.selectedContributor = undefined
   },
 
-  reset: (cΩ: string) => {
+  reset: (cΩ?: string) => {
     CΩStore.tokens = undefined
     CΩStore.user = undefined
     CΩStore.panel = undefined
     CΩStore.colorTheme = 1
     CΩStore.projects = []
-    CΩStore.activeProjects[cΩ] = undefined
+    if (cΩ) CΩStore.activeProjects[cΩ] = undefined
+    else CΩStore.activeProjects = {}
     CΩStore.selectedBranch = undefined
     CΩStore.selectedContributor = undefined
     CΩStore.peerFS = {}

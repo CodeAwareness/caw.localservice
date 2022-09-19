@@ -74,6 +74,9 @@ ACTIONS: login, logout, info, passwordAssist, reAuthorize, sendLatestSHA
 NOTES:
 For now, the grandStation takes care of authentication with the API, and it's only done once for any number of CodeAwareness enabled applications on one client.
 
+WARNING:
+The Swarm Authentication we're using requires that we identify users by commit SHA and date. Therefore, when contributing to this project, make sure to NOT send commit sha values to other users, even when they are authenticated. If you do, a user can perpetually stay on the repo authorized list, even after being excluded from the github/gitlab repository.
+
 ### Users
 
 ACTIONS: getUsers

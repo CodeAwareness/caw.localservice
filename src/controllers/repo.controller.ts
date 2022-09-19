@@ -40,6 +40,12 @@ async function activatePath(data: any): Promise<any> {
     })
 }
 
+/**
+ * select the current project for the cΩ client, and updates the server with its latest diffs
+ * @param string the file path for the current file open in the editor
+ * @param string the client ID
+ * @param object the web socket, used to reply when everything's done
+ */
 function selectProject(fpath, cΩ, socket): Promise<any> {
   const plist = CΩStore.projects.filter(p => fpath.includes(p.root))
   console.log('PROJECTS', fpath, CΩStore.projects)

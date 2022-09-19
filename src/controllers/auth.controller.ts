@@ -54,6 +54,7 @@ function info(cΩ: string) {
 }
 
 function signup({ email, password, cΩ }) {
+  /* eslint-disable-next-line @typescript-eslint/no-this-alias */
   const socket = this
   CΩAPI.signup({ email, password, socket })
 }

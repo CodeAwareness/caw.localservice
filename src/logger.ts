@@ -2,6 +2,7 @@ import { map } from 'lodash'
 import api from '@/services/api'
 
 /* eslint-disable no-console */
+/* eslint-disable n/handle-callback-err */
 const logger = {
   log: function(...args: any[]): void {
     console.log('CΩ.LS:', args, map(args, JSON.stringify))
