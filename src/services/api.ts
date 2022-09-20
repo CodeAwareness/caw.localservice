@@ -111,7 +111,11 @@ type TReauthReq = {
 }
 
 /**
- * reAuthorize: fetch and send the latest SHA
+ * fetch the branch requested and send the requested SHA corresponding to the `commitDate`.
+ *
+ * @param { repo, cΩ } where repo contains `origin`, `branch` and `commitDate` and the cΩ is the socket ID
+ *
+ * @return object the matching repository. This may be the repo shared with everyone, or a siloed repo if the auth failed.
  */
 function reAuthorize({ text, cΩ }: TReauthReq) {
   console.log('RE AUTH', text)
@@ -133,6 +137,9 @@ function reAuthorize({ text, cΩ }: TReauthReq) {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
       const [_a, d, h] = /(.+) (.+)/.exec(log)
       return CΩAPI.submitAuthBranch({ origin, branch, sha: h, commitDate: d })
+    })
+    .then(res => {
+      return res.data?.repo
     })
 }
 

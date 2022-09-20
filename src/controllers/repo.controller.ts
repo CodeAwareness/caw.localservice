@@ -41,14 +41,15 @@ async function activatePath(data: any): Promise<any> {
 }
 
 /**
- * select the current project for the cΩ client, and updates the server with its latest diffs
+ * Select the current project for the cΩ client, and updates the server with its latest diffs.
+ * We look at the file that's activated and select the project that matches its path.
+ *
  * @param string the file path for the current file open in the editor
  * @param string the client ID
  * @param object the web socket, used to reply when everything's done
  */
 function selectProject(fpath, cΩ, socket): Promise<any> {
   const plist = CΩStore.projects.filter(p => fpath.includes(p.root))
-  console.log('PROJECTS', fpath, CΩStore.projects)
   let project
   let len = 0
   // select longest path to guarantee working properly even on git submodules
@@ -100,8 +101,10 @@ function add(requested: TRepoAddReq, socket?: Socket): Promise<any> {
       const project = { name, origin, root, changes, contributors }
       CΩStore.projects.push(project)
       logger.log('REPO: adding new project', project)
-      ws.emit('res:repo:add', { project })
       return project
+    })
+    .then(project => {
+      ws.emit('res:repo:add', { project })
     })
     .catch(err => logger.error('SCM setupOrigin ERROR', err))
 }

@@ -135,7 +135,7 @@ function diffWithContributor({ ct, userFile, origin, wsFolder }): Promise<any> {
 }
 
 /************************************************************************************
- * Send Commmit Log to the server
+ * Send a list of commmit SHAs to the server.
  *
  * We're sending a number of commit SHA values (e.g. latest 100) to the server,
  * in order to compute the common ancestor SHA for everyone in a team.
@@ -159,10 +159,6 @@ function sendCommitLog(project, cΩ): Promise<string> {
         project.head = head
         return sendLog(head)
       }
-    })
-    .catch(err => {
-      logger.error(err)
-      throw new Error(err)
     })
 
   function fetchCommonSHA() {
@@ -229,15 +225,15 @@ function createEmpty(file) {
 }
 
 /************************************************************************************
- * sendDiffs
+ * Sending diffs to the CodeAwareness server.
+ * We're running a git diff against the common SHA, archive this with gzip
+ * and send it to the server.
+ *
+ * TODO: OPTIMIZATION: send only the file that was just saved (if file save event)
+ * or the files modified (if file system event)
  *
  * @param Object - CΩStore project
  * @param string - the app unique ID (cΩ)
- *
- * We're running a git diff against the common SHA, archive this with gzip
- * and send it to the server.
- * TODO: OPTIMIZATION: send only the file that was just saved (if file save event)
- * or the files modified (if file system event)
  ************************************************************************************/
 const lastSendDiff = []
 function sendDiffs(project, cΩ): Promise<void> {
@@ -271,6 +267,7 @@ function sendDiffs(project, cΩ): Promise<void> {
   // TODO: only sendCommitLog at the beginning, and then when the commit history has changed. How do we monitor the git history?
   return sendCommitLog(project, cΩ)
     .then(() => {
+      if (!project.cSHA) throw new Error('There is no common SHA to diff against. Maybe still not authorized?')
       logger.info('DIFFS: sendDiffs wsFolder=', wsFolder)
       return git.command(wsFolder, 'git ls-files --others --exclude-standard')
       // TODO: parse .gitignore and don't add (e.g. dot files) for security reasons
@@ -288,10 +285,6 @@ function sendDiffs(project, cΩ): Promise<void> {
     .then(() => {
       const { cSHA } = project
       return uploadDiffs({ origin, diffDir, cSHA, activePath, cΩ })
-    })
-    .catch(error => {
-      console.log('uploadDiffs', error)
-      throw new Error(`Error while sendingCommitLog (uploadDiffs). ${error}`)
     })
 
   function gatherUntrackedFiles(files) {

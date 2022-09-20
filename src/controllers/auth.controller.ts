@@ -65,6 +65,7 @@ type TPassAssistReq = {
 }
 
 function passwordAssist({ email, cΩ }: TPassAssistReq) {
+  // TODO
   // return CΩAPI.post(`${SERVER_URL}/auth/forgot-password`, { email })
 }
 
