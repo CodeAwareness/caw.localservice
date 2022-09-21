@@ -57,7 +57,7 @@ function selectProject(fpath, cΩ, socket): Promise<any> {
     if (p.root.length > len) project = p
     len = p.root.length
   })
-  if (!project) {
+  if (!project?.cSHA) {
     return git.command(path.dirname(fpath), 'git rev-parse --show-toplevel')
       .then(folder => add({ folder, cΩ }, socket))
       .then(project => {
@@ -101,10 +101,8 @@ function add(requested: TRepoAddReq, socket?: Socket): Promise<any> {
       const project = { name, origin, root, changes, contributors }
       CΩStore.projects.push(project)
       logger.log('REPO: adding new project', project)
-      return project
-    })
-    .then(project => {
       ws.emit('res:repo:add', { project })
+      return project
     })
     .catch(err => logger.error('SCM setupOrigin ERROR', err))
 }

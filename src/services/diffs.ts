@@ -139,6 +139,11 @@ function diffWithContributor({ ct, userFile, origin, wsFolder }): Promise<any> {
  *
  * We're sending a number of commit SHA values (e.g. latest 100) to the server,
  * in order to compute the common ancestor SHA for everyone in a team.
+ *
+ * @param object The project for which to send the commit logs
+ * @param string The client ID
+ *
+ * @return string The common SHA value
  ************************************************************************************/
 function sendCommitLog(project, cΩ): Promise<string> {
   // TODO: make MAX_COMMITS something configurable by the server instead. That way we can automatically accommodate a rescale in team size.
@@ -168,7 +173,7 @@ function sendCommitLog(project, cΩ): Promise<string> {
       { method: 'GET', responseType: 'json' }
     )
       .then(res => {
-        project.cSHA = res.data?.sha || project.head
+        project.cSHA = res.data?.sha
         logger.info('DIFF: getCommonSHA for (origin, cSHA, head)', project.origin, project.cSHA, project.head)
         return project.cSHA
       })
@@ -180,8 +185,8 @@ function sendCommitLog(project, cΩ): Promise<string> {
       .then(extractLog)
       .then(upload)
       .then(res => {
-        logger.info('DIFFS: uploadLog received a cSHA from the server (origin, sha)', project.origin, res.data?.cSHA)
-        project.cSHA = res.data?.cSHA || project.head
+        logger.info('DIFFS: uploadLog received a cSHA from the server (origin, sha, head)', project.origin, res.data?.cSHA, project.head)
+        project.cSHA = res.data?.cSHA
         return project.cSHA
       })
   }
@@ -266,8 +271,8 @@ function sendDiffs(project, cΩ): Promise<void> {
   // TODO: get all remotes instead of just origin
   // TODO: only sendCommitLog at the beginning, and then when the commit history has changed. How do we monitor the git history?
   return sendCommitLog(project, cΩ)
-    .then(() => {
-      if (!project.cSHA) throw new Error('There is no common SHA to diff against. Maybe still not authorized?')
+    .then(cSHA => {
+      if (!cSHA) throw new Error('There is no common SHA to diff against. Maybe still not authorized?')
       logger.info('DIFFS: sendDiffs wsFolder=', wsFolder)
       return git.command(wsFolder, 'git ls-files --others --exclude-standard')
       // TODO: parse .gitignore and don't add (e.g. dot files) for security reasons

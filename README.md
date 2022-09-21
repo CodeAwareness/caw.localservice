@@ -32,6 +32,13 @@ Running locally:
 yarn dev
 ```
 
+To install or reinstall certificates:
+
+```
+npx office-addin-dev-certs install
+brew services restart nginx
+```
+
 Running in production:
 
 ```bash

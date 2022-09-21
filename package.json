@@ -13,7 +13,7 @@
         "build": "npm run build-ts && npm run lint",
         "lint": "eslint \"src/**/*.{js,ts}\" \"tests/**/*.{js,ts}\" --fix",
         "docs": "typedoc src/index.ts",
-        "dev": "NODE_ENV=development LOCAL=1 DEBUG='socket.io:client*,socket.io:namespace*' nodemon --watch 'src/**/*.ts' --exec 'ts-node src/index.ts || touch src/index.ts'",
+        "dev": "NODE_ENV=development LOCAL=1 DEBUG='socket.io:client*,socket.io:namespace*' nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/index.ts",
         "dev:pm2": "NODE_ENV=development LOCAL=1 DEBUG='socket.io:client*,socket.io:namespace*' pm2-dev start --interpreter none 'ts-node src/index.ts'",
         "dev:win": "$env:NODE_ENV='development' & npm run dev",
         "start": "NODE_ENV=production node dist/index.js",
