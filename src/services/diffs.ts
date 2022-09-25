@@ -450,13 +450,15 @@ async function updateGit(extractDir: string): Promise<void> {
  * the changes in CΩStore (project.changes)
  ************************************************************************************/
 const lastDownloadDiff = []
-function refreshChanges(project: any, fpath: string, doc: string): Promise<void> {
+function refreshChanges(project: any, filePath: string, doc: string): Promise<void> {
   /* TODO: add caching (so we don't keep on asking for the same file when the user mad-clicks the same contributor) */
   const wsFolder = project.root
-  logger.info('DIFFS: downloadDiffs (origin, fpath, user)', project.origin, fpath, CΩStore.user?.email)
+  const fpath = filePath.includes(project.root) ? filePath.substr(project.root.length + 1) : filePath
+  logger.log('DIFFS: refreshChanges (origin, fpath, user)', project.origin, fpath, CΩStore.user?.email)
   PENDING_DIFFS[fpath] = true // this operation can take a while, so we don't want to start it several times per second
   // @ts-ignore
   if (lastDownloadDiff[wsFolder] && new Date() - lastDownloadDiff[wsFolder] < Config.SYNC_THRESHOLD) {
+    logger.info('STILL FRESH', lastDownloadDiff[wsFolder], new Date())
     return Promise.resolve()
   }
 
@@ -467,12 +469,13 @@ function refreshChanges(project: any, fpath: string, doc: string): Promise<void>
       return getLinesChangedLocaly(project, fpath, doc)
     })
     .then(() => {
-      logger.info(`DIFFS: will shift markers (changes) for ${fpath}`, project.changes[fpath])
+      logger.info(`DIFFS: will shift markers (changes) for ${fpath}`, project.changes)
       if (project.changes[fpath]) {
         shiftWithGitDiff(project, fpath)
         shiftWithLiveEdits(project, fpath) // include editing operations since the git diff was initiated
         delete PENDING_DIFFS[fpath] // pending diffs complete
       }
+      return project
     })
     .catch(logger.error)
 }
@@ -486,34 +489,35 @@ function refreshChanges(project: any, fpath: string, doc: string): Promise<void>
  * We download the list of contributors for the active file,
  * and aggregate their changes to display the change markers
  ************************************************************************************/
-function downloadLinesChanged(project, filePath): Promise<void> {
+function downloadLinesChanged(project, fpath): Promise<void> {
   const currentUserId = CΩStore.user._id.toString()
-  const fpath = filePath.includes(project.root) ? filePath.substr(project.root.length + 1) : filePath
-  return CΩAPI
-    .downloadDiffs({ origin: project.origin, fpath })
-    .then(({ data }) => {
-      logger.info('DIFFS: downloadDiffs contributors (origin, fpath, data.file.c)', project.origin, data && data.file.f, data && data.file.c)
+  const uri = encodeURIComponent(project.origin)
+  return CΩAPI.axiosAPI
+    .get(`${API_REPO_CONTRIB}?origin=${uri}&fpath=${fpath}`)
+    .then((res) => {
+      logger.info('DIFFS: downloadDiffs contributors (origin, res.status, res.data)', project.origin, res.status, res.data)
+      const { data } = res
       if (!data) return
-      const fpath = data.file.f
-      project.contributors[fpath] = data.users.filter(u => u._id.toString() !== currentUserId)
+      const fpath = data.file.file
+      project.contributors[fpath] = data.users.filter(u => u._id !== currentUserId)
       if (!project.changes) project.changes = {}
       /**
-       * data.file.c: {
-       *   uid1: { s: sha, l: lines, k: s3key }
-       *   uid2: { s: sha, l: lines, k: s3key }
+       * data.file.changes: {
+       *   uid1: { sha: sha, lines: lines, s3key: s3key }
+       *   uid2: { sha: sha, lines: lines, s3key: s3key }
        *   ...
        * }
        */
-      project.changes[fpath] = data.file.c
+      project.changes[fpath] = data.file.changes
       // TODO: when contributors have different cSHA values, we need to diff against each one
       // so aggregate based on cSHA (multiple aggregates)
       const lines = {}
-      if (data.file.c) {
-        delete data.file.c[currentUserId]
-        Object.keys(data.file.c).map(uid => {
-          const sha = data.file.c[uid].s
+      if (data.file.changes) {
+        delete data.file.changes[currentUserId]
+        Object.keys(data.file.changes).map(uid => {
+          const sha = data.file.changes[uid].sha
           if (!lines[sha]) lines[sha] = []
-          data.file.c[uid].l.map(line => {
+          data.file.changes[uid].lines.map(line => {
             if (!~lines[sha].indexOf(line)) lines[sha].push(line)
           })
         })
@@ -522,6 +526,7 @@ function downloadLinesChanged(project, filePath): Promise<void> {
       }
     })
     .catch(err => {
+      console.error(err)
       logger.info('DIFFS: no contributors for this file', err)
     })
 }
@@ -603,7 +608,7 @@ function getLinesChangedLocaly(project, fpath, doc): Promise<void> {
  * - aggregate lines
  */
 function shiftWithGitDiff(project, fpath): void {
-  // logger.log('DIFFS: shiftWithGitDiff (project.gitDiff, fpath, project.changes)', project.gitDiff, fpath, project.changes[fpath])
+  // logger.info('DIFFS: shiftWithGitDiff (project, fpath)', project, fpath)
   if (!project.gitDiff || !project.gitDiff[fpath] || !project.changes[fpath]) return
 
   const shas = Object.keys(project.changes[fpath].alines).slice(0, Config.MAX_NR_OF_SHA_TO_COMPARE)
@@ -745,7 +750,7 @@ async function sendAdhocDiffs(diffDir, cΩ): Promise<void> {
 async function refreshAdhocChanges({ origin, fpath }): Promise<void> {
   /* TODO: add caching (so we don't keep on asking for the same file when the user mad-clicks the same contributor) */
 
-  logger.log('DIFFS: downloadDiffs (origin, fpath, user)', origin, fpath, CΩStore.user)
+  logger.log('DIFFS: downloadDiffs ad-hoc (origin, fpath, user)', origin, fpath, CΩStore.user)
   PENDING_DIFFS[fpath] = true // this operation can take a while, so we don't want to start it several times per second
   /* @ts-ignore */
   if (lastDownloadDiff[origin] && new Date() - lastDownloadDiff[origin] < Config.SYNC_THRESHOLD) {
