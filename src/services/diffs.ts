@@ -588,7 +588,7 @@ function getLinesChangedLocaly(project, fpath, doc): Promise<void> {
         return git.command(wsFolder, `git archive --format=tar -o ${archiveFile} ${sha} ${fpath}`)
       })
       .catch(err => {
-        // TODO: improve error control for chained promises
+        // TODO: improve error control for chained promises, does this even work as intended??
         // when git archive fails it's usually because the ${sha} is not present locally.
         delete project.changes[fpath].alines[sha]
         logger.info('DIFFS: git archive failed', err)

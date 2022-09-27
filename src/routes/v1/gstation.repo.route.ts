@@ -12,20 +12,23 @@ const router = {
     /* repo:add: received when the user has added a new workspace folder to VSCode, a git repo with submodules */
     socket.on('repo:add-submodules', repoController.addSubmodules)
 
-    /* repo:get-tmp-dir: endpoint to retrieve the temporary folder used to unpack git repos and diffs */
-    socket.on('repo:get-tmp-dir', repoController.getTmpDir)
-
-    /* repo:remove: received when the user has removed a workspace folder from VSCode */
-    socket.on('repo:remove', repoController.remove)
-
-    /* repo:remove: received when the user has removed a workspace folder from VSCode, that included git submodules */
-    socket.on('repo:remove-submodules', repoController.removeSubmodules)
+    /* repo:diff-branch: requesting a diff between active file and the same file in another branch */
+    socket.on('repo:diff-branch', repoController.diffWithBranch)
 
     /* repo:diff-contrib: requesting a diff between active file and a selected peer */
     socket.on('repo:diff-contrib', repoController.diffWithContributor)
 
-    /* repo:diff-branch: requesting a diff between active file and the same file in another branch */
-    socket.on('repo:diff-branch', repoController.diffWithBranch)
+    /* repo:get-tmp-dir: endpoint to retrieve the temporary folder used to unpack git repos and diffs */
+    socket.on('repo:get-tmp-dir', repoController.getTmpDir)
+
+    /* repo:read-file: read file contents and transmit back */
+    socket.on('repo:read-file', repoController.readFile)
+
+    /* repo:remove: received when the user has removed a workspace folder from VSCode */
+    socket.on('repo:remove', repoController.remove)
+
+    /* repo:vscode-diff: check if a file exists, and return the info required by VSCode to create a diff */
+    socket.on('repo:vscode-diff', repoController.vscodeDiff)
   },
 }
 

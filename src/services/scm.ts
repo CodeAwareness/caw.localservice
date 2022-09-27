@@ -1,5 +1,5 @@
 import * as path from 'path'
-import fs from 'node:fs'
+import { readdirSync, stat } from 'node:fs'
 
 import logger from '@/config/logger'
 import git from './git'
@@ -19,30 +19,19 @@ function getProject({ origin, wsFolder }): Array<any> {
   }
 }
 
-async function addSubmodules(workspaceFolder: any): Promise<void> {
-  // TODO: add submodules of submodules ? (recursive)
-  const wsFolder = workspaceFolder.uri ? workspaceFolder.uri.path : workspaceFolder
-  return git.command(wsFolder, 'git submodule status')
-    .then(out => {
-      if (!out) return
-      const subs = []
-      out.split('\n').map(line => {
-        const res = / ([^\s]+) ([^\s]+) /.exec(line)
-        if (res) subs.push(res[2])
-      })
-      logger.log('SCM git submodules: ', out, subs)
-      subs.map(sub => addProject(path.join(wsFolder, sub)))
+function isFolder(folder) {
+  return new Promise((resolve, reject) => {
+    stat(path.join(folder), (err, stats) => {
+      if (stats.isDirectory()) resolve(true)
+      else reject()
     })
-    .catch(err => {
-      logger.error('SCM git submodule error', err)
-    })
+  })
 }
 
-function addProject(workspaceFolder: any): Promise<void> {
+async function addProject(workspaceFolder: any): Promise<void> {
   logger.info('SCM addProject', workspaceFolder)
   const wsFolder = workspaceFolder.uri ? workspaceFolder.uri.path : workspaceFolder
-  const hasGit = fs.existsSync(path.join(wsFolder, '.git'))
-  if (!hasGit) {
+  if (!await isFolder(path.join(wsFolder, '.git'))) {
     logger.log('SCM Not a git folder', wsFolder)
     return Promise.resolve() // TODO: maybe allow other source control tools, besides git?
   }
@@ -80,20 +69,8 @@ function removeProject(wsFolder: any): void {
   CΩStore.projects = CΩStore.projects.filter(m => m.origin !== project.origin)
 }
 
-/**
- * CΩ SCM only has one resource group, which contains all changes.
- * There are no commits, as we always handle merging manually.
- */
-function createProjects({ folders }): Promise<Array<any>> {
-  if (!folders) return Promise.resolve(CΩStore.projects)
-  const promises = folders.map(addProject)
-  promises.concat(folders.map(addSubmodules))
-  return Promise.all(promises)
-    .then(() => CΩStore.projects)
-}
-
 function getFiles(source: string): string[] {
-  return fs.readdirSync(source, { withFileTypes: true })
+  return readdirSync(source, { withFileTypes: true })
     .filter(dirent => !dirent.isDirectory())
     .map(dirent => dirent.name)
 }
@@ -133,9 +110,7 @@ function addFile(wsFolder: any, fpath: string): void {
 
 export const CΩSCM = {
   addProject,
-  addSubmodules,
   getProject,
-  createProjects,
   removeProject,
   removeSubmodules,
   addFile,

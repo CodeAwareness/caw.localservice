@@ -1,8 +1,11 @@
 import fs from 'node:fs'
+import fsPromise from 'node:fs/promises'
+import * as _ from 'lodash'
 import path from 'path'
 import type { Socket } from 'socket.io'
 
 import logger from '@/config/logger'
+import config from '@/config/config'
 
 import app from '@/app'
 import git from '@/services/git'
@@ -129,20 +132,14 @@ function addSubmodules({ folder, cΩ }: TRepoAddReq) {
         if (res) subs.push(res[2])
       })
       logger.log('SCM git submodules: ', out, subs)
-      subs.map(sub => add.bind(this)({ folder: path.join(folder, sub), cΩ }))
-
-      this.emit('res:repo:add-submodules', subs)
+      const promises = subs.map(sub => add({ folder: path.join(folder, sub), cΩ }))
+      Promise.all(promises)
+        .then(projects => {
+          this.emit('res:repo:add-submodules', projects)
+        })
     })
     .catch(err => {
       logger.error('SCM git submodule error', err)
-    })
-}
-
-function removeSubmodules({ folder, cΩ }: TRepoAddReq) {
-  return git.command(folder, 'git submodule status')
-    .then(out => {
-      const subs = out.split('\n').map(line => / ([^\s]+) /.exec(line)[1])
-      subs.map(sub => remove({ folder: path.join(folder, sub), cΩ }))
     })
 }
 
@@ -176,6 +173,28 @@ function diffWithContributor(info) {
     .then(diffs => this.emit('res:repo:diff-contrib', diffs))
 }
 
+function readFile({ fpath, cΩ }) {
+  fsPromise.readFile(fpath).then(doc => doc.toString('utf8'))
+}
+
+function vscodeDiff({ wsFolder, fpath, uid, cΩ }) {
+  const absPath = path.join(wsFolder, fpath)
+  try {
+    fs.accessSync(absPath, fs.constants.R_OK)
+    this.emit('res:repo:vscode-diff', { exists: true, res1: path.join(wsFolder, fpath) })
+  } catch(err) {
+    const { tmpDir } = CΩStore
+    const activeProject = CΩStore.activeProjects[cΩ]
+    const tmpFile = _.uniqueId(path.basename(fpath))
+    const tmp = path.join(tmpDir, tmpFile)
+    fs.writeFileSync(tmp, '')
+    const wsName = path.basename(activeProject.root)
+    const res1 = tmp
+    const res2 = path.join(tmpDir, uid, wsName, config.EXTRACT_PEER_DIR, fpath)
+    this.emit('res:repo:vscode-diff', { res1, res2 })
+  }
+}
+
 const repoController = {
   activatePath,
   add,
@@ -183,8 +202,9 @@ const repoController = {
   diffWithBranch,
   diffWithContributor,
   getTmpDir,
+  readFile,
   remove,
-  removeSubmodules,
+  vscodeDiff,
 }
 
 export default repoController
