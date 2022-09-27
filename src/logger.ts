@@ -24,6 +24,7 @@ function stringify(arg) {
 
 function trace() {
   const lines = getStackTrace().split('\n').filter(l => (l.includes('localservice') && !l.includes('logger') && !l.includes('node_modules')))
+  lines.push('')
   console.debug(lines.join('\n'))
 }
 
@@ -31,12 +32,10 @@ function trace() {
 /* eslint-disable n/handle-callback-err */
 const logger = {
   log: function(...args: any[]): void {
-    console.group()
     console.log('CΩ.LS:', map(args, stringify))
     trace()
     args.unshift('GRAND STATION')
     api.axiosAPI.post(`${api.API_LOG}/log`, args).catch(err => {})
-    console.groupEnd()
   },
   info: function(...args: any[]): void {
     console.info('CΩ.LS:', map(args, stringify))

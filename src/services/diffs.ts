@@ -19,7 +19,7 @@ import logger from '@/logger'
 import git from './git'
 import shell from './shell'
 import { CΩStore } from './store'
-import CΩAPI, { API_REPO_COMMITS, API_REPO_COMMON_SHA, API_REPO_CONTRIB } from './api'
+import CΩAPI, { API_REPO_COMMITS, API_REPO_COMMON_SHA, API_REPO_CONTRIB, API_REPO_DIFF_FILE } from './api'
 
 const PENDING_DIFFS = {}
 const isWindows = !!process.env.ProgramFiles
@@ -41,8 +41,9 @@ const adhocDir = path.join(tmpDir, 'adhoc') // for adhoc sharing files and folde
  *
  * Open the VSCode standard diff window...
  ************************************************************************************/
-function diffWithBranch(project: any, branch: string): Promise<any> {
+function diffWithBranch({ origin, branch, fpath, cΩ }): Promise<any> {
   let peerFile
+  const project = CΩStore.activeProjects[cΩ]
   let wsFolder = project.root
   CΩStore.selectedBranch = branch
   CΩStore.selectedContributor = undefined
@@ -66,11 +67,9 @@ function diffWithBranch(project: any, branch: string): Promise<any> {
 }
 
 /************************************************************************************
- * diffWithContributor - Diffs active file with the same file at a peer.
+ * Creates a git diff between the active file and the same file at another peer.
  *
- * @param { ct: Object, userFile: string, origin: string, wsFolder: string }
- *
- * - userFile is the relative path of the currently opened file (or ppt slide)
+ * - fpath is the relative path of the currently opened file (or ppt slide)
  *
  * Open the VSCode standard diff window.
  * We're processing the unified diffs from the peer,
@@ -82,8 +81,29 @@ function diffWithBranch(project: any, branch: string): Promise<any> {
  *
  * As a guideline, CodeAwareness should focus on small teams.
  * Perhaps this can change in the future.
+ *
+ * TODO: this works for VSCode, maybe other editors need a different workflow.
+ *
+ * @param { ct: Object, fpath: string, origin: string, wsFolder: string }
+ *
+ * ct = contributor: {
+ *   changes: {
+ *    lines: [3,5,6,...],
+ *    s3key: "diffs/${ct._id}/${origin}/${fpath}",
+ *    sha: 'rop231...',
+ *   },
+ *   email: ...
+ *   lang: 'en',
+ *   user: ${_id},
+ * }
+ *
  ************************************************************************************/
-function diffWithContributor({ ct, userFile, origin, wsFolder }): Promise<any> {
+function diffWithContributor({ contrib, fpath, origin, cΩ }): Promise<any> {
+  const project = CΩStore.activeProjects[cΩ]
+  console.log('ACTIVE PROJECTS', CΩStore.activeProjects, cΩ)
+  console.log('CONTRIB', contrib)
+  const wsFolder = project.root
+  const relPath = shell.getRelativePath(fpath, project)
   // !!!!! CΩWorkspace.selectContributor(ct)
   const wsName = path.basename(wsFolder)
   const archiveDir = path.join(tmpDir, wsName)
@@ -91,17 +111,18 @@ function diffWithContributor({ ct, userFile, origin, wsFolder }): Promise<any> {
   /* downloadedFile: we save the diffs received from the server to TMP/active.diffs */
   const downloadedFile = path.join(archiveDir, '_cA.active.diffs')
   /* archiveFile: we use git archive to extract the active file from the cSHA commit */
-  const archiveFile = path.join(archiveDir, `local-${ct.s}.tar`)
+  const archiveFile = path.join(archiveDir, `local-${contrib.changes.sha}.tar`)
   /* extractDir: we extract the active file from the archive in this folder, so we can run git apply on it */
-  const extractDir = path.join(archiveDir, Config.EXTRACT_PEER_DIR, ct._id)
+  const extractDir = path.join(archiveDir, Config.EXTRACT_PEER_DIR, contrib._id)
   rimraf.sync(extractDir)
-  mkdirp.sync(path.join(extractDir, path.dirname(userFile)))
+  mkdirp.sync(path.join(extractDir, path.dirname(fpath)))
   /* peerFile: we finally instruct VSCode to open a diff window between the active file and the extracted file, which now has applied diffs to it */
-  const peerFile = path.join(extractDir, userFile)
-  logger.info('DIFFS: diffWithContributor (ct, userFile, extractDir)', ct, userFile, extractDir)
+  const peerFile = path.join(extractDir, relPath)
+  logger.info('DIFFS: diffWithContributor (ct, fpath, extractDir)', contrib, fpath, extractDir)
 
-  return CΩAPI
-    .downloadDiffFile({ origin, fpath: ct.k })
+  const uri = encodeURIComponent(origin)
+  return CΩAPI.axiosAPI
+    .get(`${API_REPO_DIFF_FILE}?origin=${uri}&fpath=${contrib.changes.s3key}`)
     .then(saveDownloaded)
     .then(gitArchive)
     .then(untar)
@@ -114,7 +135,7 @@ function diffWithContributor({ ct, userFile, origin, wsFolder }): Promise<any> {
   }
 
   function gitArchive() {
-    return git.command(wsFolder, `git archive --format=tar -o ${archiveFile} ${ct.s} ${userFile}`)
+    return git.command(wsFolder, `git archive --format=tar -o ${archiveFile} ${contrib.changes.sha} ${fpath}`)
   }
 
   function untar() {
@@ -128,9 +149,9 @@ function diffWithContributor({ ct, userFile, origin, wsFolder }): Promise<any> {
   }
 
   function vscodeOpenDiffs() {
-    const title = `CΩ#${path.basename(userFile)} ↔ Peer changes`
-    logger.info('DIFFS: vscodeOpenDiffs (ct, peerFile, userFile)', ct, peerFile, userFile)
-    return { title, extractDir, peerFile, userFile: path.join(wsFolder, userFile) }
+    const title = `CΩ#${path.basename(fpath)} ↔ Peer changes`
+    logger.info('DIFFS: vscodeOpenDiffs (ct, peerFile, fpath)', contrib, peerFile, fpath)
+    return { title, extractDir, peerFile, fpath: path.join(wsFolder, fpath) }
   }
 }
 
@@ -273,7 +294,7 @@ function sendDiffs(project, cΩ): Promise<void> {
   return sendCommitLog(project, cΩ)
     .then(cSHA => {
       if (!cSHA) throw new Error('There is no common SHA to diff against. Maybe still not authorized?')
-      logger.info('DIFFS: sendDiffs wsFolder=', wsFolder)
+      logger.info('DIFFS: sendDiffs wsFolder=', wsFolder, project)
       return git.command(wsFolder, 'git ls-files --others --exclude-standard')
       // TODO: parse .gitignore and don't add (e.g. dot files) for security reasons
     })
@@ -490,7 +511,8 @@ function refreshChanges(project: any, filePath: string, doc: string): Promise<vo
  * and aggregate their changes to display the change markers
  ************************************************************************************/
 function downloadLinesChanged(project, fpath): Promise<void> {
-  const currentUserId = CΩStore.user._id.toString()
+  const currentUserId = CΩStore.user?._id.toString()
+  if (!currentUserId) return Promise.reject( new Error('Not logged in.') )
   const uri = encodeURIComponent(project.origin)
   return CΩAPI.axiosAPI
     .get(`${API_REPO_CONTRIB}?origin=${uri}&fpath=${fpath}`)

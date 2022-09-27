@@ -22,7 +22,10 @@ export const CΩStore = {
    */
   uTmpDir: {},
 
-  /* projects: [{
+  /*
+   * One editor, such as VSCode may have multiple projects open in the same window (workspaces).
+   *
+   * projects: [{
    *   name, // convenience property = basename(root)
    *   root, // root path
    *   origin, // e.g. `https://github.com/codeawareness/codeawareness.vscode.git`

@@ -20,6 +20,12 @@ const router = {
 
     /* repo:remove: received when the user has removed a workspace folder from VSCode, that included git submodules */
     socket.on('repo:remove-submodules', repoController.removeSubmodules)
+
+    /* repo:diff-contrib: requesting a diff between active file and a selected peer */
+    socket.on('repo:diff-contrib', repoController.diffWithContributor)
+
+    /* repo:diff-branch: requesting a diff between active file and the same file in another branch */
+    socket.on('repo:diff-branch', repoController.diffWithBranch)
   },
 }
 

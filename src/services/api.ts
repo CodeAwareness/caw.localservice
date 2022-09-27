@@ -186,10 +186,6 @@ function refreshToken(refreshToken: string) {
     .then((res: any) => CΩStore.setAuth(res.data))
 }
 
-function downloadDiffFile({ origin, fpath }: any): Promise<any> {
-  const uri = encodeURIComponent(origin)
-  return axiosAPI(`${API_REPO_DIFF_FILE}?origin=${uri}&fpath=${fpath}`, { method: 'GET', responseType: 'json' })
-}
 
 function getRepo(origin: string): Promise<any> {
   const uri = encodeURIComponent(origin)
@@ -279,7 +275,6 @@ const CΩAPI = {
 
   // code repo
   clearAuth,
-  downloadDiffFile,
   getRepo,
   sendLatestSHA,
   submitAuthBranch,

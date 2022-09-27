@@ -67,8 +67,13 @@ const rmFile = async (fpath: string): Promise<void> => {
   return fs.unlink(fpath)
 }
 
+const getRelativePath = (fpath: string, project: any) => {
+  return fpath.substr(project.root.length)
+}
+
 const Shell = {
   copyFile,
+  getRelativePath,
   rmFile,
   unzip,
   zipToPPTX,

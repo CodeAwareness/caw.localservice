@@ -62,10 +62,14 @@ function selectProject(fpath, cΩ, socket): Promise<any> {
       .then(project => {
         logger.info('REPO: the relative active path is', fpath.substr(project.root.length))
         project.activePath = fpath.substr(project.root)
+        CΩStore.projects.push(project) // TODO: used for SCM, but we need to also use socket id cΩ
+        CΩStore.activeProjects[cΩ] = project
         CΩDiffs.sendDiffs(project, cΩ)
         return project
       })
   }
+  CΩStore.activeProjects[cΩ] = project
+  console.log('CΩSTORE ACTIVE PROJECTS', cΩ, CΩStore.activeProjects)
   // TODO: send diffs if more than 5 minutes have passed
   return Promise.resolve(project)
 }
@@ -98,7 +102,6 @@ function add(requested: TRepoAddReq, socket?: Socket): Promise<any> {
       const name = path.basename(root)
       // TODO: cleanup CΩStore.projects with a timeout of inactivity or something
       const project = { name, origin, root, changes, contributors }
-      CΩStore.projects.push(project)
       logger.log('REPO: adding new project', project)
       ws.emit('res:repo:add', { project })
       return project
@@ -155,10 +158,30 @@ function getTmpDir({ cΩ }) {
   this.emit('res:repo:get-tmp-dir', CΩStore.uTmpDir[cΩ])
 }
 
+/**
+ * @param object { fpath, branch, origin, cΩ }
+ */
+function diffWithBranch(info) {
+  return CΩDiffs
+    .diffWithBranch(info)
+    .then(diffs => this.emit('res:repo:diff-branch', diffs))
+}
+
+/**
+ * @param object { fpath, contrib, origin, cΩ }
+ */
+function diffWithContributor(info) {
+  return CΩDiffs
+    .diffWithContributor(info)
+    .then(diffs => this.emit('res:repo:diff-contrib', diffs))
+}
+
 const repoController = {
   activatePath,
   add,
   addSubmodules,
+  diffWithBranch,
+  diffWithContributor,
   getTmpDir,
   remove,
   removeSubmodules,
