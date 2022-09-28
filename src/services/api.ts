@@ -96,7 +96,7 @@ axiosAPI.interceptors.response.use(
           })
           .catch(reject)
       }
-      return reject(err)
+      return reject(new Error(`API call failed: ${err.response.status}, ${err.response.statusText}, ${err.response.data}`))
     })
   },
 )
