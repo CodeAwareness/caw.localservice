@@ -471,6 +471,7 @@ async function updateGit(extractDir: string): Promise<void> {
 const lastDownloadDiff = []
 function refreshChanges(project: any, filePath: string, doc: string): Promise<void> {
   /* TODO: add caching (so we don't keep on asking for the same file when the user mad-clicks the same contributor) */
+  if (!project.cSHA) return
   const wsFolder = project.root
   const fpath = filePath.includes(project.root) ? filePath.substr(project.root.length + 1) : filePath
   logger.log('DIFFS: refreshChanges (origin, fpath, user)', project.origin, fpath, CΩStore.user?.email)
