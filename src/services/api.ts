@@ -56,7 +56,6 @@ axiosAPI.interceptors.response.use(
     if (response.status === 202) { // We are processing the requests as authorized for now, but we need to send the required (or latest) SHA to continue being authorized
       // we do this strange response.statusText OR response.data.statusText because of a glitch in the test, it seems I can't make it work with supertest
       // if (!response.statusText && !response.data.statusText) return response
-      console.log(response.data, response.statusText, response.status)
       const cΩ = response.data.cΩ
       const text = response.statusText || response.data.statusText
       const authPromise = reAuthorize({ text, cΩ }) // IMPORTANT: no await! otherwise we interrupt the regular operations for too long, and we also get deeper into a recursive interceptor response.
@@ -78,16 +77,16 @@ axiosAPI.interceptors.response.use(
         && ![API_AUTH_REFRESH_TOKENS, API_AUTH_LOGIN].includes(err.response.config.url)
       ) {
         if (!CΩStore.tokens) {
-          CΩAPI.logout()
+          // TODO: logout()
           return reject(new Error('No tokens in store'))
         }
         const { refresh } = CΩStore.tokens
         if (!refresh || refresh.expires < new Date().valueOf()) {
-          CΩAPI.logout()
+          // TODO: logout()
           return reject(new Error(`Refresh token expired ${refresh.expires}`))
         }
         logger.log('Will try again after refreshing the tokens')
-        CΩAPI.refreshToken(refresh.token)
+        refreshToken(refresh.token)
           .then(() => {
             const { token } = CΩStore.tokens.access
             err.config.headers.authorization = `Bearer: ${token}`
@@ -96,7 +95,7 @@ axiosAPI.interceptors.response.use(
           })
           .catch(reject)
       }
-      return reject(new Error(`API call failed: ${err.response.status}, ${err.response.statusText}, ${err.response.data}`))
+      return reject(err)
     })
   },
 )
@@ -118,7 +117,6 @@ type TReauthReq = {
  * @return object the matching repository. This may be the repo shared with everyone, or a siloed repo if the auth failed.
  */
 function reAuthorize({ text, cΩ }: TReauthReq) {
-  console.log('RE AUTH', text)
   const { origin, branch, commitDate } = JSON.parse(text)
   if (Object.keys(lastAuthorization).length && (new Date()).valueOf() - lastAuthorization[origin] < 120) return // TODO: optimize / configure; for now we'll only allow reauth once every 2 min
   lastAuthorization[origin] = (new Date()).valueOf()
@@ -136,7 +134,7 @@ function reAuthorize({ text, cΩ }: TReauthReq) {
     .then(log => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
       const [_a, d, h] = /(.+) (.+)/.exec(log)
-      return CΩAPI.submitAuthBranch({ origin, branch, sha: h, commitDate: d })
+      return submitAuthBranch({ origin, branch, sha: h, commitDate: d })
     })
     .then(res => {
       return res.data?.repo
@@ -149,7 +147,6 @@ function sendLatestSHA({ wsFolder, origin, cΩ }: any): Promise<any> {
   return git.command(wsFolder, 'git branch -a --sort=committerdate')
     .then(out => {
       branch = out.split('\n')[0].replace('remotes/origin/', '').replace(/ /g, '')
-      console.log('SEND LATEST SHA', branch, out)
       return git.command(wsFolder, `git fetch origin ${branch}:${branch}`)
     })
     .then(() => {
@@ -163,21 +160,9 @@ function sendLatestSHA({ wsFolder, origin, cΩ }: any): Promise<any> {
     .then(log => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
       const [_a, commitDate, sha] = /(.+) (.+)/.exec(log)
-      return CΩAPI.submitAuthBranch({ origin, sha, commitDate, branch })
+      return submitAuthBranch({ origin, sha, commitDate, branch })
     })
     .catch(logger.error)
-}
-
-function login({ email, password, socket }) {
-  return CΩAPI.post(API_AUTH_LOGIN, { email, password }, 'auth:login', socket)
-}
-
-function logout() {
-  // TODO: logout from API
-}
-
-function signup({ email, password, socket }) {
-  CΩAPI.post(API_AUTH_SIGNUP, { email, password }, 'auth:signup', socket)
 }
 
 function refreshToken(refreshToken: string) {
@@ -242,8 +227,7 @@ const getOriginInfo = origin => {
 }
 
 function post(url, data, action?: string, socket?: any) {
-  logger.log('POST to CodeAwareness', url)
-  const promise = CΩAPI.axiosAPI.post(url, data)
+  const promise = axiosAPI.post(url, data)
 
   if (!socket) {
     logger.log('no socket when posting to API')
@@ -252,7 +236,6 @@ function post(url, data, action?: string, socket?: any) {
 
   return promise
     .then(res => {
-      console.log('POST result', action, res.data)
       if (action) socket.emit(`res:${action}`, res.data)
       return res.data
     })
@@ -267,11 +250,8 @@ const CΩAPI = {
   // common
   axiosAPI,
   getOriginInfo,
-  login,
-  logout,
   post,
   refreshToken,
-  signup,
 
   // code repo
   clearAuth,

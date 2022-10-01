@@ -67,7 +67,7 @@ function diffWithBranch({ origin, branch, fpath, cΩ }): Promise<any> {
 }
 
 /************************************************************************************
- * Creates a git diff between the active file and the same file at another peer.
+ * Create a git diff between the active file and the same file at another peer.
  *
  * - fpath is the relative path of the currently opened file (or ppt slide)
  *
@@ -456,12 +456,6 @@ async function updateGit(extractDir: string): Promise<void> {
 }
 
 /************************************************************************************
- * refreshChanges
- *
- * @param object - CΩStore project
- * @param string - the file path of the active document
- * @param string - the file contents
- *
  * Refresh the peer changes for the active file.
  * 1. Download the changes (line numbers only) from the server
  * 2. Diff against the common SHA
@@ -469,6 +463,10 @@ async function updateGit(extractDir: string): Promise<void> {
  *
  * TODO: cleanup older changes; the user closes tabs (maybe) but we're still keeping
  * the changes in CΩStore (project.changes)
+ *
+ * @param object - CΩStore project
+ * @param string - the file path of the active document
+ * @param string - the file contents
  ************************************************************************************/
 const lastDownloadDiff = []
 function refreshChanges(project: any, filePath: string, doc: string): Promise<void> {
@@ -485,7 +483,7 @@ function refreshChanges(project: any, filePath: string, doc: string): Promise<vo
 
   lastDownloadDiff[wsFolder] = new Date()
 
-  return downloadLinesChanged(project, fpath)
+  return downloadChanges(project, fpath)
     .then(() => {
       return getLinesChangedLocaly(project, fpath, doc)
     })
@@ -502,15 +500,13 @@ function refreshChanges(project: any, filePath: string, doc: string): Promise<vo
 }
 
 /************************************************************************************
- * downloadLinesChanged
+ * We download the list of contributors for the active file,
+ * and aggregate their changes to display the change markers
  *
  * @param object - CΩStore project
  * @param string - the file path of the active document
- *
- * We download the list of contributors for the active file,
- * and aggregate their changes to display the change markers
  ************************************************************************************/
-function downloadLinesChanged(project, fpath): Promise<void> {
+function downloadChanges(project, fpath): Promise<void> {
   const currentUserId = CΩStore.user?._id.toString()
   if (!currentUserId) return Promise.reject( new Error('Not logged in.') )
   const uri = encodeURIComponent(project.origin)
@@ -554,12 +550,10 @@ function downloadLinesChanged(project, fpath): Promise<void> {
 }
 
 /************************************************************************************
- * getLinesChangedLocaly
+ * Getting the changes from the active document (not yet written to disk).
  *
  * @param object - CΩStore project
  * @param string - the file path of the active document
- *
- * Getting the changes from the active document (not yet written to disk).
  ************************************************************************************/
 function getLinesChangedLocaly(project, fpath, doc): Promise<void> {
   const wsFolder = project.root
@@ -617,18 +611,17 @@ function getLinesChangedLocaly(project, fpath, doc): Promise<void> {
   return shaPromise
 }
 
-/*
- * shiftWithGitDiff
- *
- * @param object - project
- * @param string - the file path for which we extracted the diffs
- *
+/************************************************************************************
  * Update (shift) the line markers to account for the local edits and git diffs since the cSHA
  * Operation order:
  * - gitDiff
  * - local edits after the git diff was initiated (if the user is quick on keyboard)
  * - aggregate lines
- */
+ *
+ * @param object - project
+ * @param string - the file path for which we extracted the diffs
+ *
+ ************************************************************************************/
 function shiftWithGitDiff(project, fpath): void {
   // logger.info('DIFFS: shiftWithGitDiff (project, fpath)', project, fpath)
   if (!project.gitDiff || !project.gitDiff[fpath] || !project.changes[fpath]) return

@@ -16,9 +16,11 @@ type TLoginReq = {
 
 function login({ email, password, cΩ }: TLoginReq) {
   CΩAPI
-    .login({ email, password, socket: this })
+    .post(API_AUTH_LOGIN, { email, password }, 'auth:login', this)
     .then(data => CΩStore.setAuth(data))
-    .catch(err => logger.log('auth error', err))
+    .catch(err => {
+      logger.log('auth error', err)
+    })
 }
 
 async function logout({ cΩ }) {
@@ -47,7 +49,6 @@ function info(cΩ: string) {
       this.emit('res:auth:info', { user, tokens })
     })
     .catch(err => {
-      console.log('ERROR IN REFRESH TOKEN', err.code, err.response.statusText, err.response.data)
       CΩStore.reset(cΩ)
       this.emit('res:auth:info', {})
     })
@@ -55,8 +56,7 @@ function info(cΩ: string) {
 
 function signup({ email, password, cΩ }) {
   /* eslint-disable-next-line @typescript-eslint/no-this-alias */
-  const socket = this
-  CΩAPI.signup({ email, password, socket })
+  CΩAPI.post(API_AUTH_SIGNUP, { email, password }, 'auth:signup', this)
 }
 
 type TPassAssistReq = {
