@@ -19,7 +19,7 @@ import logger from '@/logger'
 import git from './git'
 import shell from './shell'
 import { CΩStore } from './store'
-import CΩAPI, { API_REPO_COMMITS, API_REPO_COMMON_SHA, API_REPO_CONTRIB, API_REPO_DIFF_FILE } from './api'
+import CΩAPI, { API_REPO_COMMITS, API_REPO_COMMON_SHA, API_REPO_CONTRIB, API_REPO_DIFF_FILE, API_SHARE_SLIDE_CONTRIB } from './api'
 
 const PENDING_DIFFS = {}
 const isWindows = !!process.env.ProgramFiles
@@ -190,7 +190,7 @@ function sendCommitLog(project, cΩ): Promise<string> {
   function fetchCommonSHA() {
     const uri = encodeURIComponent(origin)
     return CΩAPI.axiosAPI(
-      `${API_REPO_COMMON_SHA}?origin=${uri}&cΩ=${cΩ}`,
+      `${API_REPO_COMMON_SHA}?origin=${uri}&clientId=${cΩ}`, // Sending client connection ID (cΩ) to enable swarm auth
       { method: 'GET', responseType: 'json' }
     )
       .then(res => {
@@ -201,7 +201,7 @@ function sendCommitLog(project, cΩ): Promise<string> {
   }
 
   function sendLog(head) {
-    logger.info('DIFFS: sendLog HEAD (origin, head)', project.origin, project.head)
+    logger.info('DIFFS: sendLog HEAD (cΩ, origin, head)', cΩ, project.origin, project.head)
     return git.command(wsFolder, 'git branch --verbose --no-abbrev --no-color')
       .then(extractLog)
       .then(upload)
@@ -251,7 +251,7 @@ function createEmpty(file) {
 }
 
 /************************************************************************************
- * Sending diffs to the CodeAwareness server.
+ * Sending commit log and diffs to the CodeAwareness server.
  * We're running a git diff against the common SHA, archive this with gzip
  * and send it to the server.
  *
@@ -304,7 +304,6 @@ function sendDiffs(project, cΩ): Promise<void> {
     })
     .then(() => {
       logger.info('DIFFS: appending cSHA and diffs (cSHA, wsFolder, tmpProjectDiff)', project.cSHA, wsFolder, tmpProjectDiff)
-      console.log('REV LIST', project)
       return git.command(wsFolder, `git diff -b -U0 --no-color ${project.cSHA} >> ${tmpProjectDiff}`)
       // TODO: maybe also include changes not yet saved (all active editors) / realtime mode ?
     })
@@ -469,9 +468,9 @@ async function updateGit(extractDir: string): Promise<void> {
  * @param string - the file contents
  ************************************************************************************/
 const lastDownloadDiff = []
-function refreshChanges(project: any, filePath: string, doc: string): Promise<void> {
+function refreshChanges(project: any, filePath: string, doc: string, cΩ: string): Promise<void> {
   /* TODO: add caching (so we don't keep on asking for the same file when the user mad-clicks the same contributor) */
-  if (!project.cSHA) return
+  if (!project.cSHA) return Promise.resolve()
   const wsFolder = project.root
   const fpath = filePath.includes(project.root) ? filePath.substr(project.root.length + 1) : filePath
   logger.log('DIFFS: refreshChanges (origin, fpath, user)', project.origin, fpath, CΩStore.user?.email)
@@ -484,7 +483,7 @@ function refreshChanges(project: any, filePath: string, doc: string): Promise<vo
 
   lastDownloadDiff[wsFolder] = new Date()
 
-  return downloadChanges(project, fpath)
+  return downloadChanges(project, fpath, cΩ)
     .then(() => {
       return getLinesChangedLocaly(project, fpath, doc)
     })
@@ -507,12 +506,12 @@ function refreshChanges(project: any, filePath: string, doc: string): Promise<vo
  * @param object - CΩStore project
  * @param string - the file path of the active document
  ************************************************************************************/
-function downloadChanges(project, fpath): Promise<void> {
+function downloadChanges(project, fpath, cΩ): Promise<void> {
   const currentUserId = CΩStore.user?._id.toString()
   if (!currentUserId) return Promise.reject( new Error('Not logged in.') )
   const uri = encodeURIComponent(project.origin)
   return CΩAPI.axiosAPI
-    .get(`${API_REPO_CONTRIB}?origin=${uri}&fpath=${fpath}`)
+    .get(`${API_REPO_CONTRIB}?origin=${uri}&fpath=${fpath}&clientId=${cΩ}`)
     .then((res) => {
       logger.info('DIFFS: downloadDiffs contributors (origin, res.status, res.data)', project.origin, res.status, res.data)
       const { data } = res
@@ -763,6 +762,7 @@ async function sendAdhocDiffs(diffDir, cΩ): Promise<void> {
   })
 }
 
+// TODO: move PPT related fn into a separate module
 async function refreshAdhocChanges({ origin, fpath }): Promise<void> {
   /* TODO: add caching (so we don't keep on asking for the same file when the user mad-clicks the same contributor) */
 
@@ -775,8 +775,9 @@ async function refreshAdhocChanges({ origin, fpath }): Promise<void> {
 
   lastDownloadDiff[origin] = new Date()
 
+  const uri = encodeURIComponent(origin)
   return CΩAPI
-    .getPPTSlideContrib({ origin, fpath })
+    .axiosAPI(`${API_SHARE_SLIDE_CONTRIB}?origin=${uri}&fpath=${fpath}`, { method: 'GET', responseType: 'json' })
     .then(res => res.data)
 }
 

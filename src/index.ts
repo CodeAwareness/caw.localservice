@@ -38,10 +38,12 @@ wsStation.init(server)
 /* Gardener websocket connects to api.codeawareness.com */
 wsGardener.connect({ url: config.SERVER_WSS })
 
-const exitHandler = () => {
+function exitHandler() {
+  const args = arguments
   if (server) {
     server.close(() => {
-      logger.info('Server closed')
+      logger.info('Server closed !!')
+      console.dir(args)
       process.exit(1)
     })
   } else {
@@ -49,9 +51,10 @@ const exitHandler = () => {
   }
 }
 
-const unexpectedErrorHandler = (error: any) => {
-  logger.error(error)
-  exitHandler()
+const unexpectedErrorHandler = (args) => {
+  console.log('unexpected error (global)')
+  console.dir(args)
+  // exitHandler()
 }
 
 process.on('uncaughtException', unexpectedErrorHandler)

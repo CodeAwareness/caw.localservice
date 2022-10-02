@@ -27,6 +27,7 @@ type TRepoActivateReq = {
 
 async function activatePath(data: any): Promise<any> {
   const { fpath, cΩ, doc }: TRepoActivateReq = data
+  if (!fpath) return
   logger.log('REPO: activate path (fpath, cΩ)', fpath, cΩ)
   if (fpath.toLowerCase().includes(CΩStore.tmpDir.toLowerCase())) return Promise.reject(new Error('file is temp'))
 
@@ -36,7 +37,7 @@ async function activatePath(data: any): Promise<any> {
 
   /* next up: download changes from peers */
   return CΩDiffs
-    .refreshChanges(project, project.activePath, doc)
+    .refreshChanges(project, project.activePath, doc, cΩ)
     .then(() => {
       this.emit('res:repo:active-path', project)
     })

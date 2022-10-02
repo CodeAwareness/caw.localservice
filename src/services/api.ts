@@ -2,6 +2,7 @@ import axios from 'axios'
 import FormData from 'form-data'
 import fs from 'node:fs'
 
+import CΩDiffs from '@/services/diffs'
 import Config from '@/config/config'
 import git from './git'
 import logger from '@/logger'
@@ -17,10 +18,6 @@ export type TCredentials = {
 CΩStore.swarmAuthStatus = 0
 
 let lastAuthorization = []
-
-type SHARE_URL_TYPE = {
-  url: string,
-}
 
 export const API_AUTH_LOGIN          = '/auth/login'
 export const API_AUTH_SIGNUP         = '/auth/register'
@@ -56,9 +53,15 @@ axiosAPI.interceptors.response.use(
     if (response.status === 202) { // We are processing the requests as authorized for now, but we need to send the required (or latest) SHA to continue being authorized
       // we do this strange response.statusText OR response.data.statusText because of a glitch in the test, it seems I can't make it work with supertest
       // if (!response.statusText && !response.data.statusText) return response
-      const cΩ = response.data.cΩ
-      const text = response.statusText || response.data.statusText
-      const authPromise = reAuthorize({ text, cΩ }) // IMPORTANT: no await! otherwise we interrupt the regular operations for too long, and we also get deeper into a recursive interceptor response.
+      const text = response.statusText
+      const { origin, branch, commitDate, clientId } = JSON.parse(text)
+      const authPromise = reAuthorize(origin, branch, commitDate, clientId) // IMPORTANT: no await! otherwise we interrupt the regular operations for too long, and we also get deeper into a recursive interceptor response.
+        .then(res => {
+          if (res.data.repo._REQUEST_DIFF) {
+            CΩDiffs.sendDiffs(CΩStore.activeProjects[clientId], clientId)
+          }
+        })
+      // Save the authPromise in the store, so we can use it for subsequent requests, and avoid triggering reAuthorize for each one of them
       if (CΩStore.swarmAuthStatus) {
         // TODO: try to disconnect multiple swarmAuth promises (for multiple repos at a time), so one repo doesn't have to wait for all repos to complete swarm authorization.
         CΩStore.swarmAuthStatus.then(() => authPromise)
@@ -104,11 +107,6 @@ function clearAuth() {
   lastAuthorization = []
 }
 
-type TReauthReq = {
-  text: string
-  cΩ: string
-}
-
 /**
  * fetch the branch requested and send the requested SHA corresponding to the `commitDate`.
  *
@@ -116,8 +114,7 @@ type TReauthReq = {
  *
  * @return object the matching repository. This may be the repo shared with everyone, or a siloed repo if the auth failed.
  */
-function reAuthorize({ text, cΩ }: TReauthReq) {
-  const { origin, branch, commitDate } = JSON.parse(text)
+function reAuthorize(origin, branch, commitDate, cΩ) {
   if (Object.keys(lastAuthorization).length && (new Date()).valueOf() - lastAuthorization[origin] < 120) return // TODO: optimize / configure; for now we'll only allow reauth once every 2 min
   lastAuthorization[origin] = (new Date()).valueOf()
   const project = CΩStore.projects.filter(p => p.origin === origin)[0]
@@ -172,59 +169,7 @@ function refreshToken(refreshToken: string) {
 }
 
 
-function getRepo(origin: string): Promise<any> {
-  const uri = encodeURIComponent(origin)
-  return axiosAPI(`${API_REPO_GET_INFO}?origin=${uri}`, { method: 'GET', responseType: 'json' })
-}
-
-function getPPTSlideContrib({ origin, fpath }) {
-  const uri = encodeURIComponent(origin)
-  return axiosAPI(`${API_SHARE_SLIDE_CONTRIB}?origin=${uri}&fpath=${fpath}`, { method: 'GET', responseType: 'json' })
-}
-
 const submitAuthBranch = ({ origin, sha, branch, commitDate }: any): Promise<any> => axiosAPI.post(API_REPO_SWARM_AUTH, { origin, sha, branch, commitDate })
-
-/**
- * Setup the share based on either <fileId, userId> or <origin, userId> when fileId is not available.
- *
- * @params { origin, groups }
- *
- * @return [ url ] links
- */
-const setupShare = (data: any): Promise<any> => {
-  const { origin, groups } = data
-  logger.log('SHARE FILE', data)
-  const zipForm = new FormData()
-  zipForm.append('origin', origin)
-  zipForm.append('groups', JSON.stringify(groups))
-  logger.log('Now reading file', origin)
-  zipForm.append('file', fs.createReadStream(origin), { filename: origin }) // !! the file has to be last appended to formdata
-  logger.log('UPLOADING FILE', origin)
-  return axiosAPI
-    .post(API_SHARE_UPLOAD, zipForm,
-      {
-        headers: zipForm.getHeaders(),
-        maxContentLength: Infinity,
-        maxBodyLength: Infinity,
-      })
-    .then(res => res.data)
-}
-
-const acceptShare = link => {
-  const uri = encodeURIComponent(link)
-  return axiosAPI.get<SHARE_URL_TYPE>(`${API_SHARE_ACCEPT}?origin=${uri}`)
-}
-
-const getFileOrigin = fpath => {
-  const uri = encodeURIComponent(fpath)
-  logger.log(`will request ${API_SHARE_FINFO} for fpath ${uri}`)
-  return axiosAPI(`${API_SHARE_FINFO}?fpath=${uri}`, { method: 'GET', responseType: 'json' })
-}
-
-const getOriginInfo = origin => {
-  const uri = encodeURIComponent(origin)
-  return axiosAPI(`${API_SHARE_OINFO}?origin=${uri}`, { method: 'GET', responseType: 'json' })
-}
 
 function post(url, data, action?: string, socket?: any) {
   const promise = axiosAPI.post(url, data)
@@ -249,21 +194,13 @@ function post(url, data, action?: string, socket?: any) {
 const CΩAPI = {
   // common
   axiosAPI,
-  getOriginInfo,
   post,
   refreshToken,
 
   // code repo
   clearAuth,
-  getRepo,
   sendLatestSHA,
   submitAuthBranch,
-
-  // powerpoint
-  acceptShare,
-  getFileOrigin,
-  getPPTSlideContrib,
-  setupShare,
 
   // API routes
   API_AUTH_LOGIN,

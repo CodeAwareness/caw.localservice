@@ -153,7 +153,6 @@ export const CΩStore = {
   },
 
   setAuth: async ({ user, tokens }) => {
-    console.log('SET AUTH', user, tokens)
     CΩStore.user = user
     CΩStore.tokens = tokens
     await config.authStore.set('user', CΩStore.user)

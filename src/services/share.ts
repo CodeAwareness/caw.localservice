@@ -3,7 +3,7 @@ import mkdirp from 'mkdirp'
 import * as chokidar from 'chokidar'
 import * as https from 'https'
 import * as fs from 'fs/promises'
-import { createWriteStream } from 'node:fs'
+import { createReadStream, createWriteStream } from 'node:fs'
 
 import Config from '@/config/config'
 import { generateUUID } from '@/utils/string'
@@ -12,7 +12,7 @@ import diffs from '@/services/diffs'
 import { CΩStore } from '@/services/store'
 import logger from '@/logger'
 
-import api, { API_SHARE_UPLOAD } from '@/services/api'
+import CΩAPI, { API_SHARE_ACCEPT, API_SHARE_FINFO, API_SHARE_OINFO, API_SHARE_UPLOAD } from '@/services/api'
 
 type TWebSocket = {
   wsFolder: string,
@@ -70,7 +70,7 @@ function monitorFile({ origin, fpath, wsFolder, cΩ }): void {
  */
 async function downloadPPT(data): Promise<string> {
   const buffer = new Uint8Array(data.fileData)
-  const fpath = await api.post(API_SHARE_UPLOAD, { url: data.fpath })
+  const fpath = await CΩAPI.axiosAPI.post(API_SHARE_UPLOAD, { url: data.fpath }).then(res => res.data)
   return new Promise((resolve, reject) => {
     // @ts-ignore
     fs.writeFile(fpath, buffer, err => {
@@ -92,10 +92,23 @@ async function downloadPPT(data): Promise<string> {
  *
  * @return [url] links
  */
-async function startSharing(data: any): Promise<TLinks> {
-  const res = await api.setupShare(data)
-  logger.log('got origin and links', res)
-  return res
+async function startSharing({ origin, groups }): Promise<TLinks> {
+  const zipForm = new FormData()
+  zipForm.append('origin', origin)
+  zipForm.append('groups', JSON.stringify(groups))
+  logger.log('Now reading file', origin)
+  // @ts-ignore
+  zipForm.append('file', createReadStream(origin), { filename: origin }) // !! the file has to be last appended to formdata
+  logger.log('UPLOADING FILE', origin)
+  return CΩAPI.axiosAPI
+    .post(API_SHARE_UPLOAD, zipForm,
+      {
+        // @ts-ignore
+        headers: zipForm.getHeaders(),
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity,
+      })
+    .then(res => res.data)
 }
 
 /**
@@ -108,6 +121,10 @@ function unmonitorOrigin(origin: string): void {
   // TODO: verify that when we're closing the PPT, we always sync latest changes from file system
 }
 
+type SHARE_URL_TYPE = {
+  url: string,
+}
+
 /**
  * acceptShare
  * scope: PPT
@@ -118,7 +135,9 @@ async function acceptShare(origin: string): Promise<string> {
   const extractDir = path.join(wsFolder, Config.EXTRACT_LOCAL_DIR)
   mkdirp.sync(extractDir)
   let fpath: string
-  return api.acceptShare(origin)
+  const uri = encodeURIComponent(origin)
+  return CΩAPI.axiosAPI
+    .get<SHARE_URL_TYPE>(`${API_SHARE_ACCEPT}?origin=${uri}`)
     .then(res => {
       const parts = res.data.url.split('/')
       const filename = parts[parts.length - 1].replace(/\?.*$/, '')
@@ -178,11 +197,13 @@ async function fileToBase64(fpath: string): Promise<string> {
 }
 
 async function getFileOrigin(fpath: string): Promise<any> {
-  return await api.getFileOrigin(fpath)
+  const uri = encodeURIComponent(fpath)
+  return CΩAPI.axiosAPI(`${API_SHARE_FINFO}?fpath=${uri}`, { method: 'GET', responseType: 'json' })
 }
 
 async function getOriginInfo(origin: string): Promise<any> {
-  return await api.getOriginInfo(origin)
+  const uri = encodeURIComponent(origin)
+  return CΩAPI.axiosAPI(`${API_SHARE_OINFO}?origin=${uri}`, { method: 'GET', responseType: 'json' })
 }
 
 async function createWorkspace(fpath) {
@@ -190,6 +211,33 @@ async function createWorkspace(fpath) {
   const extractDir = path.join(wsFolder, Config.EXTRACT_LOCAL_DIR)
   mkdirp.sync(extractDir)
   return extractDir
+}
+
+/**
+ * uploadOriginal
+ * scope: GIT
+ * desc : repos diffs are sent to CodeAwareness
+ */
+async function uploadOriginal({ fpath, origin, cΩ }): Promise<TWebSocket> {
+  const wsFolder = generateWSFolder()
+  const extractDir = path.join(wsFolder, Config.EXTRACT_LOCAL_DIR)
+  mkdirp.sync(extractDir)
+  const zipFile = await copyToWorkspace({ fpath, extractDir })
+  const promises = []
+  promises.push(diffs.unzip({ extractDir, zipFile }))
+  return Promise.all(promises)
+    .then(() => {
+      return diffs.initGit({ extractDir, origin })
+    })
+    .then(() => {
+      return diffs.sendAdhocDiffs(wsFolder, cΩ)
+    })
+    .then(() => {
+      monitorFile({ origin, wsFolder, fpath, cΩ })
+    })
+    .then(() => {
+      return { wsFolder, origin }
+    })
 }
 
 const ShareService = {
@@ -204,6 +252,7 @@ const ShareService = {
   setupReceived,
   startSharing,
   unmonitorOrigin,
+  uploadOriginal,
 }
 
 export default ShareService
