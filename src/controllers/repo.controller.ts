@@ -33,6 +33,7 @@ async function activatePath(data: any): Promise<any> {
 
   /* select the project corresponding to the activated path; if there is no project matching, we add as new project */
   const project = await selectProject(fpath, cΩ, this)
+  project.activePath = fpath
   logger.log('REPO: activate path (project)', project)
 
   /* next up: download changes from peers */

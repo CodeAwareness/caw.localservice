@@ -485,6 +485,7 @@ function refreshChanges(project: any, filePath: string, doc: string, cΩ: string
 
   return downloadChanges(project, fpath, cΩ)
     .then(() => {
+      logger.info(`DIFFS: will check local diffs for ${fpath}`, project.changes)
       return getLinesChangedLocaly(project, fpath, doc)
     })
     .then(() => {
@@ -503,6 +504,11 @@ function refreshChanges(project: any, filePath: string, doc: string, cΩ: string
  * We download the list of contributors for the active file,
  * and aggregate their changes to display the change markers
  *
+ * The response from downloadDiffs API call includes:
+ * - tree: list of aggregate changes across all peers
+ * - file: list of contributors and their individual changes for the current file
+ * - users: list of same contributors with their account details (avatar, email, etc)
+ *
  * @param object - CΩStore project
  * @param string - the file path of the active document
  ************************************************************************************/
@@ -513,12 +519,14 @@ function downloadChanges(project, fpath, cΩ): Promise<void> {
   return CΩAPI.axiosAPI
     .get(`${API_REPO_CONTRIB}?origin=${uri}&fpath=${fpath}&clientId=${cΩ}`)
     .then((res) => {
-      logger.info('DIFFS: downloadDiffs contributors (origin, res.status, res.data)', project.origin, res.status, res.data)
+      logger.info('DIFFS: downloadDiffs contributors (origin, res.status, fpath, res.data)', project.origin, res.status, fpath, res.data.tree?.length + ' files', Object.keys(res.data.file?.changes).length + ' contributors')
       const { data } = res
       if (!data) return
-      const fpath = data.file.file
-      project.contributors[fpath] = data.users.filter(u => u._id !== currentUserId)
-      if (!project.changes) project.changes = {}
+      // merge contributors
+      if (!project.contributors) project.contributors = {}
+      data.users.filter(u => u._id !== currentUserId).forEach(u => project.contributors[u._id] = u)
+      project.changes = {}
+      data.tree?.forEach(f => project.changes[f.file] || (project.changes[f.file] = {})) // if already exists, don't overwrite
       /**
        * data.file.changes: {
        *   uid1: { sha: sha, lines: lines, s3key: s3key }
@@ -544,8 +552,7 @@ function downloadChanges(project, fpath, cΩ): Promise<void> {
       }
     })
     .catch(err => {
-      console.error(err)
-      logger.info('DIFFS: no contributors for this file', err)
+      logger.info('DIFFS: no contributors for this file', err.core, err.config.url, err.data)
     })
 }
 
