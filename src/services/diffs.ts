@@ -25,18 +25,6 @@ const PENDING_DIFFS = {}
 const isWindows = !!process.env.ProgramFiles
 
 /************************************************************************************
- * Initialization
- *
- * - an empty file that we'll use to create unified diffs against untracked git files.
- * - an adhoc sharing folder; we copy the file or folder being shared here,
- *   and create a git repo, while refreshing with changes made on the originals.
- ************************************************************************************/
-
-const tmpDir = CΩStore.tmpDir
-const emptyFile = path.join(tmpDir, 'empty.p8')
-const adhocDir = path.join(tmpDir, 'adhoc') // for adhoc sharing files and folders
-
-/************************************************************************************
  * Diffs active file with the same file in a local branch
  *
  * Open the VSCode standard diff window...
@@ -44,13 +32,13 @@ const adhocDir = path.join(tmpDir, 'adhoc') // for adhoc sharing files and folde
 function diffWithBranch({ origin, branch, fpath, cΩ }): Promise<any> {
   let peerFile
   const project = CΩStore.activeProjects[cΩ]
-  let wsFolder = project.root
+  const tmpDir = CΩStore.uTmpDir[cΩ]
+  const wsFolder = project.root
   CΩStore.selectedBranch = branch
   CΩStore.selectedContributor = undefined
-  const userFile = project.activePath
-  return git.command(path.join(wsFolder, path.dirname(userFile)), 'git rev-parse --show-toplevel')
+  const userFile = project.activePath.substr(project.root.length + 1)
+  return git.command(wsFolder, 'git rev-parse --show-toplevel')
     .then(folder => {
-      wsFolder = folder.trim()
       const name = path.basename(wsFolder)
       const relativeDir = userFile.substr(0, userFile.length - path.basename(userFile).length)
       const localDir = path.join(tmpDir, name, Config.EXTRACT_BRANCH_DIR)
@@ -60,7 +48,7 @@ function diffWithBranch({ origin, branch, fpath, cΩ }): Promise<any> {
     })
     .then(() => {
       // TODO: do something with the stderr?
-      const title = `CΩ#${path.basename(userFile)} ↔ Peer changes`
+      const title = `${path.basename(userFile)} ↔ Peer changes`
       return { title, peerFile, userFile: path.join(wsFolder, userFile) }
     })
     .catch(logger.error)
@@ -99,6 +87,7 @@ function diffWithBranch({ origin, branch, fpath, cΩ }): Promise<any> {
  *
  ************************************************************************************/
 function diffWithContributor({ contrib, fpath, origin, cΩ }): Promise<any> {
+  const tmpDir = CΩStore.uTmpDir[cΩ]
   const project = CΩStore.activeProjects[cΩ]
   console.log('ACTIVE PROJECTS', CΩStore.activeProjects, cΩ)
   console.log('CONTRIB', contrib)
@@ -265,6 +254,7 @@ const lastSendDiff = []
 function sendDiffs(project, cΩ): Promise<void> {
   if (!project) return Promise.resolve()
   const wsFolder = project.root
+  const tmpDir = CΩStore.uTmpDir[cΩ]
   const activePath = project.activePath || ''
   // TODO: better throttling mechanism, maybe an express middleware
   if (lastSendDiff[wsFolder]) {
@@ -285,6 +275,7 @@ function sendDiffs(project, cΩ): Promise<void> {
   logger.info('DIFFS: sendDiffs (wsFolder, origin)', wsFolder, origin)
   mkdirp.sync(diffDir)
   const tmpProjectDiff = path.join(diffDir, 'uploaded.diff')
+  const emptyFile = path.join(tmpDir, 'empty.p8')
 
   createEmpty(tmpProjectDiff)
   createEmpty(emptyFile)
@@ -380,8 +371,8 @@ function compress(input: string, output: string): Promise<void> {
 /************************************************************************************
  * AdHoc Sharing files or folders
  ************************************************************************************/
-function shareFile(filePath: string, groups: Array<string>) {
-  setupShare(filePath, groups)
+function shareFile(filePath: string, groups: Array<string>, cΩ) {
+  setupShare(filePath, groups, cΩ)
 }
 
 function shareFolder(folder: string, groups: Array<string>) {
@@ -425,10 +416,12 @@ function copyFile(source, dest): Promise<void> {
  * AdHoc Sharing files or folders for REPO model
  * (for Office model, please see share.controller.js)
  ************************************************************************************/
-async function setupShare(fPath, groups, isFolder = false): Promise<void> {
+async function setupShare(fPath, groups, cΩ, isFolder = false): Promise<void> {
   // TODO: refactor this and unify the Repo and Office sharing process
   const filename = path.basename(fPath)
   const origin = _.uniqueId(filename + '-') // TODO: this uniqueId only works for multiple sequential calls I think, because it just spits out 1, 2, 3
+  const tmpDir = CΩStore.uTmpDir[cΩ]
+  const adhocDir = path.join(tmpDir, 'adhoc') // for adhoc sharing files and folders
   const adhocRepo = path.join(adhocDir, origin)
   const zipFile = path.join(adhocDir, `${origin}.zip`)
   rimraf.sync(adhocRepo)
@@ -486,7 +479,7 @@ function refreshChanges(project: any, filePath: string, doc: string, cΩ: string
   return downloadChanges(project, fpath, cΩ)
     .then(() => {
       logger.info(`DIFFS: will check local diffs for ${fpath}`, project.changes)
-      return getLinesChangedLocaly(project, fpath, doc)
+      return getLinesChangedLocaly(project, fpath, doc, cΩ)
     })
     .then(() => {
       logger.info(`DIFFS: will shift markers (changes) for ${fpath}`, project.changes)
@@ -562,9 +555,10 @@ function downloadChanges(project, fpath, cΩ): Promise<void> {
  * @param object - CΩStore project
  * @param string - the file path of the active document
  ************************************************************************************/
-function getLinesChangedLocaly(project, fpath, doc): Promise<void> {
+function getLinesChangedLocaly(project, fpath, doc, cΩ): Promise<void> {
   const wsFolder = project.root
   const wsName = path.basename(wsFolder)
+  const tmpDir = CΩStore.uTmpDir[cΩ]
   if (!project.changes[fpath]) return Promise.resolve()
   /* TODO: right now we're limiting the git archive and diff operations to maximum 5 different commits; optimize and improve if possible */
   const shas = Object.keys(project.changes[fpath].alines).slice(0, Config.MAX_NR_OF_SHA_TO_COMPARE)
@@ -754,6 +748,8 @@ async function sendAdhocDiffs(diffDir, cΩ): Promise<void> {
   const origin = (await git.command(gitDir, 'git remote get-url origin')).trim()
   const sha = (await git.command(gitDir, 'git rev-list --max-parents=0 HEAD')).trim()
   const tmpProjectDiff = path.join(diffDir, 'uploaded.diff')
+  const tmpDir = CΩStore.uTmpDir[cΩ]
+  const emptyFile = path.join(tmpDir, 'empty.p8')
 
   createEmpty(tmpProjectDiff)
   createEmpty(emptyFile)

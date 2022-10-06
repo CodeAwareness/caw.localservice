@@ -34,7 +34,6 @@ async function activatePath(data: any): Promise<any> {
   /* select the project corresponding to the activated path; if there is no project matching, we add as new project */
   const project = await selectProject(fpath, cΩ, this)
   project.activePath = fpath
-  logger.log('REPO: activate path (project)', project)
 
   /* next up: download changes from peers */
   return CΩDiffs
@@ -54,6 +53,7 @@ async function activatePath(data: any): Promise<any> {
  */
 function selectProject(fpath, cΩ, socket): Promise<any> {
   const plist = CΩStore.projects.filter(p => fpath.includes(p.root))
+  const wsFolder = path.dirname(fpath)
   let project
   let len = 0
   // select longest path to guarantee working properly even on git submodules
@@ -62,19 +62,25 @@ function selectProject(fpath, cΩ, socket): Promise<any> {
     len = p.root.length
   })
   if (!project?.cSHA) {
-    return git.command(path.dirname(fpath), 'git rev-parse --show-toplevel')
+    return git.command(wsFolder, 'git rev-parse --show-toplevel')
       .then(folder => add({ folder, cΩ }, socket))
-      .then(project => {
+      .then(newProject => {
+        project = newProject
         logger.info('REPO: the relative active path is', fpath.substr(project.root.length))
         project.activePath = fpath.substr(project.root)
         CΩStore.projects.push(project) // TODO: used for SCM, but we need to also use socket id cΩ
         CΩStore.activeProjects[cΩ] = project
         CΩDiffs.sendDiffs(project, cΩ)
+        return git.command(wsFolder, 'git branch --no-color')
+      })
+      .then(stdout => {
+        const lines = stdout.split('\n')
+        project.branch = lines.filter(l => /^\*/.test(l))[0].substr(2)
+        project.branches = lines.map(line => line.replace('* ', '').replace(/\s/g, '')).filter(a => a)
         return project
       })
   }
   CΩStore.activeProjects[cΩ] = project
-  console.log('CΩSTORE ACTIVE PROJECTS', cΩ, CΩStore.activeProjects)
   // TODO: send diffs if more than 5 minutes have passed
   return Promise.resolve(project)
 }
@@ -185,7 +191,7 @@ function vscodeDiff({ wsFolder, fpath, uid, cΩ }) {
     fs.accessSync(absPath, fs.constants.R_OK)
     this.emit('res:repo:vscode-diff', { exists: true, res1: path.join(wsFolder, fpath) })
   } catch(err) {
-    const { tmpDir } = CΩStore
+    const tmpDir = CΩStore.uTmpDir[cΩ]
     const activeProject = CΩStore.activeProjects[cΩ]
     const tmpFile = _.uniqueId(path.basename(fpath))
     const tmp = path.join(tmpDir, tmpFile)
