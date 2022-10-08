@@ -1,6 +1,4 @@
-import root from '@/app'
-
-const getUsers = ({ cΩ }) => {
+const getUsers = () => {
   // TODO
 }
 

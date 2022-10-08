@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-empty-function */
 import { map } from 'lodash'
 import api from '@/services/api'
 
@@ -35,31 +36,31 @@ const logger = {
     console.log('CΩ.LS:', map(args, stringify))
     trace()
     args.unshift('GRAND STATION')
-    api.axiosAPI.post(`${api.API_LOG}/log`, args).catch(err => {})
+    api.axiosAPI.post(`${api.API_LOG}/log`, args).catch(_err => {})
   },
   info: function(...args: any[]): void {
     console.info('CΩ.LS:', map(args, stringify))
     trace()
     args.unshift('GRAND STATION')
-    api.axiosAPI.post(`${api.API_LOG}/info`, args).catch(err => {})
+    api.axiosAPI.post(`${api.API_LOG}/info`, args).catch(_err => {})
   },
   warn: function(...args: any[]): void {
     console.warn('CΩ.LS:', map(args, stringify))
     trace()
     args.unshift('GRAND STATION')
-    api.axiosAPI.post(`${api.API_LOG}/warn`, args).catch(err => {})
+    api.axiosAPI.post(`${api.API_LOG}/warn`, args).catch(_err => {})
   },
   debug: function(...args: any[]): void {
     console.info('CΩ.LS:', map(args, stringify))
     trace()
     args.unshift('GRAND STATION')
-    api.axiosAPI.post(`${api.API_LOG}/debug`, args).catch(err => {})
+    api.axiosAPI.post(`${api.API_LOG}/debug`, args).catch(_err => {})
   },
   error: function(...args: any[]): void {
     console.error('CΩ.LS:', map(args, stringify))
     trace()
     args.unshift('GRAND STATION')
-    api.axiosAPI.post(`${api.API_LOG}/error`, args).catch(err => {})
+    api.axiosAPI.post(`${api.API_LOG}/error`, args).catch(_err => {})
   },
 }
 

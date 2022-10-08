@@ -1,12 +1,6 @@
-import type { TCredentials } from '@/services/api'
-
 import { CΩStore } from '@/services/store'
 import CΩAPI, { API_AUTH_LOGIN, API_AUTH_SIGNUP } from '@/services/api'
-import git from '@/services/git'
-import config from '@/config/config'
 import logger from '@/logger'
-
-let lastAuthorization: Record<string, number> = {}
 
 type TLoginReq = {
   email: string
@@ -14,7 +8,7 @@ type TLoginReq = {
   cΩ: string
 }
 
-function login({ email, password, cΩ }: TLoginReq) {
+function login({ email, password }: TLoginReq) {
   CΩAPI
     .post(API_AUTH_LOGIN, { email, password }, 'auth:login', this)
     .then(data => CΩStore.setAuth(data))
@@ -25,7 +19,6 @@ function login({ email, password, cΩ }: TLoginReq) {
 
 async function logout({ cΩ }) {
   await CΩStore.reset(cΩ)
-  lastAuthorization = {}
 }
 
 function info(cΩ: string) {
@@ -50,30 +43,19 @@ function info(cΩ: string) {
     })
     .catch(err => {
       CΩStore.reset(cΩ)
-      this.emit('res:auth:info', {})
+      this.emit('res:auth:info', { err: err.message })
     })
 }
 
-function signup({ email, password, cΩ }) {
+function signup({ email, password }) {
   /* eslint-disable-next-line @typescript-eslint/no-this-alias */
   CΩAPI.post(API_AUTH_SIGNUP, { email, password }, 'auth:signup', this)
-}
-
-type TPassAssistReq = {
-  email: string
-  cΩ: string
-}
-
-function passwordAssist({ email, cΩ }: TPassAssistReq) {
-  // TODO
-  // return CΩAPI.post(`${SERVER_URL}/auth/forgot-password`, { email })
 }
 
 const authController = {
   login,
   logout,
   info,
-  passwordAssist,
   signup,
 }
 

@@ -13,7 +13,7 @@ export function mockGitForSendDiffs() {
   return {
     gitBranches: jest.spyOn(git, 'getBranches').mockImplementation(() => Promise.resolve({ branch: 'main', branches: ['main', 'dev', 'light'] })),
     gitRemotes: jest.spyOn(git, 'getRemotes').mockImplementation(() => Promise.resolve('github.com/peer8/test')),
-    gitCommand: jest.spyOn(git, 'command').mockImplementation((wsFolder, cmd) => new Promise((resolve, reject) => {
+    gitCommand: jest.spyOn(git, 'command').mockImplementation((wsFolder, cmd) => new Promise((resolve, _reject) => {
       if (cmd === 'git fetch') resolve(GIT_MOCKS.FETCH)
       if (cmd.substr(0, 10) === 'git branch') resolve(GIT_MOCKS.BRANCH)
       if (cmd.substr(0, 12) === 'git ls-files') resolve(GIT_MOCKS.LS_FILES)
@@ -32,16 +32,16 @@ export function mockGitForDownloadDiffs() {
   return {
     gitRemotes: jest.spyOn(git, 'getRemotes').mockImplementation(() => Promise.resolve('github.com/peer8/test')),
     gitCommand: jest.spyOn(git, 'command')
-      .mockImplementationOnce((wsFolder, cmd) => new Promise((resolve, reject) => {
+      .mockImplementationOnce((_wsFolder, _cmd) => new Promise((resolve, _reject) => {
         resolve(GIT_MOCKS.DIFF_ARCHIVE)
       }))
-      .mockImplementationOnce((wsFolder, cmd) => new Promise((resolve, reject) => {
+      .mockImplementationOnce((_wsFolder, _cmd) => new Promise((resolve, _reject) => {
         resolve(GIT_MOCKS.DIFF_README)
       }))
-      .mockImplementationOnce((wsFolder, cmd) => new Promise((resolve, reject) => {
+      .mockImplementationOnce((_wsFolder, _cmd) => new Promise((resolve, _reject) => {
         resolve(GIT_MOCKS.DIFF_ARCHIVE2)
       }))
-      .mockImplementationOnce((wsFolder, cmd) => new Promise((resolve, reject) => {
+      .mockImplementationOnce((_wsFolder, _cmd) => new Promise((resolve, _reject) => {
         resolve(GIT_MOCKS.DIFF_README2)
       }))
   }

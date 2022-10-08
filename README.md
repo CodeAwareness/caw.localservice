@@ -18,37 +18,34 @@ The service listens on port 48408. We have the port customization on our TODO li
 
 ### Installation
 
-Clone the repo, install the dependencies and set the environment variables.
+1. Clone the repo, install the dependencies.
 
 ```bash
-# open .env and modify the environment variables
+yarn
 ```
 
-Install `nginx` and copy the `codeawareness.nginx.conf` into your servers folder.
-
-### Commands
-
-Running locally:
+2. Install localhost certificates (will only last for about a month):
 
 ```bash
-yarn dev
-```
-
-To install or reinstall certificates:
-
-```
 npx office-addin-dev-certs install
+```
+
+2. Install `nginx` and copy the `codeawareness.nginx.conf` into your servers folder. Restart nginx to take effect.
+
+```bash
 brew services restart nginx
 ```
 
-Running in production:
+### Run
 
-```bash
+```
+yarn build
 yarn start
 ```
 
-Testing:
+### Testing:
 
+NOTE: Tests don't yet work. We're currently working on porting tests from an older version of this project.
 ```bash
 # run all tests
 yarn test
@@ -60,7 +57,7 @@ yarn test:watch
 yarn coverage
 ```
 
-Linting:
+### Linting:
 
 ```bash
 # run ESLint

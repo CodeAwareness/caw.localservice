@@ -145,7 +145,7 @@ describe('Share service', () => {
       const s3key = encodeURIComponent('test-origin-s3-id.zip')
 
       // TEST
-      const res = await request(app)
+      await request(app)
         .get(`/v1/share/getFileOrigin?f=${s3key}`)
         .send({
           origin: 'test-origin',

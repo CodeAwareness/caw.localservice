@@ -1,6 +1,4 @@
 import axios from 'axios'
-import FormData from 'form-data'
-import fs from 'node:fs'
 
 import CΩDiffs from '@/services/diffs'
 import Config from '@/config/config'
@@ -139,7 +137,7 @@ function reAuthorize(origin, branch, commitDate, cΩ) {
 }
 
 /* TODO: throttle; when starting up VSCode we may get several such requests in quick succession */
-function sendLatestSHA({ wsFolder, origin, cΩ }: any): Promise<any> {
+function sendLatestSHA({ wsFolder, origin }: any): Promise<any> {
   let branch: string
   return git.command(wsFolder, 'git branch -a --sort=committerdate')
     .then(out => {
@@ -167,7 +165,6 @@ function refreshToken(refreshToken: string) {
     .post(API_AUTH_REFRESH_TOKENS, { refreshToken })
     .then((res: any) => CΩStore.setAuth(res.data))
 }
-
 
 const submitAuthBranch = ({ origin, sha, branch, commitDate }: any): Promise<any> => axiosAPI.post(API_REPO_SWARM_AUTH, { origin, sha, branch, commitDate })
 

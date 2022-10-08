@@ -1,10 +1,10 @@
 import logger from '@/logger'
 
-const getThreads: any = data => {
+const getThreads: any = () => {
   logger.log('getThreads') // TODO
 }
 
-const comment: any = data => {
+const comment: any = () => {
   logger.log('comment') // TODO
 }
 

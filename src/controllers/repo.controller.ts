@@ -7,7 +7,6 @@ import type { Socket } from 'socket.io'
 import logger from '@/config/logger'
 import config from '@/config/config'
 
-import app from '@/app'
 import git from '@/services/git'
 import { CΩStore } from '@/services/store'
 import CΩDiffs from '@/services/diffs'
@@ -88,7 +87,6 @@ function selectProject(fpath, cΩ, socket): Promise<any> {
 function add(requested: TRepoAddReq, socket?: Socket): Promise<any> {
   const folder = requested.folder.trim()
   logger.info('REPO: addProject', folder)
-  let hasGit
   try {
     fs.accessSync(path.join(folder, '.git'))
   } catch (err) {
@@ -120,7 +118,7 @@ function add(requested: TRepoAddReq, socket?: Socket): Promise<any> {
     .catch(err => logger.error('SCM setupOrigin ERROR', err))
 }
 
-function remove({ folder, cΩ }: TRepoAddReq) {
+function remove({ folder }) {
   const project = CΩStore.projects.filter(m => m.name === path.basename(folder))[0]
   logger.info('SCM removeProject folder', folder, project)
   if (project) {
@@ -181,7 +179,7 @@ function diffWithContributor(info) {
     .then(diffs => this.emit('res:repo:diff-contrib', diffs))
 }
 
-function readFile({ fpath, cΩ }) {
+function readFile({ fpath }) {
   fsPromise.readFile(fpath).then(doc => doc.toString('utf8'))
 }
 
@@ -190,7 +188,7 @@ function vscodeDiff({ wsFolder, fpath, uid, cΩ }) {
   try {
     fs.accessSync(absPath, fs.constants.R_OK)
     this.emit('res:repo:vscode-diff', { exists: true, res1: path.join(wsFolder, fpath) })
-  } catch(err) {
+  } catch (err) {
     const tmpDir = CΩStore.uTmpDir[cΩ]
     const activeProject = CΩStore.activeProjects[cΩ]
     const tmpFile = _.uniqueId(path.basename(fpath))

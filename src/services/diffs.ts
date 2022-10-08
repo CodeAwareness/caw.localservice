@@ -10,7 +10,7 @@ import { PowerShell } from 'node-powershell'
 import childProcess from 'child_process'
 import { promises as fs, createReadStream, createWriteStream, openSync, closeSync } from 'node:fs'
 import { pipeline } from 'stream'
-import { AxiosResponse } from 'axios'
+// import { AxiosResponse } from 'axios'
 // import replaceStream from 'replacestream' // doesn't work (!
 
 import Config from '@/config/config'
@@ -29,7 +29,7 @@ const isWindows = !!process.env.ProgramFiles
  *
  * Open the VSCode standard diff window...
  ************************************************************************************/
-function diffWithBranch({ origin, branch, fpath, cΩ }): Promise<any> {
+function diffWithBranch({ branch, cΩ }): Promise<any> {
   let peerFile
   const project = CΩStore.activeProjects[cΩ]
   const tmpDir = CΩStore.uTmpDir[cΩ]
@@ -39,6 +39,8 @@ function diffWithBranch({ origin, branch, fpath, cΩ }): Promise<any> {
   const userFile = project.activePath.substr(project.root.length + 1)
   return git.command(wsFolder, 'git rev-parse --show-toplevel')
     .then(folder => {
+      logger.log('diff branch in ', folder)
+      // TODO: git submodules: how do we branch diff on a submodule?
       const name = path.basename(wsFolder)
       const relativeDir = userFile.substr(0, userFile.length - path.basename(userFile).length)
       const localDir = path.join(tmpDir, name, Config.EXTRACT_BRANCH_DIR)
@@ -172,7 +174,7 @@ function sendCommitLog(project, cΩ): Promise<string> {
       } else {
         // when there are new commits since our last sendDiffs, we resend a block of SHA values from the current branch
         project.head = head
-        return sendLog(head)
+        return sendLog()
       }
     })
 
@@ -189,7 +191,7 @@ function sendCommitLog(project, cΩ): Promise<string> {
       })
   }
 
-  function sendLog(head) {
+  function sendLog() {
     logger.info('DIFFS: sendLog HEAD (cΩ, origin, head)', cΩ, project.origin, project.head)
     return git.command(wsFolder, 'git branch --verbose --no-abbrev --no-color')
       .then(extractLog)
@@ -382,7 +384,7 @@ function shareFolder(folder: string, groups: Array<string>) {
 // TODO: maybe use fs-extra instead
 function copyFolder(source, dest): Promise<string> {
   // TODO: OPTIMIZE: maybe use spawn instead of exec (more efficient since it doesn't spin up any shell)
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve, _reject) => {
     const command = `cp -r ${source} ${dest}`
     const options = { windowsHide: true }
     if (isWindows) {
@@ -442,7 +444,7 @@ async function initGit({ extractDir, origin }): Promise<void> {
   await git.command(extractDir, 'git commit -am "initial commit"')
 }
 
-async function updateGit(extractDir: string): Promise<void> {
+async function updateGit(/* extractDir: string */): Promise<void> {
   // await git.command(extractDir, 'git add .') // TODO: this conflicts with initGit in the initial receiving phase
   // await git.command(extractDir, 'git commit -am "updated"') // We'll keep the original commit for now.
 }
@@ -507,7 +509,7 @@ function refreshChanges(project: any, filePath: string, doc: string, cΩ: string
  ************************************************************************************/
 function downloadChanges(project, fpath, cΩ): Promise<void> {
   const currentUserId = CΩStore.user?._id.toString()
-  if (!currentUserId) return Promise.reject( new Error('Not logged in.') )
+  if (!currentUserId) return Promise.reject(new Error('Not logged in.'))
   const uri = encodeURIComponent(project.origin)
   return CΩAPI.axiosAPI
     .get(`${API_REPO_CONTRIB}?origin=${uri}&fpath=${fpath}&clientId=${cΩ}`)
@@ -517,7 +519,7 @@ function downloadChanges(project, fpath, cΩ): Promise<void> {
       if (!data) return
       // merge contributors
       if (!project.contributors) project.contributors = {}
-      data.users.filter(u => u._id !== currentUserId).forEach(u => project.contributors[u._id] = u)
+      data.users.filter(u => u._id !== currentUserId).forEach(u => (project.contributors[u._id] = u))
       project.changes = {}
       data.tree?.forEach(f => project.changes[f.file] || (project.changes[f.file] = {})) // if already exists, don't overwrite
       /**
@@ -702,6 +704,7 @@ function parseDiffFile(diffs): Array<TDiffReplace> {
     } else if (line[0] === '+') {
       insLines++
     } else if (start === '@@ ') {
+      /* eslint-disable-next-line security/detect-unsafe-regex */
       const matches = /@@ -([0-9]+)(,[0-9]+)? \+([0-9]+)(,[0-9]+)? @@/.exec(line)
       if (delLines || insLines) {
         changes.push({

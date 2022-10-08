@@ -23,7 +23,7 @@ function isFolder(folder) {
   return new Promise((resolve, reject) => {
     stat(path.join(folder), (err, stats) => {
       if (stats.isDirectory()) resolve(true)
-      else reject()
+      else reject(err)
     })
   })
 }

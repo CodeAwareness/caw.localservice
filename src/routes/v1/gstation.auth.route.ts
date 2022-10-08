@@ -7,7 +7,6 @@ const router = {
     socket.on('auth:login', authController.login)
     socket.on('auth:signup', authController.signup)
     socket.on('auth:logout', authController.logout)
-    socket.on('auth:passwordAssist', authController.passwordAssist)
   },
 }
 

@@ -2,14 +2,13 @@ import * as path from 'path'
 
 // TODO: clear up this messed up tangled share/diffs code
 import { authStore, shareStore } from '@/config/config'
-import app from '@/app'
 import diffs from '@/services/diffs'
 import share from '@/services/share'
 import logger from '@/logger'
 import api, { API_SHARE_CREATE_FILEID } from '@/services/api'
 
 async function downloadPPT(data) {
-  if (data.sliceIndex === 0) share.createWorkspace(data.fpath)
+  if (data.sliceIndex === 0) share.createWorkspace()
   const fpath = await share.downloadPPT(data)
   this.emit('res:share:downloadPPT', { fpath })
 }

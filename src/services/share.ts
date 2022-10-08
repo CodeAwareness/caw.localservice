@@ -33,7 +33,7 @@ async function refreshDiffs({ wsFolder, fpath, cΩ }) {
   logger.log('File has been saved, refreshing diffs.')
   const extractDir = path.join(wsFolder, Config.EXTRACT_LOCAL_DIR)
   await copyToWorkspace({ fpath, extractDir })
-  await diffs.updateGit(extractDir)
+  await diffs.updateGit()
   await diffs.sendAdhocDiffs(wsFolder, cΩ)
 }
 
@@ -206,7 +206,7 @@ async function getOriginInfo(origin: string): Promise<any> {
   return CΩAPI.axiosAPI(`${API_SHARE_OINFO}?origin=${uri}`, { method: 'GET', responseType: 'json' })
 }
 
-async function createWorkspace(fpath) {
+async function createWorkspace() {
   const wsFolder = generateWSFolder()
   const extractDir = path.join(wsFolder, Config.EXTRACT_LOCAL_DIR)
   mkdirp.sync(extractDir)

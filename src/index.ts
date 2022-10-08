@@ -5,15 +5,16 @@ import wsStation from './middlewares/wsio.grandstation'
 import wsGardener from './middlewares/wsio.gardener'
 import config from './config/config'
 import logger from './config/logger'
-import { CΩStore } from './services/store'
 import os from 'os'
 
-// restoreAuthInfo() // TODO: this is not resolving async, but it should be ok
+/* Uncomment this block if you wish to keep auth info between service restarts
+restoreAuthInfo() // TODO: this is not resolving async, but it should be ok
 
 async function restoreAuthInfo() {
   CΩStore.user = await config.authStore.get('user')
   CΩStore.tokens = await config.authStore.get('tokens')
 }
+*/
 
 const homedir = os.homedir()
 // Nice addin that creates a localhost cert. Thank you Microsoft.
@@ -38,23 +39,9 @@ wsStation.init(server)
 /* Gardener websocket connects to api.codeawareness.com */
 wsGardener.connect({ url: config.SERVER_WSS })
 
-function exitHandler() {
-  const args = arguments
-  if (server) {
-    server.close(() => {
-      logger.info('Server closed !!')
-      console.dir(args)
-      process.exit(1)
-    })
-  } else {
-    process.exit(1)
-  }
-}
-
-const unexpectedErrorHandler = (args) => {
+const unexpectedErrorHandler = (...args) => {
   console.log('unexpected error (global)')
-  console.dir(args)
-  // exitHandler()
+  console.log(args)
 }
 
 process.on('uncaughtException', unexpectedErrorHandler)
