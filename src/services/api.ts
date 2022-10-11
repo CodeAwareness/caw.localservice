@@ -51,8 +51,13 @@ axiosAPI.interceptors.response.use(
     if (response.status === 202) { // We are processing the requests as authorized for now, but we need to send the required (or latest) SHA to continue being authorized
       // we do this strange response.statusText OR response.data.statusText because of a glitch in the test, it seems I can't make it work with supertest
       // if (!response.statusText && !response.data.statusText) return response
-      const text = response.statusText
-      const { origin, branch, commitDate, clientId } = JSON.parse(text)
+      const { cmd, origin, branch, commitDate, clientId } = getLinks(response)
+      if (cmd === 'latestSHA') {
+        // get latest SHA: for now we check this inside reAuthorize, by differentiating logic based on the existence of commitDate
+      } else if (cmd === 'swarmAuth') {
+        // swarmAuth: for now we check this inside reAuthorize, by differentiating logic based on the existence of commitDate
+      }
+      logger.log('SWARM AUTH COMMAND', cmd)
       const authPromise = reAuthorize(origin, branch, commitDate, clientId) // IMPORTANT: no await! otherwise we interrupt the regular operations for too long, and we also get deeper into a recursive interceptor response.
         .then(res => {
           if (res.data.repo._REQUEST_DIFF) {
@@ -100,6 +105,16 @@ axiosAPI.interceptors.response.use(
     })
   },
 )
+
+function getLinks(res) {
+  return res.headers.link?.split(',').reduce((ret, s) => {
+    let p = s.split(';')
+    let key = p[1].slice(6, -1)
+    let val = p[0].split('<')[1].slice(0, -1)
+    ret[key] = val
+    return ret
+  }, {})
+}
 
 function clearAuth() {
   lastAuthorization = []
