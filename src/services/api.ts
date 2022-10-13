@@ -108,9 +108,9 @@ axiosAPI.interceptors.response.use(
 
 function getLinks(res) {
   return res.headers.link?.split(',').reduce((ret, s) => {
-    let p = s.split(';')
-    let key = p[1].slice(6, -1)
-    let val = p[0].split('<')[1].slice(0, -1)
+    const p = s.split(';')
+    const key = p[1].slice(6, -1)
+    const val = p[0].split('<')[1].slice(0, -1)
     ret[key] = val
     return ret
   }, {})
