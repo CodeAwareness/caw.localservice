@@ -1,8 +1,8 @@
-import type { Socket } from 'socket.io'
+import type EventEmitter from 'events'
 import repoController from '@/controllers/repo.controller'
 
 const router = {
-  init: (socket: Socket): void => {
+  init: (socket: EventEmitter): void => {
     /* repo:active-path: received whenever VSCode active text editor has changed (switched to a different file) */
     socket.on('repo:active-path', repoController.activatePath)
 

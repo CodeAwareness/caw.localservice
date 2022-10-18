@@ -1,18 +1,13 @@
-import type { Socket } from 'socket.io'
+import type EventEmitter from 'events'
 import authRoute from './gstation.auth.route'
 import repoRoute from './gstation.repo.route'
 import shareRoute from './gstation.share.route'
 
 const router = {
-  init: (ns: string, socket: Socket): void => {
-    if (ns === 'users') {
-      authRoute.init(socket) // TODO: how do we take care of each socket, because each app has their own socket connection.
-    }
-
-    if (ns === 'repos') {
-      shareRoute.init(socket)
-      repoRoute.init(socket)
-    }
+  init: (socket: EventEmitter): void => {
+    authRoute.init(socket)
+    shareRoute.init(socket)
+    repoRoute.init(socket)
   },
 }
 

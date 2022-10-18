@@ -1,8 +1,8 @@
-import type { Socket } from 'socket.io'
+import type EventEmitter from 'events'
 import shareController from '@/controllers/share.controller'
 
 const router = {
-  init: (socket: Socket): void => {
+  init: (socket: EventEmitter): void => {
     socket.on('share:accept', shareController.acceptShare)
     socket.on('share:getFileOrigin', shareController.getFileOrigin)
     socket.on('share:downloadPPT', shareController.downloadPPT)

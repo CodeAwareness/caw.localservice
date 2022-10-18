@@ -46,6 +46,7 @@ const API_URL    = process.env.LOCAL ? `http://${API_SERVER}/v1`          : `htt
 const SERVER_WSS = process.env.LOCAL ? `ws://localhost:${PORT_LOCAL_API}` : 'wss://api.codeawareness.com'
 const WSS_NAMESPACE = 'svc'
 
+const PIPE_CLIENTS = '/var/tmp/cΩ/clients'
 const CONFIGURATION_FILE = '.CΩ'
 const CODE_AWARENESS_SCHEMA = 'CΩ'
 const SYNC_INTERVAL = 100 * 1000 // download diffs from the server every some time
@@ -79,6 +80,7 @@ const Config = {
   LOG_LEVEL,
   MAX_NR_OF_SHA_TO_COMPARE,
   CODE_AWARENESS_SCHEMA,
+  PIPE_CLIENTS,
   PORT_LOCAL,
   SERVER_WSS,
   SYNC_INTERVAL,

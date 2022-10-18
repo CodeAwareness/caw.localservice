@@ -34,7 +34,7 @@ server.listen(config.port, config.host, () => {
 // Note: for MacOS / Linux we can use unix pipes: ws+unix:///absolute/path/to/uds_socket
 // For Electron based applications we are restricted to using ws://
 /* GrandStation websockets listen for request coming from local editors, e.g. VSCode, vim, emacs, etc */
-wsStation.init(server)
+wsStation.init()
 
 /* Gardener websocket connects to api.codeawareness.com */
 wsGardener.connect({ url: config.SERVER_WSS })
