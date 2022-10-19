@@ -82,14 +82,13 @@ function Client(id) {
       const handler = (body: any) => {
         console.log('WSS: resolved action', action, body)
         wsocket.removeListener(`res:${action}`, handler)
-        fifoOut.write(JSON.stringify({ action: `res:${action}`, data }))
+        fifoOut.write(JSON.stringify({ action: `res:${action}`, body }))
       }
       const errHandler = (err: any) => {
         logger.log('WSS: wsocket error', action, err)
         wsocket.removeListener(`err:{action}`, handler)
-        fifoOut.write(JSON.stringify({ action: `err:${action}`, data }))
+        fifoOut.write(JSON.stringify({ action: `err:${action}`, err }))
       }
-      console.log(`WILL SETUP res:${action}`)
       wsocket.on(`res:${action}`, handler)
       wsocket.on(`error:${action}`, errHandler)
       wsocket.emit(action, data)
