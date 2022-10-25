@@ -62,10 +62,21 @@ function initPipe() {
 function Client(id) {
   const wsocket = new EventEmitter()
   let fifoOut: net.Socket
+  const actions = []
 
   const pipeIncoming = `/var/tmp/cΩ/${id}.out.sock`
   const pipeOutgoing = `/var/tmp/cΩ/${id}.in.sock`
   gstationRouter.init(wsocket)
+
+  const handler = (action: string, body: any) => {
+    console.log('WSS: resolved action', action, body)
+    fifoOut.write(JSON.stringify({ action: `res:${action}`, body: JSON.stringify(body) }))
+  }
+
+  const errHandler = (action: string, err: any) => {
+    logger.log('WSS: wsocket error', action, err)
+    fifoOut.write(JSON.stringify({ action: `err:${action}`, err: JSON.stringify(err) }))
+  }
 
   // using nodejs net Sockets to enable communication with potentially tens of applications
   // (createReadStream is limited to the number of threads in the thread-pool)
@@ -79,18 +90,11 @@ function Client(id) {
       console.log('----- Received packet -----')
       console.log(text.toString())
       const { action, data } = JSON.parse(text.toString())
-      const handler = (body: any) => {
-        console.log('WSS: resolved action', action, body)
-        wsocket.removeListener(`res:${action}`, handler)
-        fifoOut.write(JSON.stringify({ action: `res:${action}`, body }))
+      if (actions.indexOf(action) === -1) {
+        actions.push(action)
+        wsocket.on(`res:${action}`, body => handler(action, body))
+        wsocket.on(`error:${action}`, err => errHandler(action, err))
       }
-      const errHandler = (err: any) => {
-        logger.log('WSS: wsocket error', action, err)
-        wsocket.removeListener(`err:{action}`, handler)
-        fifoOut.write(JSON.stringify({ action: `err:${action}`, err }))
-      }
-      wsocket.on(`res:${action}`, handler)
-      wsocket.on(`error:${action}`, errHandler)
       wsocket.emit(action, data)
     })
   })
@@ -147,6 +151,10 @@ function Client(id) {
         wsocket.on(`res:${action}`, handler)
         wsocket.on(`error:${action}`, errHandler)
       })
+  }
+
+  function dispose() {
+    // TODO: close wsocket connections, cleanup
   }
 }
 
