@@ -69,7 +69,7 @@ function Client(id) {
   gstationRouter.init(wsocket)
 
   const handler = (action: string, body: any) => {
-    console.log('WSS: resolved action', action, body)
+    // console.log('WSS: Client: resolved action', action, body)
     fifoOut.write(JSON.stringify({ action: `res:${action}`, body: JSON.stringify(body) }))
   }
 
@@ -87,14 +87,16 @@ function Client(id) {
     }
     const pipe = new net.Socket({ fd })
     pipe.on('data', text => {
-      console.log('----- Received packet -----')
-      console.log(text.toString())
+      // console.log('----- Received packet -----')
+      // console.log(text.toString())
       const { action, data } = JSON.parse(text.toString())
+      // avoid trying to create duplicate listeners for the same action
       if (actions.indexOf(action) === -1) {
         actions.push(action)
         wsocket.on(`res:${action}`, body => handler(action, body))
         wsocket.on(`error:${action}`, err => errHandler(action, err))
       }
+      // originally I wrote this IPC using WebSockets, only to find out at the end of my toil that VSCode has WebSockets in dev mode only
       wsocket.emit(action, data)
     })
   })
@@ -129,7 +131,7 @@ function Client(id) {
       (resolve, reject) => {
         logger.info(`WSS: will emit action: ${action}`)
         handler = (body: any) => {
-          console.log('WSS: resolved action', action, body)
+          // console.log('WSS: Transmit: resolved action', action, body)
           wsocket.removeListener(action, handler)
           resolve(body)
         }
