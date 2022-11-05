@@ -66,3 +66,7 @@ yarn lint
 # fix ESLint errors
 yarn lint:fix
 ```
+
+## TODO
+
+- reconnect existing pipes upon restart

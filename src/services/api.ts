@@ -197,8 +197,8 @@ function post(url, data, action?: string, socket?: any) {
       return res.data
     })
     .catch(err => {
-      logger.error(`API call failed for ${action}`)
-      if (action) socket.emit(`error:${action}`, err?.response?.data)
+      logger.error(`API call failed for ${action}`, err)
+      if (action) socket.emit(`error:${action}`, err?.response?.data || { message: err?.code })
       throw err
     })
 }

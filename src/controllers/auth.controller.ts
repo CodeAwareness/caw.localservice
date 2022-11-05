@@ -31,7 +31,6 @@ function info(cΩ: string) {
   }
 
   logger.log('AUTH: Access token expired. Refreshing.')
-  console.log('THIS', this)
   if (!tokens?.refresh?.token) {
     this.emit('res:auth:info')
     return
