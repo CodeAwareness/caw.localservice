@@ -24,6 +24,7 @@ interface Success<T> {
 export type Response<T> = Error | Success<T>
 
 const PACKET_SEPARATOR = 'Ωstdin endΩ'
+const ESCAPED_PACKSEP = 'Ω\\stdin end\\Ω'
 const catalog = config.PIPE_CLIENTS
 const clients = []
 
@@ -109,18 +110,20 @@ function Client(id) {
     const handler = (action: string, body: any) => {
       // logger.info('WSS: Client: resolved action', action, body)
       fifoOut.write(JSON.stringify({ action: `res:${action}`, body: JSON.stringify(body) }))
+      fifoOut.write(PACKET_SEPARATOR)
     }
 
     const errHandler = (action: string, err: any) => {
       logger.error('WSS: wsocket error', action, err)
       fifoOut.write(JSON.stringify({ action: `err:${action}`, err: JSON.stringify(err) }))
+      fifoOut.write(PACKET_SEPARATOR)
     }
 
     /* @ts-ignore */
     serverIn = net.createServer({ keepAlive: true }, socket => {
       logger.info('IPC Client fifo IN created.', pipeOutgoing)
       fifoIn = socket
-      let buffer: string = ''
+      let buffer = ''
       socket.on('data', buf => {
         const text = String(buf)
         if (!text?.length) return
@@ -145,7 +148,7 @@ function Client(id) {
         console.log('----- Received packet -----')
         console.log(packet)
 
-        const { action, data } = JSON.parse(packet)
+        const { action, data } = JSON.parse(packet.replace(ESCAPED_PACKSEP, PACKET_SEPARATOR))
         // avoid trying to create duplicate listeners for the same action
         if (actions.indexOf(action) === -1) {
           actions.push(action)
