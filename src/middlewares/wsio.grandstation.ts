@@ -1,6 +1,6 @@
 import http from 'node:http'
 import * as fs from 'node:fs'
-import net from 'node:net'
+import ipc from 'node-ipc'
 
 import EventEmitter from 'events'
 import { mkdirSync, openSync } from 'fs'
@@ -23,12 +23,14 @@ interface Success<T> {
 
 export type Response<T> = Error | Success<T>
 
-const PACKET_SEPARATOR = 'Ωstdin endΩ'
-const ESCAPED_PACKSEP = 'Ω\\stdin end\\Ω'
-const catalog = config.PIPE_CLIENTS
-const clients = []
+ipc.config.id = 'CΩ'
+ipc.config.retry = 1500
+
+const actions = []
+const wsocket = new EventEmitter()
 
 /*
+ * TODO: auth for all sockets or at least for TCP sockets
  * STUDY: auth required, to prevent unauthorized local applications trying to perform actions on CodeAwareness account
  */
 function auth(socket) {
@@ -45,188 +47,87 @@ function init(): void {
   initPipe()
 }
 
-const getClientName = c => c.pipeIncoming.substr(c.pipeIncoming.lastIndexOf('/') + 1).replace(/.(out|in).sock/, '')
-
 const cleanup = () => {
-  clients.map(c => c.dispose())
-  fs.writeFile(catalog, '', () => {
-    process.exit()
-  })
+  // TODO: cleanup sockets
+  process.exit()
 }
 
 process.on('SIGTERM', cleanup)
 process.on('SIGINT', cleanup)
 process.on('SIGUSR2', cleanup)
 
+function setupIPC() {
+  gstationRouter.init(wsocket)
+
+  const handler = (socket: any, action: string, body: any) => {
+    console.info('WSS: Client: resolved action', action, body)
+    ipc.server.emit(socket, 'message', { action: `res:${action}`, body })
+  }
+
+  const errHandler = (socket: any, action: string, err: any) => {
+    console.error('WSS: wsocket error', action, err)
+    ipc.server.emit(socket, 'message', { action: `err:${action}`, err })
+  }
+
+  ipc.server.on('message', (message, socket) => {
+    ipc.log('IPC Message: ', message)
+    const { action, data } = JSON.parse(message)
+    // avoid trying to create duplicate listeners for the same action
+    if (actions.indexOf(action) === -1) {
+      actions.push(action)
+      wsocket.on(`res:${action}`, body => handler(socket, action, body))
+      wsocket.on(`error:${action}`, err => errHandler(socket, action, err))
+    }
+    // originally I wrote this IPC using WebSockets, only to find out at the end of my toil that VSCode has WebSockets in dev mode only
+    wsocket.emit(action, data)
+  })
+
+  ipc.server.on('socket.disconnected', (socket, isSocketDestroyed) => {
+    console.log('client has disconnected!', socket, isSocketDestroyed && 'Socket destroyed')
+  })
+}
+
 function initPipe() {
-  // TODO: cleanup unused ids; when VSCode shuts down it may fail to clear its pipe.
-  // probably best to use stream pipeline: https://nodejs.org/api/stream.html#stream_stream_pipeline_source_transforms_destination_callback
   logger.info('initializing pipe IPC')
-  try {
-    fs.accessSync(catalog, fs.constants.W_OK)
-    setupCatalog()
-  } catch (err) {
-    fs.writeFile(catalog, '', setupCatalog)
-  }
-
-  function setupCatalog() {
-    refreshClients()
-    fs.watch(catalog, (eventType, filename) => {
-      if (!filename) {
-        logger.error('Could not setup pipe IPC')
-        return
-      }
-      refreshClients()
-    })
-  }
+  ipc.serve(setupIPC)
+  ipc.server.start()
 }
 
-function refreshClients() {
-  const ids = fs.readFileSync(catalog, { encoding: 'utf8' })
-  const existing = clients.map(getClientName) || []
-  const newClients = ids.split('\n').filter(a => a).filter(a => !existing.includes(a)).map(Client)
-  newClients.map(c => clients.push(c))
-  logger.info('new IPC clients', existing, clients.map(c => c.pipeIncoming))
+/**
+ * Push an action and data to the Editor (outside the normal req/res loop).
+ * Recommend a namespacing format for the action, something like `<domain>:<action>`, e.g. `auth:login` or `users:query`.
+ *
+ * @param Socket
+ * @param String action (e.g. 'users:online')
+ * @param Object data
+ * @param Object options for TCP sockets
+ */
+function transmit(socket: any, action: string, data?: any, options?: any) {
+  let handler, errHandler
+  return new Promise(
+    (resolve, reject) => {
+      logger.info(`WSS: will emit action: ${action}`)
+      handler = (body: any) => {
+        // console.log('WSS: Transmit: resolved action', action, body)
+        wsocket.removeListener(action, handler)
+        resolve(body)
+      }
+      errHandler = (err: any) => {
+        logger.error('WSS: wsocket error', action, err)
+        wsocket.removeListener(action, errHandler)
+        reject(err)
+      }
+      return ipc.server.emit(socket, 'message', JSON.stringify({ action, data }))
+    })
+    .then(() => {
+      wsocket.on(`res:${action}`, handler)
+      wsocket.on(`error:${action}`, errHandler)
+    })
 }
 
-// Note: this effectively replaces the need to send cΩ with every request
-// TODO: cleanup unused pipes; perhaps scan and delete ones older than one week
-function Client(id) {
-  const pipeIncoming = `/var/tmp/cΩ/${id}.out.sock`
-  const pipeOutgoing = `/var/tmp/cΩ/${id}.in.sock`
-  const actions = []
-
-  const wsocket = new EventEmitter()
-  let fifoOut: net.Socket
-  let fifoIn: net.Socket
-  let serverIn: net.Server
-  let serverOut: net.Server
-
-  init()
-
-  return { dispose, pipeIncoming, pipeOutgoing, transmit }
-
-  function init() {
-    const handler = (action: string, body: any) => {
-      // logger.info('WSS: Client: resolved action', action, body)
-      fifoOut.write(JSON.stringify({ action: `res:${action}`, body: JSON.stringify(body) }))
-      fifoOut.write(PACKET_SEPARATOR)
-    }
-
-    const errHandler = (action: string, err: any) => {
-      logger.error('WSS: wsocket error', action, err)
-      fifoOut.write(JSON.stringify({ action: `err:${action}`, err: JSON.stringify(err) }))
-      fifoOut.write(PACKET_SEPARATOR)
-    }
-
-    /* @ts-ignore */
-    serverIn = net.createServer({ keepAlive: true }, socket => {
-      logger.info('IPC Client fifo IN created.', pipeOutgoing)
-      fifoIn = socket
-      let buffer = ''
-      socket.on('data', buf => {
-        const text = String(buf)
-        if (!text?.length) return
-        buffer += text
-        if (!text.includes(PACKET_SEPARATOR)) {
-          return
-        }
-        processBuffer(buffer)
-      })
-
-      socket.on('end', () => {
-        logger.info('IPC Client disconnected', pipeIncoming)
-      })
-
-      function processBuffer(buffer) {
-        if (!buffer.length) return
-        const index = buffer.indexOf(PACKET_SEPARATOR)
-        if (index === -1) return // still gathering chunks
-
-        // Packet complete
-        const packet = buffer.substr(0, index)
-        console.log('----- Received packet -----')
-        console.log(packet)
-
-        const { action, data } = JSON.parse(packet.replace(ESCAPED_PACKSEP, PACKET_SEPARATOR))
-        // avoid trying to create duplicate listeners for the same action
-        if (actions.indexOf(action) === -1) {
-          actions.push(action)
-          wsocket.on(`res:${action}`, body => handler(action, body))
-          wsocket.on(`error:${action}`, err => errHandler(action, err))
-        }
-        // originally I wrote this IPC using WebSockets, only to find out at the end of my toil that VSCode has WebSockets in dev mode only
-        wsocket.emit(action, data)
-
-        // Process remaining bits in the buffer
-        processBuffer(buffer.substr(index + PACKET_SEPARATOR.length))
-      }
-    })
-
-    serverIn.on('error', (err) => {
-      logger.error(err)
-    })
-
-    gstationRouter.init(wsocket)
-    serverIn.listen(pipeIncoming)
-
-    /* @ts-ignore */
-    serverOut = net.createServer({ keepAlive: true }, socket => {
-      fifoOut = socket
-
-      socket.on('end', () => {
-        logger.info('IPC Client output disconnected', pipeOutgoing)
-      })
-    })
-
-    serverOut.on('error', err => {
-      console.error(err)
-    })
-
-    serverOut.listen(pipeOutgoing)
-  }
-
-  /**
-   * Push an action and data to the Editor (outside the normal req/res loop).
-   * Recommend a namespacing format for the action, something like `<domain>:<action>`, e.g. `auth:login` or `users:query`.
-   */
-  function transmit(action: string, data?: any, options?: any) {
-    let handler, errHandler
-    return new Promise(
-      (resolve, reject) => {
-        logger.info(`WSS: will emit action: ${action}`)
-        handler = (body: any) => {
-          // console.log('WSS: Transmit: resolved action', action, body)
-          wsocket.removeListener(action, handler)
-          resolve(body)
-        }
-        errHandler = (err: any) => {
-          logger.error('WSS: wsocket error', action, err)
-          wsocket.removeListener(action, errHandler)
-          reject(err)
-        }
-        return fifoOut.write(JSON.stringify({ action, data }))
-      })
-      .then(shouldContinue => {
-        // Backpressure if buffer is full
-        if (!shouldContinue) {
-          console.log('IPC Client drained.', pipeOutgoing)
-          return EventEmitter.once(fifoOut, 'drain')
-        }
-        return
-      })
-      .then(() => {
-        wsocket.on(`res:${action}`, handler)
-        wsocket.on(`error:${action}`, errHandler)
-      })
-  }
-
-  function dispose() {
-    console.log('IPC Client cleanup', pipeIncoming)
-    serverIn?.close()
-    serverOut?.close()
-    wsocket.removeAllListeners()
-  }
+function dispose() {
+  console.log('IPC Client cleanup')
+  wsocket.removeAllListeners()
 }
 
 const wsGStation = {
