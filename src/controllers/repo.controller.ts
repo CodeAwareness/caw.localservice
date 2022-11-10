@@ -65,8 +65,8 @@ function selectProject(fpath, cΩ, socket): Promise<any> {
       .then(folder => add({ folder, cΩ }, socket))
       .then(newProject => {
         project = newProject
-        logger.info('REPO: the relative active path is', fpath.substr(project.root.length))
         project.activePath = fpath.substr(project.root)
+        logger.info('REPO: the relative active path is', project.activeProjects)
         CΩStore.projects.push(project) // TODO: used for SCM, but we need to also use socket id cΩ
         CΩStore.activeProjects[cΩ] = project
         CΩDiffs.sendDiffs(project, cΩ)

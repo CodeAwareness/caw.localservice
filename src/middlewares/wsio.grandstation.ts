@@ -1,15 +1,9 @@
-import http from 'node:http'
-import * as fs from 'node:fs'
 import ipc from 'node-ipc'
 
 import EventEmitter from 'events'
-import { mkdirSync, openSync } from 'fs'
-import { spawn } from 'child_process'
 
 import logger from '@/logger'
-import config from '@/config/config'
 
-import app from '@/app'
 import gstationRouter from '@/routes/v1/x-grand-station'
 
 interface Error {
@@ -83,7 +77,7 @@ function setupIPC() {
   })
 
   ipc.server.on('socket.disconnected', (socket, isSocketDestroyed) => {
-    console.log('client has disconnected!', socket, isSocketDestroyed && 'Socket destroyed')
+    console.log('client has disconnected!', isSocketDestroyed && 'Socket destroyed')
   })
 }
 
@@ -102,7 +96,7 @@ function initPipe() {
  * @param Object data
  * @param Object options for TCP sockets
  */
-function transmit(socket: any, action: string, data?: any, options?: any) {
+function transmit(socket: any, action: string, data?: any) {
   let handler, errHandler
   return new Promise(
     (resolve, reject) => {
@@ -132,6 +126,8 @@ function dispose() {
 
 const wsGStation = {
   init,
+  transmit,
+  dispose,
 }
 
 export default wsGStation
