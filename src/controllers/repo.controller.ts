@@ -158,7 +158,7 @@ function getTmpDir({ cΩ }) {
     logger.info('GARDENER: created temp dir', uPath)
   }
 
-  this.emit('res:repo:get-tmp-dir', CΩStore.uTmpDir[cΩ])
+  this.emit('res:repo:get-tmp-dir', { tmpDir: CΩStore.uTmpDir[cΩ] })
 }
 
 /**
