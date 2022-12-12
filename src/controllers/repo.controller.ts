@@ -28,7 +28,7 @@ async function activatePath(data: any): Promise<any> {
   const { fpath, cΩ, doc }: TRepoActivateReq = data
   if (!fpath) return
   logger.log('REPO: activate path (fpath, cΩ)', fpath, cΩ)
-  if (fpath.toLowerCase().includes(CΩStore.tmpDir.toLowerCase())) return Promise.reject(new Error('file is temp'))
+  if (fpath.toLowerCase().includes(CΩStore.tmpDir.toLowerCase())) return Promise.resolve() // active file is the temporary diff file
 
   /* select the project corresponding to the activated path; if there is no project matching, we add as new project */
   const project = await selectProject(fpath, cΩ, this)
@@ -206,10 +206,10 @@ function vscodeDiff({ wsFolder, fpath, uid, cΩ }) {
   }
 }
 
-function sendDiffs(data) {
+async function sendDiffs(data) {
   const { fpath, doc, cΩ } = data
   const project = getProjectFromPath(fpath)
-  CΩDiffs.sendDiffs(project, cΩ)
+  await CΩDiffs.sendDiffs(project, cΩ)
   return CΩDiffs.refreshChanges(project, project.activePath, doc, cΩ)
     .then(() => {
       this.emit('res:repo:file-saved', project)
