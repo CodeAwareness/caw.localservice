@@ -42,17 +42,8 @@ async function activatePath(data: any): Promise<any> {
     })
 }
 
-/**
- * Select the current project for the cΩ client, and updates the server with its latest diffs.
- * We look at the file that's activated and select the project that matches its path.
- *
- * @param string the file path for the current file open in the editor
- * @param string the client ID
- * @param object the web socket, used to reply when everything's done
- */
-function selectProject(fpath, cΩ, socket): Promise<any> {
+function getProjectFromPath(fpath) {
   const plist = CΩStore.projects.filter(p => fpath.includes(p.root))
-  const wsFolder = path.dirname(fpath)
   let project
   let len = 0
   // select longest path to guarantee working properly even on git submodules
@@ -60,6 +51,20 @@ function selectProject(fpath, cΩ, socket): Promise<any> {
     if (p.root.length > len) project = p
     len = p.root.length
   })
+  return project
+}
+
+/**
+ * Select the current project for the cΩ client, and UPDATES the server with its latest DIFFS.
+ * We look at the file that's activated and select the project that matches its path.
+ *
+ * @param string the file path for the current file open in the editor
+ * @param string the client ID
+ * @param object the web socket, used to reply when everything's done
+ */
+function selectProject(fpath, cΩ, socket): Promise<any> {
+  let project = getProjectFromPath(fpath)
+  const wsFolder = path.dirname(fpath)
   if (!project?.cSHA) {
     return git.command(wsFolder, 'git rev-parse --show-toplevel')
       .then(folder => add({ folder, cΩ }, socket))
@@ -69,7 +74,7 @@ function selectProject(fpath, cΩ, socket): Promise<any> {
         logger.info('REPO: the relative active path is', project.activeProjects)
         CΩStore.projects.push(project) // TODO: used for SCM, but we need to also use socket id cΩ
         CΩStore.activeProjects[cΩ] = project
-        CΩDiffs.sendDiffs(project, cΩ)
+        CΩDiffs.sendDiffs(project, cΩ) // Not waiting at the moment, because we're only returning OK from the server
         return git.command(wsFolder, 'git branch --no-color')
       })
       .then(stdout => {
@@ -80,7 +85,7 @@ function selectProject(fpath, cΩ, socket): Promise<any> {
       })
   }
   CΩStore.activeProjects[cΩ] = project
-  // TODO: send diffs if more than 5 minutes have passed
+  // TODO: send diffs on a timer? (for example when more than 5 minutes have passed)
   return Promise.resolve(project)
 }
 
@@ -201,6 +206,16 @@ function vscodeDiff({ wsFolder, fpath, uid, cΩ }) {
   }
 }
 
+function sendDiffs(data) {
+  const { fpath, doc, cΩ } = data
+  const project = getProjectFromPath(fpath)
+  CΩDiffs.sendDiffs(project, cΩ)
+  return CΩDiffs.refreshChanges(project, project.activePath, doc, cΩ)
+    .then(() => {
+      this.emit('res:repo:file-saved', project)
+    })
+}
+
 const repoController = {
   activatePath,
   add,
@@ -210,6 +225,7 @@ const repoController = {
   getTmpDir,
   readFile,
   remove,
+  sendDiffs,
   vscodeDiff,
 }
 

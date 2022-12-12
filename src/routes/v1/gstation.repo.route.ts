@@ -18,6 +18,9 @@ const router = {
     /* repo:diff-contrib: requesting a diff between active file and a selected peer */
     socket.on('repo:diff-contrib', repoController.diffWithContributor)
 
+    /* repo:file-saved: received whenever VSCode has saved the active file */
+    socket.on('repo:file-saved', repoController.sendDiffs)
+
     /* repo:get-tmp-dir: endpoint to retrieve the temporary folder used to unpack git repos and diffs */
     socket.on('repo:get-tmp-dir', repoController.getTmpDir)
 

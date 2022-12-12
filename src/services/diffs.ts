@@ -329,6 +329,9 @@ function sendDiffs(project, cΩ): Promise<void> {
   }
 }
 
+/**
+ * Uploads the diffs to the server.
+ */
 function uploadDiffs({ diffDir, origin, cSHA, activePath, cΩ }): Promise<void> {
   // TODO: I think we sometimes get a file error (cSHA.gz does not exist) -- verify
   const diffFile = path.join(diffDir, 'uploaded.diff')
