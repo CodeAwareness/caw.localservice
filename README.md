@@ -1,22 +1,20 @@
-# CodeAwareness client system service
+# Code Awareness client system service
 
-This is a local (client) system service that needs to be wrapped and compiled separately for Windows, MacOS, Linux.
+This is the local (client) system service I call "the Gardener". In the Code Awareness architecture, the Gardener has the role of handling requests from different editors and applications, and performing the necessary git diffs and similar actions, communicating with the Code Awareness API in the cloud, and more.
 
-Naming is a serious challenge here, so I'm trying this:
+This service needs to be wrapped and packaged separately for Windows, MacOS, Linux.
 
-  - the codeAwareness.com API is called `API` and is located out there in the cloud
-  - the local server (client side) is called `grandStation` and listens to WSS 48408 port, to which all installed applications can connect.
-  - the local socket client is called `gardener` and is responsible for receiving websocket messages from the `API`. This is in a TODO phase, but the intention is to enable some real time functionality between peers.
-  - the CodeAwareness extensions for VSCode, vim / emacs plugin, Powerpoint add-on, etc, every single one is a `poodle`. These poodles are very busy showing people how cute they are.
+TODO: We could use node-windows, node-mac, and systemd to ensure proper launching, restarting and logging.
 
-We could use node-windows, node-mac, and systemd to ensure proper launching, restarting and logging.
 We're also using node-ipc for communication with editor plugins when we have access to unix pipes, or secure webSockets when we don't.
 
-The service listens on port 48408. We have the port customization on our TODO list, since it's a complex problem involving coordination between this service and various clients, such as PowerPoint addons, VSCode extensions, vim/emacs plugins, etc.
+For clients that cannot use a Unix pipe, the service listens for websockets on port 48408. We have the port customization on our TODO list, since it's a complex problem involving coordination between this service and various clients, such as PowerPoint addons, VSCode extensions, vim/emacs plugins, etc.
 
 ## Getting Started
 
 ### Installation
+
+Note: at this time I don't have a clean install that just works out-of-the-box. Instead you'll need a nodeJS environment, and you'll be running the local service in dev mode.
 
 1. Clone the repo, install the dependencies.
 
@@ -24,26 +22,32 @@ The service listens on port 48408. We have the port customization on our TODO li
 yarn
 ```
 
-2. Install localhost certificates (will only last for about a month):
+2. Install localhost certificates (will only last for about a month I think):
 
 ```bash
 npx office-addin-dev-certs install
 ```
 
-2. Install `nginx` and copy the `codeawareness.nginx.conf` into your servers folder. Restart nginx to take effect.
+Communication through Unix pipe does not require the use of a localhost certificate.
+
+# Development setup
+
+When you need to work with multiple components on the same local system, you'll need to install nginx and configure a common access port, to avoid CORS issues. In the case of VSCode, we do this to run both the local service and the VSCode webview panel on port 8885.
+
+1. Install `nginx` and copy the `codeawareness.nginx.conf` into your servers folder. Restart nginx to take effect.
 
 ```bash
 brew services restart nginx
 ```
 
-### Run
+# Run
 
 ```
 yarn build
 yarn start
 ```
 
-### Testing:
+# Test
 
 NOTE: Tests don't yet work. We're currently working on porting tests from an older version of this project.
 ```bash
@@ -57,7 +61,7 @@ yarn test:watch
 yarn coverage
 ```
 
-### Linting:
+# Lint
 
 ```bash
 # run ESLint
@@ -67,6 +71,6 @@ yarn lint
 yarn lint:fix
 ```
 
-## TODO
+# TODO
 
-- reconnect existing pipes upon restart
+- reconnect existing pipes upon restart (if it's even possible...). Currently, if you restart the local service you'll have to re-login on every client app.
