@@ -7,8 +7,10 @@ import git from './git'
 import { CΩStore } from './store'
 
 /**
- * @param string origin (OR) - the URL for this repo (e.g. github.com/codeawareness/codeawareness.vscode.git)
- * @param string wsFolder (OR) - the local folder path for this repo
+ * @param data object {
+ *   origin string - the URL for this repo (e.g. github.com/codeawareness/codeawareness.vscode.git)
+ *   wsFolder string - the local folder path for this repo
+ * }
  */
 function getProject({ origin, wsFolder }): Array<any> {
   if (origin) {
@@ -19,7 +21,7 @@ function getProject({ origin, wsFolder }): Array<any> {
   }
 }
 
-function isFolder(folder) {
+function isFolder(folder: string) {
   return new Promise((resolve, reject) => {
     stat(path.join(folder), (err, stats) => {
       if (stats.isDirectory()) resolve(true)

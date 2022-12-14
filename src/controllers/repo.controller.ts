@@ -42,9 +42,9 @@ async function activatePath(data: any): Promise<any> {
     })
 }
 
-function getProjectFromPath(fpath) {
+function getProjectFromPath(fpath: string) {
   const plist = CΩStore.projects.filter(p => fpath.includes(p.root))
-  let project
+  let project: any
   let len = 0
   // select longest path to guarantee working properly even on git submodules
   plist.map(p => {
@@ -62,7 +62,7 @@ function getProjectFromPath(fpath) {
  * @param string the client ID
  * @param object the web socket, used to reply when everything's done
  */
-function selectProject(fpath, cΩ, socket): Promise<any> {
+function selectProject(fpath: string, cΩ: string, socket: Socket): Promise<any> {
   let project = getProjectFromPath(fpath)
   const wsFolder = path.dirname(fpath)
   if (!project?.cSHA) {
@@ -132,7 +132,7 @@ function remove({ folder }) {
   this.emit('res:repo:removed', { folder })
 }
 
-function addSubmodules({ folder, cΩ }: TRepoAddReq) {
+function addSubmodules({ folder, cΩ }: TRepoAddReq): Promise<void> {
   // TODO: add submodules of submodules ? (recursive)
   return git.command(folder, 'git submodule status')
     .then(out => {
@@ -144,7 +144,7 @@ function addSubmodules({ folder, cΩ }: TRepoAddReq) {
       })
       logger.log('SCM git submodules: ', out, subs)
       const promises = subs.map(sub => add({ folder: path.join(folder, sub), cΩ }))
-      Promise.all(promises)
+      return Promise.all(promises)
         .then(projects => {
           this.emit('res:repo:add-submodules', projects)
         })
@@ -166,19 +166,33 @@ function getTmpDir({ cΩ }) {
   this.emit('res:repo:get-tmp-dir', { tmpDir: CΩStore.uTmpDir[cΩ] })
 }
 
+type TBranchDiffInfo = {
+  fpath: string
+  branch: string
+  origin: string
+  cΩ: string
+}
+
 /**
- * @param object { fpath, branch, origin, cΩ }
+ * @param info object { fpath, branch, origin, cΩ }
  */
-function diffWithBranch(info) {
+function diffWithBranch(info: TBranchDiffInfo) {
   return CΩDiffs
     .diffWithBranch(info)
     .then(diffs => this.emit('res:repo:diff-branch', diffs))
 }
 
+type TContribDiffInfo = {
+  fpath: string
+  contrib: any
+  origin: string
+  cΩ: string
+}
+
 /**
- * @param object { fpath, contrib, origin, cΩ }
+ * @param info object { fpath, contrib, origin, cΩ }
  */
-function diffWithContributor(info) {
+function diffWithContributor(info: TContribDiffInfo) {
   return CΩDiffs
     .diffWithContributor(info)
     .then(diffs => this.emit('res:repo:diff-contrib', diffs))
@@ -206,7 +220,13 @@ function vscodeDiff({ wsFolder, fpath, uid, cΩ }) {
   }
 }
 
-async function sendDiffs(data) {
+type TSendDiff = {
+  fpath: string
+  doc: any
+  cΩ: string
+}
+
+async function sendDiffs(data: TSendDiff) {
   const { fpath, doc, cΩ } = data
   const project = getProjectFromPath(fpath)
   await CΩDiffs.sendDiffs(project, cΩ)

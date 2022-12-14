@@ -1,8 +1,8 @@
 import logger from '@/logger'
 
 class ApiError extends Error {
-  private statusCode
-  private isOperational
+  private statusCode: number
+  private isOperational: boolean
 
   constructor(statusCode: number, message: string, isOperational = true, stack = '') {
     super(message)

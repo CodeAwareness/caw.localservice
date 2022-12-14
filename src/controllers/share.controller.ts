@@ -20,10 +20,15 @@ async function createFileId(fpath) {
   return { fileId }
 }
 
+type TConfig = {
+  origin: string
+  groups: Array<any>
+}
+
 /**
- * @param Object data = { origin, links }
+ * @param config Object data = { origin, groups }
  */
-function startSharing(config) {
+function startSharing(config: TConfig) {
   share.startSharing(config)
     .then(data => this.emit('res:share:start', { data }))
     .catch(err => {
@@ -34,23 +39,29 @@ function startSharing(config) {
   // TODO: await shell.unzip(path.basename(zipFile), extractDir)
 }
 
-async function acceptShare(origin) {
+async function acceptShare(origin: string) {
   const peerFile = await share.acceptShare(origin)
   const peerFile64 = await share.fileToBase64(peerFile)
   // TODO: this is potentially sending large files (e.g. 200+MB) to the server and then back
   this.emit('res:share:acceptShare', { peerFile, peerFile64 })
 }
 
+type TSetupInfo = {
+  fpath: string
+  origin: string
+  wsFolder: string
+}
+
 /**
- * @param { fpath, origin, wsFolder }
+ * @param data { fpath, origin, wsFolder }
  */
-async function setupReceived(data) {
+async function setupReceived(data: TSetupInfo) {
   // data = { fpath, origin, wsFolder }
   const { fpath, wsFolder } = await share.setupReceived(data)
   this.emit('res:share:setupReceived', { fpath, wsFolder })
 }
 
-async function getFileOrigin(fpath) {
+async function getFileOrigin(fpath: string) {
   const filename = path.basename(fpath)
   if (!filename) {
     this.emit('error:share:getFileOrigin', { op: 'getFileOrigin', err: 'empty filename' })
@@ -67,7 +78,7 @@ async function getFileOrigin(fpath) {
     })
 }
 
-async function getOriginInfo(origin) {
+async function getOriginInfo(origin: string) {
   if (!origin) return this.emit('error:share:getOriginInfo', { op: 'getOriginInfo', err: 'empty origin' })
   share
     .getOriginInfo(origin)

@@ -15,12 +15,9 @@ ipcCatalog.config.id = 'catalog'
 ipcCatalog.config.retry = 1500
 ipcCatalog.config.maxConnections = 20 // max 20 app clients (text editors, PowerPoint, etc)
 
-const actions = []
-
 /*
  * TODO: auth for all sockets or at least for TCP sockets
  * STUDY: auth required, to prevent unauthorized local applications trying to perform actions on CodeAwareness account
- */
 function auth(socket) {
   const ns = socket.nsp.name.substr(1)
   const token = socket.handshake.auth?.token
@@ -30,6 +27,7 @@ function auth(socket) {
   // if (!token) return
   gstationRouter.init(socket)
 }
+ */
 
 function init(): void {
   initPipe()
@@ -44,14 +42,14 @@ process.on('SIGTERM', cleanup)
 process.on('SIGINT', cleanup)
 process.on('SIGUSR2', cleanup)
 
-class cΩClient {
-  public guid
-  private ipcClient
-  private wsocket
-  private actions
-  private socket
+class CΩClient {
+  public guid: string
+  private ipcClient: ipcFactory.IPC
+  private wsocket: EventEmitter
+  private actions: Array<string>
+  private socket: ipcFactory.Socket
 
-  constructor (id) {
+  constructor(id: string) {
     this.guid = id
     /* Event names will be pushed to this instance's `actions` */
     this.actions = []
@@ -74,17 +72,17 @@ class cΩClient {
       ipcClient.server.emit(this.socket, 'message', { action: `err:${action}`, err })
     }
 
-    ipcClient.server.on('connect', (socket) => {
+    ipcClient.server.on('connect', (socket: ipcFactory.Socket) => {
       this.socket = socket
       console.log('IPC Client fifo IN socket connected.', this.guid)
       ipcClient.server.emit(this.socket, 'message', { action: 'connected' })
     })
 
-    ipcClient.server.on('socket.disconnected', (socket, isSocketDestroyed) => {
+    ipcClient.server.on('socket.disconnected', (/* socket, isSocketDestroyed */) => {
       console.log('IPC Client fifo OUT socket disconnected.', this.guid)
     })
 
-    ipcClient.server.on('message', (message, socket) => {
+    ipcClient.server.on('message', (message: string/* , socket */) => {
       console.log('IPC Client message: ', message)
       const { action, data } = JSON.parse(message)
       // avoid trying to create duplicate listeners for the same action
@@ -100,26 +98,26 @@ class cΩClient {
     ipcClient.server.start()
   }
 
-  dispose () {
+  dispose() {
     this.wsocket.removeAllListeners()
     this.ipcClient.stop()
   }
 }
 
 function setupIPC() {
-  ipcCatalog.server.on('error', (err, socket) => {
+  ipcCatalog.server.on('error', (err: any/*, socket */) => {
     console.error('Error starting Catalog IPC', err)
   })
 
-  ipcCatalog.server.on('connect', (socket) => {
+  ipcCatalog.server.on('connect', (/* socket */) => {
     console.log('New client connected to Catalog IPC')
   })
 
-  ipcCatalog.server.on('clientId', id => {
-    clients.push(new cΩClient(id))
+  ipcCatalog.server.on('clientId', (id: string) => {
+    clients.push(new CΩClient(id))
   })
 
-  ipcCatalog.server.on('socket.disconnected', (socket, isSocketDestroyed) => {
+  ipcCatalog.server.on('socket.disconnected', (_socket, isSocketDestroyed: boolean) => {
     console.log('client has disconnected!', isSocketDestroyed && 'Socket destroyed')
   })
 }

@@ -152,12 +152,12 @@ function diffWithContributor({ contrib, fpath, origin, cΩ }): Promise<any> {
  * We're sending a number of commit SHA values (e.g. latest 100) to the server,
  * in order to compute the common ancestor SHA for everyone in a team.
  *
- * @param object The project for which to send the commit logs
- * @param string The client ID
+ * @param project object The project for which to send the commit logs
+ * @param cΩ string The client ID
  *
  * @return string The common SHA value
  ************************************************************************************/
-function sendCommitLog(project, cΩ): Promise<string> {
+function sendCommitLog(project: any, cΩ: string): Promise<string> {
   // TODO: make MAX_COMMITS something configurable by the server instead. That way we can automatically accommodate a rescale in team size.
   const MAX_COMMITS = 1000
   const wsFolder = project.root
@@ -224,7 +224,7 @@ function sendCommitLog(project, cΩ): Promise<string> {
     cSHA: string
   }
 
-  function upload(stdout) {
+  function upload(stdout: string) {
     const commits = stdout.split(/[\n\r]/).filter(l => l)
     const data = {
       origin,
@@ -253,7 +253,7 @@ function createEmpty(file) {
  * @param string - the app unique ID (cΩ)
  ************************************************************************************/
 const lastSendDiff = []
-function sendDiffs(project, cΩ): Promise<void> {
+function sendDiffs(project: any, cΩ: string): Promise<void> {
   if (!project) return Promise.resolve()
   const wsFolder = project.root
   const tmpDir = CΩStore.uTmpDir[cΩ]
@@ -385,7 +385,7 @@ function shareFolder(folder: string, groups: Array<string>) {
 }
 
 // TODO: maybe use fs-extra instead
-function copyFolder(source, dest): Promise<string> {
+function copyFolder(source: string, dest: string): Promise<string> {
   // TODO: OPTIMIZE: maybe use spawn instead of exec (more efficient since it doesn't spin up any shell)
   return new Promise((resolve, _reject) => {
     const command = `cp -r ${source} ${dest}`
@@ -413,7 +413,7 @@ function copyFolder(source, dest): Promise<string> {
   })
 }
 
-function copyFile(source, dest): Promise<void> {
+function copyFile(source: string, dest: string): Promise<void> {
   return fs.copyFile(source, dest)
 }
 
@@ -421,7 +421,7 @@ function copyFile(source, dest): Promise<void> {
  * AdHoc Sharing files or folders for REPO model
  * (for Office model, please see share.controller.js)
  ************************************************************************************/
-async function setupShare(fPath, groups, cΩ, isFolder = false): Promise<void> {
+async function setupShare(fPath: string, groups: any[], cΩ: string, isFolder = false): Promise<void> {
   // TODO: refactor this and unify the Repo and Office sharing process
   const filename = path.basename(fPath)
   const origin = _.uniqueId(filename + '-') // TODO: this uniqueId only works for multiple sequential calls I think, because it just spits out 1, 2, 3
@@ -461,9 +461,10 @@ async function updateGit(/* extractDir: string */): Promise<void> {
  * TODO: cleanup older changes; the user closes tabs (maybe) but we're still keeping
  * the changes in CΩStore (project.changes)
  *
- * @param object - CΩStore project
- * @param string - the file path of the active document
- * @param string - the file contents
+ * @param project object - CΩStore project
+ * @param filePath string - the file path of the active document
+ * @param doc string - the file contents
+ * @param cΩ string - the client ID
  ************************************************************************************/
 const lastDownloadDiff = []
 function refreshChanges(project: any, filePath: string, doc: string, cΩ: string): Promise<void> {
@@ -507,10 +508,11 @@ function refreshChanges(project: any, filePath: string, doc: string, cΩ: string
  * - file: list of contributors and their individual changes for the current file
  * - users: list of same contributors with their account details (avatar, email, etc)
  *
- * @param object - CΩStore project
- * @param string - the file path of the active document
+ * @param project object - CΩStore project
+ * @param fpath string - the file path of the active document
+ * @param cΩ string - the client ID
  ************************************************************************************/
-function downloadChanges(project, fpath, cΩ): Promise<void> {
+function downloadChanges(project: any, fpath: string, cΩ: string): Promise<void> {
   const currentUserId = CΩStore.user?._id.toString()
   if (!currentUserId) return Promise.reject(new Error('Not logged in.'))
   const uri = encodeURIComponent(project.origin)
@@ -557,10 +559,12 @@ function downloadChanges(project, fpath, cΩ): Promise<void> {
 /************************************************************************************
  * Getting the changes from the active document (not yet written to disk).
  *
- * @param object - CΩStore project
- * @param string - the file path of the active document
+ * @param project object - CΩStore project
+ * @param fpath string - the file path of the active document
+ * @param doc string - the document text content
+ * @param cΩ string - the client ID
  ************************************************************************************/
-function getLinesChangedLocaly(project, fpath, doc, cΩ): Promise<void> {
+function getLinesChangedLocaly(project: any, fpath: string, doc: string, cΩ: string): Promise<void> {
   const wsFolder = project.root
   const wsName = path.basename(wsFolder)
   const tmpDir = CΩStore.uTmpDir[cΩ]
@@ -624,11 +628,11 @@ function getLinesChangedLocaly(project, fpath, doc, cΩ): Promise<void> {
  * - local edits after the git diff was initiated (if the user is quick on keyboard)
  * - aggregate lines
  *
- * @param object - project
- * @param string - the file path for which we extracted the diffs
+ * @param project object - project
+ * @param fpath string - the file path for which we extracted the diffs
  *
  ************************************************************************************/
-function shiftWithGitDiff(project, fpath): void {
+function shiftWithGitDiff(project: any, fpath: string): void {
   // logger.info('DIFFS: shiftWithGitDiff (project, fpath)', project, fpath)
   if (!project.gitDiff || !project.gitDiff[fpath] || !project.changes[fpath]) return
 
@@ -643,7 +647,7 @@ function shiftWithGitDiff(project, fpath): void {
   })
 }
 
-function shiftWithLiveEdits(project, fpath): void {
+function shiftWithLiveEdits(project: any, fpath: string): void {
   if (!project.changes || !project.changes[fpath]) return
   const shas = Object.keys(project.changes[fpath].alines).slice(0, Config.MAX_NR_OF_SHA_TO_COMPARE)
   const { editorDiff } = project
@@ -658,7 +662,7 @@ function shiftWithLiveEdits(project, fpath): void {
   })
 }
 
-function shiftLineMarkers(lines, ranges): Array<string> {
+function shiftLineMarkers(lines: number[], ranges: any[]): Array<number> {
   let shift = 0
   let pshift = 0
   let newLines = []
@@ -682,7 +686,7 @@ function shiftLineMarkers(lines, ranges): Array<string> {
   return newLines
 }
 
-function clearLocalDiffs(project) {
+function clearLocalDiffs(project: any) {
   project.gitDiff = []
 }
 
@@ -693,7 +697,8 @@ type TDiffReplace = {
   },
   replaceLen: number,
 }
-function parseDiffFile(diffs): Array<TDiffReplace> {
+
+function parseDiffFile(diffs: string): Array<TDiffReplace> {
   const lines = diffs.split('\n')
   const changes = []
   let sLine = 0
@@ -743,7 +748,7 @@ async function unzip({ extractDir, zipFile }): Promise<void> {
 
 // TODO: error handling of all these awaits
 // TODO: it seems this crashes when closing the file (with save): `spawn C:\WINDOWS\system32\cmd.exe ENOENT`
-async function sendAdhocDiffs(diffDir, cΩ): Promise<void> {
+async function sendAdhocDiffs(diffDir: string, cΩ: string): Promise<void> {
   if (lastSendDiff[diffDir]) {
     /* @ts-ignore */
     if (new Date() - lastSendDiff[diffDir] < Config.SYNC_THRESHOLD) return Promise.resolve()

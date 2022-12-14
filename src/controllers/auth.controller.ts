@@ -18,7 +18,7 @@ function login({ email, password }: TLoginReq) {
 }
 
 async function logout({ cΩ }) {
-  await CΩStore.reset(cΩ)
+  return CΩStore.reset(cΩ)
 }
 
 function info(cΩ: string) {
