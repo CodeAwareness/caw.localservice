@@ -380,8 +380,8 @@ function shareFile(filePath: string, groups: Array<string>, cΩ) {
   setupShare(filePath, groups, cΩ)
 }
 
-function shareFolder(folder: string, groups: Array<string>) {
-  setupShare(folder, groups, true)
+function shareFolder(folder: string, groups: Array<string>, cΩ) {
+  setupShare(folder, groups, cΩ, true)
 }
 
 // TODO: maybe use fs-extra instead
