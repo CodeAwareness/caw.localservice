@@ -37,7 +37,7 @@ export const API_SHARE_SLIDE_CONTRIB = '/share/slideContrib'
 export const API_SHARE_START         = '/share/start'
 export const API_SHARE_UPLOAD        = '/share/upload'
 
-axios.defaults.adapter = require('axios/lib/adapters/http')
+// axios.defaults.adapter = require('axios/lib/adapters/http')
 export const axiosAPI = axios.create({ baseURL: Config.API_URL })
 
 axiosAPI.interceptors.request.use(config => {
