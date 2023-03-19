@@ -27,6 +27,7 @@ const server = https.createServer(
   app as unknown as any,
 )
 
+// DEPRECATED: we now use file pipe IPC
 server.listen(config.port, config.host, () => {
   logger.info(`Listening on HTTPS ${config.host}:${config.port}`)
 })

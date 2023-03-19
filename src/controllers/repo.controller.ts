@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import fsPromise from 'node:fs/promises'
 import * as _ from 'lodash'
 import path from 'path'
-import type { Socket } from 'socket.io'
+import type { Socket } from 'net'
 
 import logger from '@/config/logger'
 import config from '@/config/config'
