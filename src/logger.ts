@@ -64,4 +64,32 @@ const logger = {
   },
 }
 
-export default logger
+const loggerConsole = {
+  log: function(...args: any[]): void {
+    trace()
+    args.unshift('GRAND STATION')
+    console.log('CΩ.LS:', map(args, stringify))
+  },
+  info: function(...args: any[]): void {
+    trace()
+    args.unshift('GRAND STATION')
+    console.info('CΩ.LS:', map(args, stringify))
+  },
+  warn: function(...args: any[]): void {
+    trace()
+    args.unshift('GRAND STATION')
+    console.warn('CΩ.LS:', map(args, stringify))
+  },
+  debug: function(...args: any[]): void {
+    trace()
+    args.unshift('GRAND STATION')
+    console.info('CΩ.LS:', map(args, stringify))
+  },
+  error: function(...args: any[]): void {
+    trace()
+    args.unshift('GRAND STATION')
+    console.error('CΩ.LS:', map(args, stringify))
+  },
+}
+
+export default loggerConsole

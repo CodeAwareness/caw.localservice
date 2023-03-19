@@ -11,7 +11,7 @@ index 09a1bd5..46b743f 100644
 --- a/README.md
 +++ b/README.md
 @@ -2 +0,0 @@
--# Peer8 Homepage
+-# CodeAwareness Homepage
 @@ -4 +2,3 @@
 -## Project setup
 +# Project Home
