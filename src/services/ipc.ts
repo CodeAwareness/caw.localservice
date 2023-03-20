@@ -6,7 +6,7 @@ import { EventEmitter } from 'node:events'
 const delimiter = '\f'
 
 class IPC {
-  public appspace = 'code∑.'
+  public appspace = 'caw.'
   public socketRoot = '/var/tmp/'
   public path = ''
   public pubsub = new EventEmitter()
@@ -18,6 +18,7 @@ class IPC {
 
   constructor(guid: string) {
     if (guid) this.path = this.socketRoot + this.appspace + guid
+    console.log('New IPC', this.path)
     /* TODO: Windows pipe path
     if (process.platform === 'win32' && !path.startsWith('\\\\.\\pipe\\')) {
       path = path.replace(/^\//, '')

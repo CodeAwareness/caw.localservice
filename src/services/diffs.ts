@@ -18,8 +18,8 @@ import logger from '@/logger'
 
 import git from './git'
 import shell from './shell'
-import { CΩStore } from './store'
-import CΩAPI, { API_REPO_COMMITS, API_REPO_COMMON_SHA, API_REPO_CONTRIB, API_REPO_DIFF_FILE, API_SHARE_SLIDE_CONTRIB } from './api'
+import { CAWStore } from './store'
+import CAWAPI, { API_REPO_COMMITS, API_REPO_COMMON_SHA, API_REPO_CONTRIB, API_REPO_DIFF_FILE, API_SHARE_SLIDE_CONTRIB } from './api'
 
 const PENDING_DIFFS = {}
 const isWindows = !!process.env.ProgramFiles
@@ -29,13 +29,13 @@ const isWindows = !!process.env.ProgramFiles
  *
  * Open the VSCode standard diff window...
  ************************************************************************************/
-function diffWithBranch({ branch, cΩ }): Promise<any> {
+function diffWithBranch({ branch, caw }): Promise<any> {
   let peerFile
-  const project = CΩStore.activeProjects[cΩ]
-  const tmpDir = CΩStore.uTmpDir[cΩ]
+  const project = CAWStore.activeProjects[caw]
+  const tmpDir = CAWStore.uTmpDir[caw]
   const wsFolder = project.root
-  CΩStore.selectedBranch = branch
-  CΩStore.selectedContributor = undefined
+  CAWStore.selectedBranch = branch
+  CAWStore.selectedContributor = undefined
   const userFile = project.activePath.substr(project.root.length + 1)
   return git.command(wsFolder, 'git rev-parse --show-toplevel')
     .then(folder => {
@@ -88,14 +88,14 @@ function diffWithBranch({ branch, cΩ }): Promise<any> {
  * }
  *
  ************************************************************************************/
-function diffWithContributor({ contrib, fpath, origin, cΩ }): Promise<any> {
-  const tmpDir = CΩStore.uTmpDir[cΩ]
-  const project = CΩStore.activeProjects[cΩ]
-  console.log('ACTIVE PROJECTS', CΩStore.activeProjects, cΩ)
+function diffWithContributor({ contrib, fpath, origin, caw }): Promise<any> {
+  const tmpDir = CAWStore.uTmpDir[caw]
+  const project = CAWStore.activeProjects[caw]
+  console.log('ACTIVE PROJECTS', CAWStore.activeProjects, caw)
   console.log('CONTRIB', contrib)
   const wsFolder = project.root
   const relPath = shell.getRelativePath(fpath, project)
-  // !!!!! CΩWorkspace.selectContributor(ct)
+  // !!!!! CAWWorkspace.selectContributor(ct)
   const wsName = path.basename(wsFolder)
   const archiveDir = path.join(tmpDir, wsName)
   mkdirp.sync(archiveDir)
@@ -112,7 +112,7 @@ function diffWithContributor({ contrib, fpath, origin, cΩ }): Promise<any> {
   logger.info('DIFFS: diffWithContributor (ct, fpath, extractDir)', contrib, fpath, extractDir)
 
   const uri = encodeURIComponent(origin)
-  return CΩAPI.axiosAPI
+  return CAWAPI.axiosAPI
     .get(`${API_REPO_DIFF_FILE}?origin=${uri}&fpath=${contrib.changes.s3key}`)
     .then(saveDownloaded)
     .then(gitArchive)
@@ -140,7 +140,7 @@ function diffWithContributor({ contrib, fpath, origin, cΩ }): Promise<any> {
   }
 
   function vscodeOpenDiffs() {
-    const title = `CΩ#${path.basename(fpath)} ↔ Peer changes`
+    const title = `CAW#${path.basename(fpath)} ↔ Peer changes`
     logger.info('DIFFS: vscodeOpenDiffs (ct, peerFile, fpath)', contrib, peerFile, fpath)
     return { title, extractDir, peerFile, fpath: path.join(wsFolder, fpath) }
   }
@@ -153,11 +153,11 @@ function diffWithContributor({ contrib, fpath, origin, cΩ }): Promise<any> {
  * in order to compute the common ancestor SHA for everyone in a team.
  *
  * @param project object The project for which to send the commit logs
- * @param cΩ string The client ID
+ * @param caw string The client ID
  *
  * @return string The common SHA value
  ************************************************************************************/
-function sendCommitLog(project: any, cΩ: string): Promise<string> {
+function sendCommitLog(project: any, caw: string): Promise<string> {
   // TODO: make MAX_COMMITS something configurable by the server instead. That way we can automatically accommodate a rescale in team size.
   const MAX_COMMITS = 1000
   const wsFolder = project.root
@@ -180,8 +180,8 @@ function sendCommitLog(project: any, cΩ: string): Promise<string> {
 
   function fetchCommonSHA() {
     const uri = encodeURIComponent(origin)
-    return CΩAPI.axiosAPI(
-      `${API_REPO_COMMON_SHA}?origin=${uri}&clientId=${cΩ}`, // Sending client connection ID (cΩ) to enable swarm auth
+    return CAWAPI.axiosAPI(
+      `${API_REPO_COMMON_SHA}?origin=${uri}&clientId=${caw}`, // Sending client connection ID (caw) to enable swarm auth
       { method: 'GET', responseType: 'json' }
     )
       .then(res => {
@@ -192,7 +192,7 @@ function sendCommitLog(project: any, cΩ: string): Promise<string> {
   }
 
   function sendLog() {
-    logger.info('DIFFS: sendLog HEAD (cΩ, origin, head)', cΩ, project.origin, project.head)
+    logger.info('DIFFS: sendLog HEAD (caw, origin, head)', caw, project.origin, project.head)
     return git.command(wsFolder, 'git branch --verbose --no-abbrev --no-color')
       .then(extractLog)
       .then(upload)
@@ -220,7 +220,7 @@ function sendCommitLog(project: any, cΩ: string): Promise<string> {
   }
 
   type TCommonSHA = {
-    cΩ: string
+    caw: string
     cSHA: string
   }
 
@@ -228,12 +228,12 @@ function sendCommitLog(project: any, cΩ: string): Promise<string> {
     const commits = stdout.split(/[\n\r]/).filter(l => l)
     const data = {
       origin,
-      cΩ,
+      caw,
       commits,
       branches: localBranches,
       branch: currentBranch,
     }
-    return CΩAPI.axiosAPI.post<TCommonSHA>(API_REPO_COMMITS, data)
+    return CAWAPI.axiosAPI.post<TCommonSHA>(API_REPO_COMMITS, data)
   }
 }
 
@@ -249,14 +249,14 @@ function createEmpty(file) {
  * TODO: OPTIMIZATION: send only the file that was just saved (if file save event)
  * or the files modified (if file system event)
  *
- * @param Object - CΩStore project
- * @param string - the app unique ID (cΩ)
+ * @param Object - CAWStore project
+ * @param string - the app unique ID (caw)
  ************************************************************************************/
 const lastSendDiff = []
-function sendDiffs(project: any, cΩ: string): Promise<void> {
+function sendDiffs(project: any, caw: string): Promise<void> {
   if (!project) return Promise.resolve()
   const wsFolder = project.root
-  const tmpDir = CΩStore.uTmpDir[cΩ]
+  const tmpDir = CAWStore.uTmpDir[caw]
   const activePath = project.activePath || ''
   // TODO: better throttling mechanism, maybe an express middleware
   if (lastSendDiff[wsFolder]) {
@@ -284,7 +284,7 @@ function sendDiffs(project: any, cΩ: string): Promise<void> {
 
   // TODO: get all remotes instead of just origin
   // TODO: only sendCommitLog at the beginning, and then when the commit history has changed. How do we monitor the git history?
-  return sendCommitLog(project, cΩ)
+  return sendCommitLog(project, caw)
     .then(cSHA => {
       if (!cSHA) throw new Error('There is no common SHA to diff against. Maybe still not authorized?')
       logger.info('DIFFS: sendDiffs wsFolder=', wsFolder, project)
@@ -302,7 +302,7 @@ function sendDiffs(project: any, cΩ: string): Promise<void> {
     })
     .then(() => {
       const { cSHA } = project
-      return uploadDiffs({ origin, diffDir, cSHA, activePath, cΩ })
+      return uploadDiffs({ origin, diffDir, cSHA, activePath, caw })
     })
 
   function gatherUntrackedFiles(files) {
@@ -332,7 +332,7 @@ function sendDiffs(project: any, cΩ: string): Promise<void> {
 /**
  * Uploads the diffs to the server.
  */
-function uploadDiffs({ diffDir, origin, cSHA, activePath, cΩ }): Promise<void> {
+function uploadDiffs({ diffDir, origin, cSHA, activePath, caw }): Promise<void> {
   // TODO: I think we sometimes get a file error (cSHA.gz does not exist) -- verify
   const diffFile = path.join(diffDir, 'uploaded.diff')
   const zipFile = path.join(diffDir, `${cSHA}.gz`)
@@ -343,7 +343,7 @@ function uploadDiffs({ diffDir, origin, cSHA, activePath, cΩ }): Promise<void> 
       zipForm.append('activePath', activePath)
       zipForm.append('origin', origin)
       zipForm.append('sha', cSHA)
-      zipForm.append('cΩ', cΩ)
+      zipForm.append('caw', caw)
       /* @ts-ignore */
       zipForm.append('zipFile', createReadStream(zipFile), { filename: zipFile }) // !! the file HAS to be last appended to FormData
       const options = {
@@ -352,7 +352,7 @@ function uploadDiffs({ diffDir, origin, cSHA, activePath, cΩ }): Promise<void> 
         maxContentLength: Infinity,
         maxBodyLength: Infinity,
       }
-      return CΩAPI.axiosAPI
+      return CAWAPI.axiosAPI
         .post(API_REPO_CONTRIB, zipForm, options)
         .then(res => res.data)
         .catch(err => logger.error('API error in sendDiffs', err)) // TODO: error handling
@@ -376,12 +376,12 @@ function compress(input: string, output: string): Promise<void> {
 /************************************************************************************
  * AdHoc Sharing files or folders
  ************************************************************************************/
-function shareFile(filePath: string, groups: Array<string>, cΩ) {
-  setupShare(filePath, groups, cΩ)
+function shareFile(filePath: string, groups: Array<string>, caw) {
+  setupShare(filePath, groups, caw)
 }
 
-function shareFolder(folder: string, groups: Array<string>, cΩ) {
-  setupShare(folder, groups, cΩ, true)
+function shareFolder(folder: string, groups: Array<string>, caw) {
+  setupShare(folder, groups, caw, true)
 }
 
 // TODO: maybe use fs-extra instead
@@ -421,11 +421,11 @@ function copyFile(source: string, dest: string): Promise<void> {
  * AdHoc Sharing files or folders for REPO model
  * (for Office model, please see share.controller.js)
  ************************************************************************************/
-async function setupShare(fPath: string, groups: any[], cΩ: string, isFolder = false): Promise<void> {
+async function setupShare(fPath: string, groups: any[], caw: string, isFolder = false): Promise<void> {
   // TODO: refactor this and unify the Repo and Office sharing process
   const filename = path.basename(fPath)
   const origin = _.uniqueId(filename + '-') // TODO: this uniqueId only works for multiple sequential calls I think, because it just spits out 1, 2, 3
-  const tmpDir = CΩStore.uTmpDir[cΩ]
+  const tmpDir = CAWStore.uTmpDir[caw]
   const adhocDir = path.join(tmpDir, 'adhoc') // for adhoc sharing files and folders
   const adhocRepo = path.join(adhocDir, origin)
   const zipFile = path.join(adhocDir, `${origin}.zip`)
@@ -437,7 +437,7 @@ async function setupShare(fPath: string, groups: any[], cΩ: string, isFolder = 
   await git.command(adhocRepo, `git archive --format zip --output ${zipFile} HEAD`)
   await git.command(adhocRepo, 'git rev-list HEAD -n1')
   // TODO:
-  // await CΩAPI.sendAdhocShare({ zipFile, origin, groups })
+  // await CAWAPI.sendAdhocShare({ zipFile, origin, groups })
 }
 
 async function initGit({ extractDir, origin }): Promise<void> {
@@ -459,20 +459,20 @@ async function updateGit(/* extractDir: string */): Promise<void> {
  * 3. Shift the line markers received from the server, to account for local changes.
  *
  * TODO: cleanup older changes; the user closes tabs (maybe) but we're still keeping
- * the changes in CΩStore (project.changes)
+ * the changes in CAWStore (project.changes)
  *
- * @param project object - CΩStore project
+ * @param project object - CAWStore project
  * @param filePath string - the file path of the active document
  * @param doc string - the file contents
- * @param cΩ string - the client ID
+ * @param caw string - the client ID
  ************************************************************************************/
 const lastDownloadDiff = []
-function refreshChanges(project: any, filePath: string, doc: string, cΩ: string): Promise<void> {
+function refreshChanges(project: any, filePath: string, doc: string, caw: string): Promise<void> {
   /* TODO: add caching (so we don't keep on asking for the same file when the user mad-clicks the same contributor) */
   if (!project.cSHA) return Promise.resolve()
   const wsFolder = project.root
   const fpath = filePath.includes(project.root) ? filePath.substr(project.root.length + 1) : filePath
-  logger.log('DIFFS: refreshChanges (origin, fpath, user)', project.origin, fpath, CΩStore.user?.email)
+  logger.log('DIFFS: refreshChanges (origin, fpath, user)', project.origin, fpath, CAWStore.user?.email)
   PENDING_DIFFS[fpath] = true // this operation can take a while, so we don't want to start it several times per second
   // @ts-ignore
   if (lastDownloadDiff[wsFolder] && new Date() - lastDownloadDiff[wsFolder] < Config.SYNC_THRESHOLD) {
@@ -482,10 +482,10 @@ function refreshChanges(project: any, filePath: string, doc: string, cΩ: string
 
   lastDownloadDiff[wsFolder] = new Date()
 
-  return downloadChanges(project, fpath, cΩ)
+  return downloadChanges(project, fpath, caw)
     .then(() => {
       logger.info(`DIFFS: will check local diffs for ${fpath}`, project.changes)
-      return getLinesChangedLocaly(project, fpath, doc, cΩ)
+      return getLinesChangedLocaly(project, fpath, doc, caw)
     })
     .then(() => {
       logger.info(`DIFFS: will shift markers (changes) for ${fpath}`, project.changes)
@@ -508,16 +508,16 @@ function refreshChanges(project: any, filePath: string, doc: string, cΩ: string
  * - file: list of contributors and their individual changes for the current file
  * - users: list of same contributors with their account details (avatar, email, etc)
  *
- * @param project object - CΩStore project
+ * @param project object - CAWStore project
  * @param fpath string - the file path of the active document
- * @param cΩ string - the client ID
+ * @param caw string - the client ID
  ************************************************************************************/
-function downloadChanges(project: any, fpath: string, cΩ: string): Promise<void> {
-  const currentUserId = CΩStore.user?._id.toString()
+function downloadChanges(project: any, fpath: string, caw: string): Promise<void> {
+  const currentUserId = CAWStore.user?._id.toString()
   if (!currentUserId) return Promise.reject(new Error('Not logged in.'))
   const uri = encodeURIComponent(project.origin)
-  return CΩAPI.axiosAPI
-    .get(`${API_REPO_CONTRIB}?origin=${uri}&fpath=${fpath}&clientId=${cΩ}`)
+  return CAWAPI.axiosAPI
+    .get(`${API_REPO_CONTRIB}?origin=${uri}&fpath=${fpath}&clientId=${caw}`)
     .then((res) => {
       logger.info('DIFFS: downloadDiffs contributors (origin, res.status, fpath, res.data)', project.origin, res.status, fpath, res.data.tree?.length + ' files', Object.keys(res.data.file?.changes).length + ' contributors')
       const { data } = res
@@ -559,15 +559,15 @@ function downloadChanges(project: any, fpath: string, cΩ: string): Promise<void
 /************************************************************************************
  * Getting the changes from the active document (not yet written to disk).
  *
- * @param project object - CΩStore project
+ * @param project object - CAWStore project
  * @param fpath string - the file path of the active document
  * @param doc string - the document text content
- * @param cΩ string - the client ID
+ * @param caw string - the client ID
  ************************************************************************************/
-function getLinesChangedLocaly(project: any, fpath: string, doc: string, cΩ: string): Promise<void> {
+function getLinesChangedLocaly(project: any, fpath: string, doc: string, caw: string): Promise<void> {
   const wsFolder = project.root
   const wsName = path.basename(wsFolder)
-  const tmpDir = CΩStore.uTmpDir[cΩ]
+  const tmpDir = CAWStore.uTmpDir[caw]
   if (!project.changes[fpath]) return Promise.resolve()
   /* TODO: right now we're limiting the git archive and diff operations to maximum 5 different commits; optimize and improve if possible */
   const shas = Object.keys(project.changes[fpath].alines).slice(0, Config.MAX_NR_OF_SHA_TO_COMPARE)
@@ -748,7 +748,7 @@ async function unzip({ extractDir, zipFile }): Promise<void> {
 
 // TODO: error handling of all these awaits
 // TODO: it seems this crashes when closing the file (with save): `spawn C:\WINDOWS\system32\cmd.exe ENOENT`
-async function sendAdhocDiffs(diffDir: string, cΩ: string): Promise<void> {
+async function sendAdhocDiffs(diffDir: string, caw: string): Promise<void> {
   if (lastSendDiff[diffDir]) {
     /* @ts-ignore */
     if (new Date() - lastSendDiff[diffDir] < Config.SYNC_THRESHOLD) return Promise.resolve()
@@ -759,7 +759,7 @@ async function sendAdhocDiffs(diffDir: string, cΩ: string): Promise<void> {
   const origin = (await git.command(gitDir, 'git remote get-url origin')).trim()
   const sha = (await git.command(gitDir, 'git rev-list --max-parents=0 HEAD')).trim()
   const tmpProjectDiff = path.join(diffDir, 'uploaded.diff')
-  const tmpDir = CΩStore.uTmpDir[cΩ]
+  const tmpDir = CAWStore.uTmpDir[caw]
   const emptyFile = path.join(tmpDir, 'empty.p8')
 
   createEmpty(tmpProjectDiff)
@@ -769,7 +769,7 @@ async function sendAdhocDiffs(diffDir: string, cΩ: string): Promise<void> {
 
   return uploadDiffs({
     origin,
-    cΩ,
+    caw,
     diffDir,
     cSHA: sha,
     activePath: '', // TODO: add slide number, and connect to receive updates via socket
@@ -780,7 +780,7 @@ async function sendAdhocDiffs(diffDir: string, cΩ: string): Promise<void> {
 async function refreshAdhocChanges({ origin, fpath }): Promise<void> {
   /* TODO: add caching (so we don't keep on asking for the same file when the user mad-clicks the same contributor) */
 
-  logger.log('DIFFS: downloadDiffs ad-hoc (origin, fpath, user)', origin, fpath, CΩStore.user)
+  logger.log('DIFFS: downloadDiffs ad-hoc (origin, fpath, user)', origin, fpath, CAWStore.user)
   PENDING_DIFFS[fpath] = true // this operation can take a while, so we don't want to start it several times per second
   /* @ts-ignore */
   if (lastDownloadDiff[origin] && new Date() - lastDownloadDiff[origin] < Config.SYNC_THRESHOLD) {
@@ -790,12 +790,12 @@ async function refreshAdhocChanges({ origin, fpath }): Promise<void> {
   lastDownloadDiff[origin] = new Date()
 
   const uri = encodeURIComponent(origin)
-  return CΩAPI
+  return CAWAPI
     .axiosAPI(`${API_SHARE_SLIDE_CONTRIB}?origin=${uri}&fpath=${fpath}`, { method: 'GET', responseType: 'json' })
     .then(res => res.data)
 }
 
-const CΩDiffs = {
+const CAWDiffs = {
   clear,
   compress,
   diffWithContributor,
@@ -815,4 +815,4 @@ const CΩDiffs = {
   PENDING_DIFFS,
 }
 
-export default CΩDiffs
+export default CAWDiffs

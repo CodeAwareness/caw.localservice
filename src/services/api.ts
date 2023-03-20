@@ -1,11 +1,11 @@
 import axios from 'axios'
 
-import CΩDiffs from '@/services/diffs'
+import CAWDiffs from '@/services/diffs'
 import Config from '@/config/config'
 import git from './git'
 import logger from '@/logger'
 
-import { CΩStore } from './store'
+import { CAWStore } from './store'
 
 export type TCredentials = {
   strategy: string
@@ -13,7 +13,7 @@ export type TCredentials = {
   password: string
 }
 
-CΩStore.swarmAuthStatus = 0
+CAWStore.swarmAuthStatus = 0
 
 let lastAuthorization = []
 
@@ -41,7 +41,7 @@ export const API_SHARE_UPLOAD        = '/share/upload'
 export const axiosAPI = axios.create({ baseURL: Config.API_URL })
 
 axiosAPI.interceptors.request.use(config => {
-  const { access } = CΩStore.tokens || { access: {} }
+  const { access } = CAWStore.tokens || { access: {} }
   if (access.token) config.headers.authorization = `Bearer ${access.token}`
   return config
 })
@@ -61,15 +61,15 @@ axiosAPI.interceptors.response.use(
       const authPromise = reAuthorize(origin, branch, commitDate, clientId) // IMPORTANT: no await! otherwise we interrupt the regular operations for too long, and we also get deeper into a recursive interceptor response.
         .then(res => {
           if (res.data.repo._REQUEST_DIFF) {
-            CΩDiffs.sendDiffs(CΩStore.activeProjects[clientId], clientId)
+            CAWDiffs.sendDiffs(CAWStore.activeProjects[clientId], clientId)
           }
         })
       // Save the authPromise in the store, so we can use it for subsequent requests, and avoid triggering reAuthorize for each one of them
-      if (CΩStore.swarmAuthStatus) {
+      if (CAWStore.swarmAuthStatus) {
         // TODO: try to disconnect multiple swarmAuth promises (for multiple repos at a time), so one repo doesn't have to wait for all repos to complete swarm authorization.
-        CΩStore.swarmAuthStatus.then(() => authPromise)
+        CAWStore.swarmAuthStatus.then(() => authPromise)
       } else {
-        CΩStore.swarmAuthStatus = authPromise
+        CAWStore.swarmAuthStatus = authPromise
       }
     }
     return response
@@ -82,11 +82,11 @@ axiosAPI.interceptors.response.use(
         && err.config
         && ![API_AUTH_REFRESH_TOKENS, API_AUTH_LOGIN].includes(err.response.config.url)
       ) {
-        if (!CΩStore.tokens) {
+        if (!CAWStore.tokens) {
           // TODO: logout()
           return reject(new Error('No tokens in store'))
         }
-        const { refresh } = CΩStore.tokens
+        const { refresh } = CAWStore.tokens
         if (!refresh || refresh.expires < new Date().valueOf()) {
           // TODO: logout()
           return reject(new Error(`Refresh token expired ${refresh.expires}`))
@@ -94,7 +94,7 @@ axiosAPI.interceptors.response.use(
         logger.log('Will try again after refreshing the tokens')
         refreshToken(refresh.token)
           .then(() => {
-            const { token } = CΩStore.tokens.access
+            const { token } = CAWStore.tokens.access
             err.config.headers.authorization = `Bearer: ${token}`
             logger.log('Token refreshed', token)
             axiosAPI(err.config).then(resolve, reject)
@@ -123,17 +123,17 @@ function clearAuth() {
 /**
  * fetch the branch requested and send the requested SHA corresponding to the `commitDate`.
  *
- * @param { repo, cΩ } where repo contains `origin`, `branch` and `commitDate` and the cΩ is the socket ID
+ * @param { repo, caw } where repo contains `origin`, `branch` and `commitDate` and the caw is the socket ID
  *
  * @return object the matching repository. This may be the repo shared with everyone, or a siloed repo if the auth failed.
  */
-function reAuthorize(origin, branch, commitDate, cΩ) {
+function reAuthorize(origin, branch, commitDate, caw) {
   if (Object.keys(lastAuthorization).length && (new Date()).valueOf() - lastAuthorization[origin] < 120) return // TODO: optimize / configure; for now we'll only allow reauth once every 2 min
   lastAuthorization[origin] = (new Date()).valueOf()
-  const project = CΩStore.projects.filter(p => p.origin === origin)[0]
+  const project = CAWStore.projects.filter(p => p.origin === origin)[0]
   if (!project) return
   const wsFolder = project.root
-  if (!commitDate) return sendLatestSHA({ wsFolder, origin, cΩ })
+  if (!commitDate) return sendLatestSHA({ wsFolder, origin, caw })
   return git.command(wsFolder, 'git fetch')
     .then(() => {
       const cd = new Date(commitDate)
@@ -178,7 +178,7 @@ function sendLatestSHA({ wsFolder, origin }: any): Promise<any> {
 function refreshToken(refreshToken: string) {
   return axiosAPI
     .post(API_AUTH_REFRESH_TOKENS, { refreshToken })
-    .then((res: any) => CΩStore.setAuth(res.data))
+    .then((res: any) => CAWStore.setAuth(res.data))
 }
 
 const submitAuthBranch = ({ origin, sha, branch, commitDate }: any): Promise<any> => axiosAPI.post(API_REPO_SWARM_AUTH, { origin, sha, branch, commitDate })
@@ -203,7 +203,7 @@ function post(url, data, action?: string, socket?: any) {
     })
 }
 
-const CΩAPI = {
+const CAWAPI = {
   // common
   axiosAPI,
   post,
@@ -233,4 +233,4 @@ const CΩAPI = {
   API_SHARE_OINFO,
 }
 
-export default CΩAPI
+export default CAWAPI

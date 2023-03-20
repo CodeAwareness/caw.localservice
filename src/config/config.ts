@@ -5,7 +5,7 @@ import tmp from 'tmp'
 import Keyv from 'keyv'
 
 import Joi    from '@hapi/joi'
-import { CΩStore } from '@/services/store'
+import { CAWStore } from '@/services/store'
 
 const dbpath = path.join(process.cwd(), 'storage.sqlite')
 
@@ -16,8 +16,8 @@ export const authStore = new Keyv(`sqlite://${dbpath}`, { namespace: 'auth' })
 authStore.on('error', err => console.error('SQLite storage: connection error', err))
 
 // Setting up a temporary folder to work in
-CΩStore.tmpDir = tmp.dirSync({ prefix: 'cΩ', keep: true, unsafeCleanup: true }).name
-CΩStore.uTmpDir = {} // instance based temp dir
+CAWStore.tmpDir = tmp.dirSync({ prefix: 'caw', keep: true, unsafeCleanup: true }).name
+CAWStore.uTmpDir = {} // instance based temp dir
 
 const API_ROOT = path.join(__dirname, '../../')
 
@@ -46,9 +46,9 @@ const API_URL    = process.env.LOCAL ? `http://${API_SERVER}/v1`          : `htt
 const SERVER_WSS = process.env.LOCAL ? `ws://localhost:${PORT_LOCAL_API}` : 'wss://api.codeawareness.com'
 const WSS_NAMESPACE = 'svc'
 
-const PIPE_CLIENTS = '/var/tmp/cΩ/clients'
-const CONFIGURATION_FILE = '.CΩ'
-const CODE_AWARENESS_SCHEMA = 'CΩ'
+const PIPE_CLIENTS = '/var/tmp/caw/clients'
+const CONFIGURATION_FILE = '.CAW'
+const CODE_AWARENESS_SCHEMA = 'CAW'
 const SYNC_INTERVAL = 100 * 1000 // download diffs from the server every some time
 const SYNC_THRESHOLD = 1000 // don't sync too often
 const MAX_NR_OF_SHA_TO_COMPARE = 5

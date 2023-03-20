@@ -1,6 +1,6 @@
 import config from '@/config/config'
 
-export const CΩStore = {
+export const CAWStore = {
   colorTheme: 1, // 1 = Light, 2 = Dark, 3 = High Contrast
   user: undefined,
   tokens: undefined,
@@ -16,8 +16,8 @@ export const CΩStore = {
   /*
    * instance based temp directories (one for each GUID)
    * uTmpDir: {
-   *   qwe123: '/tmp/cΩ_-12750-bA2L/',
-   *   dfk230: '/tmp/cΩ_-2245h-hJ2k',
+   *   qwe123: '/tmp/caw_-12750-bA2L/',
+   *   dfk230: '/tmp/caw_-2245h-hJ2k',
    * }
    */
   uTmpDir: {},
@@ -77,8 +77,8 @@ export const CΩStore = {
 
   /*
    * activeProjects: {
-   *   'sjwk123': { ... }, // active project for cΩ = 'sjwk123'
-   *   'dh84hjk': { ... }, // active project for cΩ = 'dh84hjk'
+   *   'sjwk123': { ... }, // active project for caw = 'sjwk123'
+   *   'dh84hjk': { ... }, // active project for caw = 'dh84hjk'
    * }
    */
   activeProjects: {},
@@ -132,35 +132,35 @@ export const CΩStore = {
   wsGardener: undefined, // socketIO Server communicating with the editors
 
   clear: () => {
-    CΩStore.selectedContributor = undefined
+    CAWStore.selectedContributor = undefined
   },
 
-  reset: (cΩ?: string) => {
-    CΩStore.tokens = undefined
-    CΩStore.user = undefined
-    CΩStore.panel = undefined
-    CΩStore.colorTheme = 1
-    CΩStore.projects = []
-    if (cΩ) CΩStore.activeProjects[cΩ] = undefined
-    else CΩStore.activeProjects = {}
-    CΩStore.selectedBranch = undefined
-    CΩStore.selectedContributor = undefined
-    CΩStore.peerFS = {}
-    CΩStore.doc = undefined
-    CΩStore.line = 0
-    CΩStore.wsStation = undefined
-    CΩStore.wsGardener = undefined
+  reset: (caw?: string) => {
+    CAWStore.tokens = undefined
+    CAWStore.user = undefined
+    CAWStore.panel = undefined
+    CAWStore.colorTheme = 1
+    CAWStore.projects = []
+    if (caw) CAWStore.activeProjects[caw] = undefined
+    else CAWStore.activeProjects = {}
+    CAWStore.selectedBranch = undefined
+    CAWStore.selectedContributor = undefined
+    CAWStore.peerFS = {}
+    CAWStore.doc = undefined
+    CAWStore.line = 0
+    CAWStore.wsStation = undefined
+    CAWStore.wsGardener = undefined
   },
 
   setAuth: async ({ user, tokens }) => {
-    CΩStore.user = user
-    CΩStore.tokens = tokens
-    await config.authStore.set('user', CΩStore.user)
-    await config.authStore.set('tokens', CΩStore.tokens)
+    CAWStore.user = user
+    CAWStore.tokens = tokens
+    await config.authStore.set('user', CAWStore.user)
+    await config.authStore.set('tokens', CAWStore.tokens)
   }
 }
 
-export const CΩWork = {
+export const CAWWork = {
   // terminal (optional feature: client side processing using shell commands)
   tokenInterval: 0,
   syncTimer: null,

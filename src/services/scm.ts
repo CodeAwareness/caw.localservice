@@ -4,7 +4,7 @@ import { readdirSync, stat } from 'node:fs'
 import logger from '@/config/logger'
 import git from './git'
 
-import { CΩStore } from './store'
+import { CAWStore } from './store'
 
 /**
  * @param data object {
@@ -14,10 +14,10 @@ import { CΩStore } from './store'
  */
 function getProject({ origin, wsFolder }): Array<any> {
   if (origin) {
-    return CΩStore.projects.filter(m => m.origin === origin)[0]
+    return CAWStore.projects.filter(m => m.origin === origin)[0]
   }
   if (wsFolder) {
-    return CΩStore.projects.filter(m => m.root === wsFolder)[0]
+    return CAWStore.projects.filter(m => m.root === wsFolder)[0]
   }
 }
 
@@ -48,7 +48,7 @@ async function addProject(workspaceFolder: any): Promise<void> {
       // TODO: Check all remotes (check if ANY match)
       const root = wsFolder
       const name = path.basename(root)
-      CΩStore.projects.push({ name, origin, root, changes, contributors })
+      CAWStore.projects.push({ name, origin, root, changes, contributors })
     })
     .catch(err => logger.error('SCM setupOrigin ERROR', err))
 }
@@ -64,11 +64,11 @@ async function removeSubmodules(workspaceFolder: any): Promise<void> {
 }
 
 function removeProject(wsFolder: any): void {
-  const project = CΩStore.projects.filter(m => m.name === wsFolder.name)[0]
+  const project = CAWStore.projects.filter(m => m.name === wsFolder.name)[0]
   logger.info('SCM removeProject wsFolder', wsFolder, project)
   if (!project) return
 
-  CΩStore.projects = CΩStore.projects.filter(m => m.origin !== project.origin)
+  CAWStore.projects = CAWStore.projects.filter(m => m.origin !== project.origin)
 }
 
 function getFiles(source: string): string[] {
@@ -79,7 +79,7 @@ function getFiles(source: string): string[] {
 
 /*
 const clearProject = project => {
-  CΩStore.scFiles[project.origin] = []
+  CAWStore.scFiles[project.origin] = []
 }
 */
 
@@ -87,8 +87,8 @@ const clearProject = project => {
  * addFile = registerWithTDP
  *
  * DESIGN:
- * We're adding files to the CΩ repository, but the user may have multiple repositories open, and we need to show diffs coresponding to multiple contributors.
- * Our CΩ repository looks like this (where searchLib, microPost are just examples of repo names)
+ * We're adding files to the CAW repository, but the user may have multiple repositories open, and we need to show diffs coresponding to multiple contributors.
+ * Our CAW repository looks like this (where searchLib, microPost are just examples of repo names)
 
  * searchLib -> aliceId -> [ services/utils.js, main.js ]
  * searchLib -> bobId ->   [ services/logger.js, main.js ]
@@ -98,9 +98,9 @@ const clearProject = project => {
  ************************************************************************************/
 function addFile(wsFolder: any, fpath: string): void {
   const parts = fpath.split('/').filter(a => a)
-  let prevObj = CΩStore.peerFS[wsFolder]
+  let prevObj = CAWStore.peerFS[wsFolder]
   if (!prevObj) prevObj = {}
-  CΩStore.peerFS[wsFolder] = prevObj
+  CAWStore.peerFS[wsFolder] = prevObj
   let leaf
   for (const name of parts) {
     if (!prevObj[name]) prevObj[name] = {}
@@ -110,7 +110,7 @@ function addFile(wsFolder: any, fpath: string): void {
   leaf.prevObj[leaf.name] = 1
 }
 
-export const CΩSCM = {
+export const CAWSCM = {
   addProject,
   getProject,
   removeProject,

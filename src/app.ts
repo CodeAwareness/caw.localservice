@@ -6,7 +6,7 @@ import morgan from './config/morgan'
 import httpRoutes from './routes/v1/x-http.route'
 
 // We only need express for PowerPoint auth, since PPT doesn't allow sockets in their extensions.
-export type CΩExpress = Partial<express.Application> &
+export type CAWExpress = Partial<express.Application> &
   {
     gstationSocket: any,
     gardenerSocket: any,
@@ -14,13 +14,13 @@ export type CΩExpress = Partial<express.Application> &
     gstationWS: any, // websocket server
   }
 
-export type CΩRequest = Partial<express.Request>
+export type CAWRequest = Partial<express.Request>
 
-export type CΩResponse = express.Response
+export type CAWResponse = express.Response
 
-export type CΩNext = express.NextFunction
+export type CAWNext = express.NextFunction
 
-const app = express() as unknown as CΩExpress
+const app = express() as unknown as CAWExpress
 
 if (config.env !== 'test') {
   app.use(morgan.successHandler)

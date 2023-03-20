@@ -11,8 +11,8 @@ import os from 'os'
 restoreAuthInfo() // TODO: this is not resolving async, but it should be ok
 
 async function restoreAuthInfo() {
-  CΩStore.user = await config.authStore.get('user')
-  CΩStore.tokens = await config.authStore.get('tokens')
+  CAWStore.user = await config.authStore.get('user')
+  CAWStore.tokens = await config.authStore.get('tokens')
 }
 */
 

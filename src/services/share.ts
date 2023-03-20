@@ -9,10 +9,10 @@ import Config from '@/config/config'
 import { generateUUID } from '@/utils/string'
 import shell from '@/services/shell'
 import diffs from '@/services/diffs'
-import { CΩStore } from '@/services/store'
+import { CAWStore } from '@/services/store'
 import logger from '@/logger'
 
-import CΩAPI, { API_SHARE_ACCEPT, API_SHARE_FINFO, API_SHARE_OINFO, API_SHARE_UPLOAD } from '@/services/api'
+import CAWAPI, { API_SHARE_ACCEPT, API_SHARE_FINFO, API_SHARE_OINFO, API_SHARE_UPLOAD } from '@/services/api'
 
 type TWebSocket = {
   wsFolder: string,
@@ -20,7 +20,7 @@ type TWebSocket = {
 }
 
 function generateWSFolder() {
-  const tmpDir = CΩStore.tmpDir
+  const tmpDir = CAWStore.tmpDir
   return path.join(tmpDir, generateUUID(16))
 }
 
@@ -29,12 +29,12 @@ function generateWSFolder() {
  * scope: GIT
  * desc : updates repo diffs and sends them to CodeAwareness
  */
-async function refreshDiffs({ wsFolder, fpath, cΩ }) {
+async function refreshDiffs({ wsFolder, fpath, caw }) {
   logger.log('File has been saved, refreshing diffs.')
   const extractDir = path.join(wsFolder, Config.EXTRACT_LOCAL_DIR)
   await copyToWorkspace({ fpath, extractDir })
   await diffs.updateGit()
-  await diffs.sendAdhocDiffs(wsFolder, cΩ)
+  await diffs.sendAdhocDiffs(wsFolder, caw)
 }
 
 async function copyToWorkspace({ fpath, extractDir }) {
@@ -55,11 +55,11 @@ const cwatchers = {}
  * desc : monitor a path for changes in the file
  *        this is necessary, because we don't have a good enough file change event system in PPT
  */
-function monitorFile({ origin, fpath, wsFolder, cΩ }): void {
+function monitorFile({ origin, fpath, wsFolder, caw }): void {
   logger.log('will monitor file', fpath, origin, wsFolder)
   cwatchers[origin] = chokidar.watch(fpath)
     .on('change', () => {
-      refreshDiffs({ fpath, wsFolder, cΩ })
+      refreshDiffs({ fpath, wsFolder, caw })
     })
 }
 
@@ -70,7 +70,7 @@ function monitorFile({ origin, fpath, wsFolder, cΩ }): void {
  */
 async function downloadPPT(data): Promise<string> {
   const buffer = new Uint8Array(data.fileData)
-  const fpath = await CΩAPI.axiosAPI.post(API_SHARE_UPLOAD, { url: data.fpath }).then(res => res.data)
+  const fpath = await CAWAPI.axiosAPI.post(API_SHARE_UPLOAD, { url: data.fpath }).then(res => res.data)
   return new Promise((resolve, reject) => {
     // @ts-ignore
     fs.writeFile(fpath, buffer, err => {
@@ -100,7 +100,7 @@ async function startSharing({ origin, groups }): Promise<TLinks> {
   // @ts-ignore
   zipForm.append('file', createReadStream(origin), { filename: origin }) // !! the file has to be last appended to formdata
   logger.log('UPLOADING FILE', origin)
-  return CΩAPI.axiosAPI
+  return CAWAPI.axiosAPI
     .post(API_SHARE_UPLOAD, zipForm,
       {
         // @ts-ignore
@@ -136,7 +136,7 @@ async function acceptShare(origin: string): Promise<string> {
   mkdirp.sync(extractDir)
   let fpath: string
   const uri = encodeURIComponent(origin)
-  return CΩAPI.axiosAPI
+  return CAWAPI.axiosAPI
     .get<SHARE_URL_TYPE>(`${API_SHARE_ACCEPT}?origin=${uri}`)
     .then(res => {
       const parts = res.data.url.split('/')
@@ -160,7 +160,7 @@ async function acceptShare(origin: string): Promise<string> {
  * scope: PPT
  * desc : extract the PPT (zip) file, setup contributors and monitoring
  */
-function setupReceived({ fpath, origin, wsFolder, cΩ }: any): Promise<any> {
+function setupReceived({ fpath, origin, wsFolder, caw }: any): Promise<any> {
   wsFolder = wsFolder || generateWSFolder()
   logger.log('setup received file', wsFolder, fpath, origin)
   const extractDir = path.join(wsFolder, Config.EXTRACT_LOCAL_DIR)
@@ -176,7 +176,7 @@ function setupReceived({ fpath, origin, wsFolder, cΩ }: any): Promise<any> {
       return diffs.initGit({ extractDir, origin })
     })
     .then(() =>  {
-      monitorFile({ origin, fpath, wsFolder, cΩ })
+      monitorFile({ origin, fpath, wsFolder, caw })
       return { fpath, wsFolder }
     })
 }
@@ -198,12 +198,12 @@ async function fileToBase64(fpath: string): Promise<string> {
 
 async function getFileOrigin(fpath: string): Promise<any> {
   const uri = encodeURIComponent(fpath)
-  return CΩAPI.axiosAPI(`${API_SHARE_FINFO}?fpath=${uri}`, { method: 'GET', responseType: 'json' })
+  return CAWAPI.axiosAPI(`${API_SHARE_FINFO}?fpath=${uri}`, { method: 'GET', responseType: 'json' })
 }
 
 async function getOriginInfo(origin: string): Promise<any> {
   const uri = encodeURIComponent(origin)
-  return CΩAPI.axiosAPI(`${API_SHARE_OINFO}?origin=${uri}`, { method: 'GET', responseType: 'json' })
+  return CAWAPI.axiosAPI(`${API_SHARE_OINFO}?origin=${uri}`, { method: 'GET', responseType: 'json' })
 }
 
 async function createWorkspace() {
@@ -218,7 +218,7 @@ async function createWorkspace() {
  * scope: GIT
  * desc : repos diffs are sent to CodeAwareness
  */
-async function uploadOriginal({ fpath, origin, cΩ }): Promise<TWebSocket> {
+async function uploadOriginal({ fpath, origin, caw }): Promise<TWebSocket> {
   const wsFolder = generateWSFolder()
   const extractDir = path.join(wsFolder, Config.EXTRACT_LOCAL_DIR)
   mkdirp.sync(extractDir)
@@ -230,10 +230,10 @@ async function uploadOriginal({ fpath, origin, cΩ }): Promise<TWebSocket> {
       return diffs.initGit({ extractDir, origin })
     })
     .then(() => {
-      return diffs.sendAdhocDiffs(wsFolder, cΩ)
+      return diffs.sendAdhocDiffs(wsFolder, caw)
     })
     .then(() => {
-      monitorFile({ origin, wsFolder, fpath, cΩ })
+      monitorFile({ origin, wsFolder, fpath, caw })
     })
     .then(() => {
       return { wsFolder, origin }

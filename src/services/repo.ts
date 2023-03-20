@@ -11,12 +11,12 @@ import logger from '@/logger'
  * scope: GIT
  * desc : updates repo diffs and sends them to CodeAwareness
  */
-async function refreshDiffs({ wsFolder, fpath, cΩ }) {
+async function refreshDiffs({ wsFolder, fpath, caw }) {
   logger.log('File has been saved, refreshing diffs.')
   const extractDir = path.join(wsFolder, Config.EXTRACT_LOCAL_DIR)
   await copyToWorkspace({ fpath, extractDir })
   await diffs.updateGit()
-  await diffs.sendAdhocDiffs(wsFolder, cΩ)
+  await diffs.sendAdhocDiffs(wsFolder, caw)
 }
 
 async function copyToWorkspace({ fpath, extractDir }) {
@@ -32,11 +32,11 @@ const cwatchers = {}
  * desc : monitor a path for changes in the file
  *        this is necessary, because we don't have a good enough file change event system in PPT
  */
-function monitorFile({ origin, fpath, wsFolder, cΩ }): void {
+function monitorFile({ origin, fpath, wsFolder, caw }): void {
   logger.log('will monitor file', fpath, origin, wsFolder)
   cwatchers[origin] = chokidar.watch(fpath)
     .on('change', () => {
-      refreshDiffs({ fpath, wsFolder, cΩ })
+      refreshDiffs({ fpath, wsFolder, caw })
     })
 }
 

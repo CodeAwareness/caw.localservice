@@ -1,20 +1,20 @@
 const verifyEmail = {
   ja: {
-    title: 'CΩへようこそ！',
+    title: 'CAWへようこそ！',
     message: token => {
       return `
-      <p>CΩへのユーザー登録のご案内です。</p>
+      <p>CAWへのユーザー登録のご案内です。</p>
 
       <p>以下のURLをクリックすると、本登録が完了します。</p>
       <p><a target="_blank" href="https://api.cA.com/users/activate/${token}">https://api.codeawareness.com/users/activate/${token}</a></p>
 
       <p>※このURLをクリックしていただかないと、本登録が完了しません。必ずこのURLをクリックしてお進みください。</p>
-      <p>※このメールはCΩへユーザー登録して頂いた方へお送りしています。</p>
+      <p>※このメールはCAWへユーザー登録して頂いた方へお送りしています。</p>
       <p>このメールにお心当たりのない場合は、お手数ですが破棄願います。</p>`
     },
   },
   en: {
-    title: 'Welcome to CΩ!',
+    title: 'Welcome to CAW!',
     message: token => {
       return `
       <p>Email verification</p>
@@ -31,21 +31,21 @@ const verifyEmail = {
 
 const resetPassword = {
   ja: {
-    title: 'CΩへのパスワード・リセットのご案内です。',
+    title: 'CAWへのパスワード・リセットのご案内です。',
     message: (user, token) => {
       let intro = ''
       if (user.name) intro = `${user.name}様、`
       return `
       <p>${intro}</p>
-      <p>あなたは、メールアドレス (${user.email}) で登録されているCΩアカウントのパスワードのリセットをリクエストしました。このリンクをクリックして、パスワードをリセットして下さい。</p>
+      <p>あなたは、メールアドレス (${user.email}) で登録されているCAWアカウントのパスワードのリセットをリクエストしました。このリンクをクリックして、パスワードをリセットして下さい。</p>
       <p><a target="_blank" href="https://api.cA.com/auth/resetPassword?t=${token}">https://api.codeawareness.com/auth/resetPassword?t=${token}</a></p>
 
-      <p>※このメールはCΩへユーザー登録して頂いた方へお送りしています。</p>
+      <p>※このメールはCAWへユーザー登録して頂いた方へお送りしています。</p>
       <p>このメールにお心当たりのない場合は、お手数ですが破棄願います。</p>`
     },
   },
   en: {
-    title: 'CΩ password reset.',
+    title: 'CAW password reset.',
     message: (user, token) => {
       let intro = ''
       if (user.name) intro = `Dear ${user.name},`

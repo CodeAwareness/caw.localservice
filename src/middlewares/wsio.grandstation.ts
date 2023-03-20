@@ -23,7 +23,7 @@ process.on('SIGTERM', cleanup)
 process.on('SIGINT', cleanup)
 process.on('SIGUSR2', cleanup)
 
-class CΩClient {
+class CAWClient {
   public guid: string
   private ipcClient: IPC
   private actions: Array<string>
@@ -50,7 +50,7 @@ function initPipe() {
   ipcCatalog.setup()
   ipcCatalog.pubsub.on('clientId', (guid: string) => {
     console.log('New client registered', guid)
-    clients.push(new CΩClient(guid))
+    clients.push(new CAWClient(guid))
   })
 
   ipcCatalog.start()

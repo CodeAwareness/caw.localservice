@@ -1,28 +1,28 @@
-import { CΩStore } from '@/services/store'
-import CΩAPI, { API_AUTH_LOGIN, API_AUTH_SIGNUP } from '@/services/api'
+import { CAWStore } from '@/services/store'
+import CAWAPI, { API_AUTH_LOGIN, API_AUTH_SIGNUP } from '@/services/api'
 import logger from '@/logger'
 
 type TLoginReq = {
   email: string
   password: string
-  cΩ: string
+  caw: string
 }
 
 function login({ email, password }: TLoginReq) {
-  CΩAPI
+  CAWAPI
     .post(API_AUTH_LOGIN, { email, password }, 'auth:login', this)
-    .then(data => CΩStore.setAuth(data))
+    .then(data => CAWStore.setAuth(data))
     .catch(err => {
       logger.log('auth error', err)
     })
 }
 
-async function logout({ cΩ }) {
-  return CΩStore.reset(cΩ)
+async function logout({ caw }) {
+  return CAWStore.reset(caw)
 }
 
-function info(cΩ: string) {
-  const { user, tokens } = CΩStore
+function info(caw: string) {
+  const { user, tokens } = CAWStore
   logger.log('AUTH: checking auth info')
   if (tokens?.refresh?.expires < new Date().toISOString()) {
     logger.log('AUTH: Refresh token expired')
@@ -36,20 +36,20 @@ function info(cΩ: string) {
     return
   }
 
-  CΩAPI.refreshToken(tokens?.refresh.token)
+  CAWAPI.refreshToken(tokens?.refresh.token)
     .then(() => {
       logger.log('AUTH: token refreshed', { user })
       this.emit('res:auth:info', { user, tokens })
     })
     .catch(err => {
-      CΩStore.reset(cΩ)
+      CAWStore.reset(caw)
       this.emit('res:auth:info', { err: err.message })
     })
 }
 
 function signup({ email, password }) {
   /* eslint-disable-next-line @typescript-eslint/no-this-alias */
-  CΩAPI.post(API_AUTH_SIGNUP, { email, password }, 'auth:signup', this)
+  CAWAPI.post(API_AUTH_SIGNUP, { email, password }, 'auth:signup', this)
 }
 
 const authController = {

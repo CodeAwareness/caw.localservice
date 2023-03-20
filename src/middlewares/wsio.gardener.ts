@@ -1,7 +1,7 @@
 import logger from '@/logger'
 
 function auth() {
-  // tcClient.setToken(CΩStore.tokens?.access?.token)
+  // tcClient.setToken(CAWStore.tokens?.access?.token)
 }
 
 function connect(options) {
