@@ -13,30 +13,30 @@ import CAWDiffs from '@/services/diffs'
 
 type TRepoAddReq = {
   folder: string
-  caw: string // the VSCode guid (supporting multiple instances of VSCode)
+  cid: string // the VSCode guid (supporting multiple instances of VSCode)
 }
 
 type TRepoActivateReq = {
   fpath: string // activated file's path
   doc: string // activated file's content
-  caw: string
+  cid: string
 }
 
-// TODO: group CAWStore projects by caw value
+// TODO: group CAWStore projects by cid value
 
 async function activatePath(data: any): Promise<any> {
-  const { fpath, caw, doc }: TRepoActivateReq = data
+  const { fpath, cid, doc }: TRepoActivateReq = data
   if (!fpath) return
-  logger.log('REPO: activate path (fpath, caw)', fpath, caw)
+  logger.log('REPO: activate path (fpath, cid)', fpath, cid)
   if (fpath.toLowerCase().includes(CAWStore.tmpDir.toLowerCase())) return Promise.resolve() // active file is the temporary diff file
 
   /* select the project corresponding to the activated path; if there is no project matching, we add as new project */
-  const project = await selectProject(fpath, caw, this)
+  const project = await selectProject(fpath, cid, this)
   project.activePath = fpath
 
   /* next up: download changes from peers */
   return CAWDiffs
-    .refreshChanges(project, project.activePath, doc, caw)
+    .refreshChanges(project, project.activePath, doc, cid)
     .then(() => {
       this.emit('res:repo:active-path', project)
     })
@@ -55,26 +55,27 @@ function getProjectFromPath(fpath: string) {
 }
 
 /**
- * Select the current project for the caw client, and UPDATES the server with its latest DIFFS.
+ * Select the current project for the CodeAwareness client, and UPDATES the server with its latest DIFFS.
  * We look at the file that's activated and select the project that matches its path.
  *
  * @param string the file path for the current file open in the editor
  * @param string the client ID
  * @param object the web socket, used to reply when everything's done
  */
-function selectProject(fpath: string, caw: string, socket: Socket): Promise<any> {
+function selectProject(fpath: string, cid: string, socket: Socket): Promise<any> {
   let project = getProjectFromPath(fpath)
   const wsFolder = path.dirname(fpath)
   if (!project?.cSHA) {
     return git.command(wsFolder, 'git rev-parse --show-toplevel')
-      .then(folder => add({ folder, caw }, socket))
+      .then(folder => add({ folder, cid }, socket))
       .then(newProject => {
         project = newProject
         project.activePath = fpath.substr(project.root)
         logger.info('REPO: the relative active path is', project.activeProjects)
-        CAWStore.projects.push(project) // TODO: used for SCM, but we need to also use socket id caw
-        CAWStore.activeProjects[caw] = project
-        CAWDiffs.sendDiffs(project, caw) // Not waiting at the moment, because we're only returning OK from the server
+        CAWStore.projects.push(project) // TODO: used for SCM, but we need to also use socket id, cid
+        CAWStore.activeProjects[cid] = project
+        CAWDiffs.sendDiffs(project, cid) // Not waiting at the moment, because we're only returning OK from the server
+        setupPeriodicSync(project, cid)
         return git.command(wsFolder, 'git branch --no-color')
       })
       .then(stdout => {
@@ -84,9 +85,15 @@ function selectProject(fpath: string, caw: string, socket: Socket): Promise<any>
         return project
       })
   }
-  CAWStore.activeProjects[caw] = project
+  CAWStore.activeProjects[cid] = project
   // TODO: send diffs on a timer? (for example when more than 5 minutes have passed)
   return Promise.resolve(project)
+}
+
+function setupPeriodicSync(project: any, cid: string) {
+  setInterval(() => {
+    CAWDiffs.sendDiffs(project, cid)
+  }, config.SYNC_INTERVAL)
 }
 
 function add(requested: TRepoAddReq, socket?: Socket): Promise<any> {
@@ -132,7 +139,7 @@ function remove({ folder }) {
   this.emit('res:repo:removed', { folder })
 }
 
-function addSubmodules({ folder, caw }: TRepoAddReq): Promise<void> {
+function addSubmodules({ folder, cid }: TRepoAddReq): Promise<void> {
   // TODO: add submodules of submodules ? (recursive)
   return git.command(folder, 'git submodule status')
     .then(out => {
@@ -143,7 +150,7 @@ function addSubmodules({ folder, caw }: TRepoAddReq): Promise<void> {
         if (res) subs.push(res[2])
       })
       logger.log('SCM git submodules: ', out, subs)
-      const promises = subs.map(sub => add({ folder: path.join(folder, sub), caw }))
+      const promises = subs.map(sub => add({ folder: path.join(folder, sub), cid }))
       return Promise.all(promises)
         .then(projects => {
           this.emit('res:repo:add-submodules', projects)
@@ -154,27 +161,27 @@ function addSubmodules({ folder, caw }: TRepoAddReq): Promise<void> {
     })
 }
 
-function getTmpDir({ caw }) {
-  if (!CAWStore.uTmpDir[caw]) {
-    console.log('GET TMP DIR', CAWStore.tmpDir, caw)
-    const uPath = path.join(CAWStore.tmpDir, caw)
+function getTmpDir(cid) {
+  if (!CAWStore.uTmpDir[cid]) {
+    console.log('GET TMP DIR', CAWStore.tmpDir, cid)
+    const uPath = path.join(CAWStore.tmpDir, cid)
     fs.mkdirSync(uPath)
-    CAWStore.uTmpDir[caw] = uPath
+    CAWStore.uTmpDir[cid] = uPath
     logger.info('GARDENER: created temp dir', uPath)
   }
 
-  this.emit('res:repo:get-tmp-dir', { tmpDir: CAWStore.uTmpDir[caw] })
+  this.emit('res:repo:get-tmp-dir', { tmpDir: CAWStore.uTmpDir[cid] })
 }
 
 type TBranchDiffInfo = {
   fpath: string
   branch: string
   origin: string
-  caw: string
+  cid: string
 }
 
 /**
- * @param info object { fpath, branch, origin, caw }
+ * @param info object { fpath, branch, origin, cid }
  */
 function diffWithBranch(info: TBranchDiffInfo) {
   return CAWDiffs
@@ -186,11 +193,11 @@ type TContribDiffInfo = {
   fpath: string
   contrib: any
   origin: string
-  caw: string
+  cid: string
 }
 
 /**
- * @param info object { fpath, contrib, origin, caw }
+ * @param info object { fpath, contrib, origin, cid }
  */
 function diffWithContributor(info: TContribDiffInfo) {
   return CAWDiffs
@@ -202,14 +209,14 @@ function readFile({ fpath }) {
   fsPromise.readFile(fpath).then(doc => doc.toString('utf8'))
 }
 
-function vscodeDiff({ wsFolder, fpath, uid, caw }) {
+function vscodeDiff({ wsFolder, fpath, uid, cid }) {
   const absPath = path.join(wsFolder, fpath)
   try {
     fs.accessSync(absPath, fs.constants.R_OK)
     this.emit('res:repo:vscode-diff', { exists: true, res1: path.join(wsFolder, fpath) })
   } catch (err) {
-    const tmpDir = CAWStore.uTmpDir[caw]
-    const activeProject = CAWStore.activeProjects[caw]
+    const tmpDir = CAWStore.uTmpDir[cid]
+    const activeProject = CAWStore.activeProjects[cid]
     const tmpFile = _.uniqueId(path.basename(fpath))
     const tmp = path.join(tmpDir, tmpFile)
     fs.writeFileSync(tmp, '')
@@ -223,14 +230,14 @@ function vscodeDiff({ wsFolder, fpath, uid, caw }) {
 type TSendDiff = {
   fpath: string
   doc: any
-  caw: string
+  cid: string
 }
 
 async function sendDiffs(data: TSendDiff) {
-  const { fpath, doc, caw } = data
+  const { fpath, doc, cid } = data
   const project = getProjectFromPath(fpath)
-  await CAWDiffs.sendDiffs(project, caw)
-  return CAWDiffs.refreshChanges(project, project.activePath, doc, caw)
+  await CAWDiffs.sendDiffs(project, cid)
+  return CAWDiffs.refreshChanges(project, project.activePath, doc, cid)
     .then(() => {
       this.emit('res:repo:file-saved', project)
     })

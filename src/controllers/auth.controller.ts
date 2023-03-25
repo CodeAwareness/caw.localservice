@@ -5,7 +5,7 @@ import logger from '@/logger'
 type TLoginReq = {
   email: string
   password: string
-  caw: string
+  cid: string
 }
 
 function login({ email, password }: TLoginReq) {
@@ -17,11 +17,11 @@ function login({ email, password }: TLoginReq) {
     })
 }
 
-async function logout({ caw }) {
-  return CAWStore.reset(caw)
+async function logout({ cid }) {
+  return CAWStore.reset(cid)
 }
 
-function info(caw: string) {
+function info(cid: string) {
   const { user, tokens } = CAWStore
   logger.log('AUTH: checking auth info')
   if (tokens?.refresh?.expires < new Date().toISOString()) {
@@ -42,7 +42,7 @@ function info(caw: string) {
       this.emit('res:auth:info', { user, tokens })
     })
     .catch(err => {
-      CAWStore.reset(caw)
+      CAWStore.reset(cid)
       this.emit('res:auth:info', { err: err.message })
     })
 }

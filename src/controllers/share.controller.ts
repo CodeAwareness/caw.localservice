@@ -88,8 +88,8 @@ async function getOriginInfo(origin: string) {
     })
 }
 
-async function getDiffs({ origin, contrib, fpath, caw }) {
-  const { extractDir } = await diffs.diffWithContributor({ contrib, origin, fpath, caw })
+async function getDiffs({ origin, contrib, fpath, cid }) {
+  const { extractDir } = await diffs.diffWithContributor({ contrib, origin, fpath, cid })
   const pptFilename = `${contrib._id}.pptx`
   const peerFile = await share.buildPPTX({ extractDir, pptFilename })
   const peerFile64 = await share.fileToBase64(peerFile)
