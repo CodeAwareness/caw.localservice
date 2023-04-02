@@ -18,7 +18,7 @@ import logger from '@/logger'
 
 import git from './git'
 import shell from './shell'
-import { CAWStore } from './store'
+import CAWStore from './store'
 import CAWAPI, { API_REPO_COMMITS, API_REPO_COMMON_SHA, API_REPO_CONTRIB, API_REPO_DIFF_FILE, API_SHARE_SLIDE_CONTRIB } from './api'
 
 const PENDING_DIFFS = {}
@@ -243,8 +243,10 @@ function createEmpty(file) {
  * We're running a git diff against the common SHA, archive this with gzip
  * and send it to the server.
  *
- * TODO: OPTIMIZATION: send only the file that was just saved (if file save event)
- * or the files modified (if file system event)
+ * Currently we're sending the entire project diffs to the server.
+ * TODO: OPTIMIZATION: add a boolean parameter that will enable sending
+ * only the file that was just saved (if file save event)
+ * TODO: even more optimization: send each file modified outside VSCode (file system event)
  *
  * @param Object - CAWStore project
  * @param string - the app unique ID (cid)

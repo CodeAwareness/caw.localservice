@@ -5,7 +5,7 @@ import tmp from 'tmp'
 import Keyv from 'keyv'
 
 import Joi    from '@hapi/joi'
-import { CAWStore } from '@/services/store'
+import CAWStore from '@/services/store'
 
 const dbpath = path.join(process.cwd(), 'storage.sqlite')
 
@@ -41,15 +41,19 @@ if (error) {
 
 const PORT_LOCAL = envVars.PORT || 48048
 const PORT_LOCAL_API = 3008
+
+/* The REST API */
 const API_SERVER = process.env.LOCAL ? `localhost:${PORT_LOCAL_API}`      : 'api.codeawareness.com'
 const API_URL    = process.env.LOCAL ? `http://${API_SERVER}/v1`          : `https://${API_SERVER}/v1`
+
+/* This WSS API will be used to sync up comments, perform voice/video conference etc */
 const SERVER_WSS = process.env.LOCAL ? `ws://localhost:${PORT_LOCAL_API}` : 'wss://api.codeawareness.com'
 const WSS_NAMESPACE = 'svc'
 
 const PIPE_CLIENTS = '/var/tmp/caw/clients'
 const CONFIGURATION_FILE = '.CAW'
 const CODE_AWARENESS_SCHEMA = 'CAW'
-const SYNC_INTERVAL = 100 * 1000 // download diffs from the server every some time
+const SYNC_INTERVAL = 100 * 1000 // upload local diffs to the server every minute or so
 const SYNC_THRESHOLD = 1000 // don't sync too often
 const MAX_NR_OF_SHA_TO_COMPARE = 5
 

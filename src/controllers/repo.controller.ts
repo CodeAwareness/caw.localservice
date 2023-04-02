@@ -8,7 +8,7 @@ import logger from '@/config/logger'
 import config from '@/config/config'
 
 import git from '@/services/git'
-import { CAWStore } from '@/services/store'
+import CAWStore from '@/services/store'
 import CAWDiffs from '@/services/diffs'
 
 type TRepoAddReq = {
@@ -60,7 +60,7 @@ function getProjectFromPath(fpath: string) {
  *
  * @param string the file path for the current file open in the editor
  * @param string the client ID
- * @param object the web socket, used to reply when everything's done
+ * @param object the web socket, used to reply when everything's done. This is currently the pipe IPC socket, but it can be websockets too.
  */
 function selectProject(fpath: string, cid: string, socket: Socket): Promise<any> {
   let project = getProjectFromPath(fpath)
@@ -75,7 +75,9 @@ function selectProject(fpath: string, cid: string, socket: Socket): Promise<any>
         CAWStore.projects.push(project) // TODO: used for SCM, but we need to also use socket id, cid
         CAWStore.activeProjects[cid] = project
         CAWDiffs.sendDiffs(project, cid) // Not waiting at the moment, because we're only returning OK from the server
-        setupPeriodicSync(project, cid)
+        const timer = CAWStore.timers[project.root]
+        if (timer) clearInterval(timer[cid])
+        CAWStore.timers[project.root] = setupPeriodicSync(project, cid, socket)
         return git.command(wsFolder, 'git branch --no-color')
       })
       .then(stdout => {
@@ -90,9 +92,12 @@ function selectProject(fpath: string, cid: string, socket: Socket): Promise<any>
   return Promise.resolve(project)
 }
 
-function setupPeriodicSync(project: any, cid: string) {
-  setInterval(() => {
+function setupPeriodicSync(project: any, cid: string, socket: Socket) {
+  return setInterval(() => {
     CAWDiffs.sendDiffs(project, cid)
+      .then(() => {
+        CAWStore.wsStation[cid].emit('res:sync:setup', { action: 'refresh', root: project.root })
+      })
   }, config.SYNC_INTERVAL)
 }
 
@@ -163,7 +168,7 @@ function addSubmodules({ folder, cid }: TRepoAddReq): Promise<void> {
 
 function getTmpDir(cid) {
   if (!CAWStore.uTmpDir[cid]) {
-    console.log('GET TMP DIR', CAWStore.tmpDir, cid)
+    logger.log('GET TMP DIR', CAWStore.tmpDir, cid)
     const uPath = path.join(CAWStore.tmpDir, cid)
     fs.mkdirSync(uPath)
     CAWStore.uTmpDir[cid] = uPath
@@ -233,8 +238,12 @@ type TSendDiff = {
   cid: string
 }
 
+/**
+ * when a file is saved in the editor, we send the diffs to the server and refresh
+ */
 async function sendDiffs(data: TSendDiff) {
   const { fpath, doc, cid } = data
+  logger.log('REPO: sendDiffs, cid, fpath', cid, fpath)
   const project = getProjectFromPath(fpath)
   await CAWDiffs.sendDiffs(project, cid)
   return CAWDiffs.refreshChanges(project, project.activePath, doc, cid)

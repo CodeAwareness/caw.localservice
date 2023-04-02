@@ -4,7 +4,7 @@ import { readdirSync, stat } from 'node:fs'
 import logger from '@/config/logger'
 import git from './git'
 
-import { CAWStore } from './store'
+import CAWStore from './store'
 
 /**
  * @param data object {

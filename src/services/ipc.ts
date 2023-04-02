@@ -3,12 +3,15 @@ import fs from 'fs'
 import net, { Socket } from 'net'
 import { EventEmitter } from 'node:events'
 
+import CAWStore from '@/services/store'
+
 const delimiter = '\f'
 
 class IPC {
   public appspace = 'caw.'
   public socketRoot = '/var/tmp/'
   public path = ''
+  public cid = ''
   public pubsub = new EventEmitter()
   public server = null as net.Server || null
 
@@ -18,6 +21,7 @@ class IPC {
 
   constructor(guid: string) {
     if (guid) this.path = this.socketRoot + this.appspace + guid
+    this.cid = guid
     console.log('New IPC', this.path)
     /* TODO: Windows pipe path
     if (process.platform === 'win32' && !path.startsWith('\\\\.\\pipe\\')) {
@@ -37,7 +41,13 @@ class IPC {
     this.server = net.createServer((socket: Socket) => {
       this.socket = socket
       socket.setEncoding('utf8')
-      socket.on('end', () => { console.log('Client disconnected: ', this.path) })
+      socket.on('end', () => {
+        console.log('Client disconnected: ', this.path)
+        CAWStore.activeProjects[this.cid]?.map(p => {
+          if (CAWStore.timers[p.root]) clearInterval(CAWStore.timers[p.root])
+        })
+
+      })
       socket.on('error', err => { console.log('Socket error: ', this.path, err) })
       socket.on('data', data => this.onData(data))
     })
@@ -59,12 +69,11 @@ class IPC {
       console.log('Cannot dispatch event. No socket for', this.id)
       return
     }
-    console.log('Dispatching event to ', this.id, this.path, ' : ', message)
+    console.log('Dispatching event to ', this.id, this.path, ' : ', message.substring(0, 100))
     this.socket.write(message + delimiter)
   }
 
   onData(data: any) {
-    console.log('Received data', this.path, data)
     this.ipcBuffer += data.toString()
 
     if (this.ipcBuffer.indexOf(delimiter) === -1) {

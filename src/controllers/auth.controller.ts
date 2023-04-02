@@ -1,4 +1,4 @@
-import { CAWStore } from '@/services/store'
+import CAWStore from '@/services/store'
 import CAWAPI, { API_AUTH_LOGIN, API_AUTH_SIGNUP } from '@/services/api'
 import logger from '@/logger'
 

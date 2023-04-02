@@ -1,9 +1,9 @@
-const getUsers = () => {
-  // TODO
+function cameOnline() {
+  // TODO: announce when friends came online
 }
 
 const userController = {
-  getUsers,
+  cameOnline,
 }
 
 export default userController

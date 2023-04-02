@@ -5,7 +5,7 @@ import Config from '@/config/config'
 import git from './git'
 import logger from '@/logger'
 
-import { CAWStore } from './store'
+import CAWStore from './store'
 
 export type TCredentials = {
   strategy: string
@@ -60,7 +60,7 @@ axiosAPI.interceptors.response.use(
       logger.log('SWARM AUTH COMMAND', cmd)
       const authPromise = reAuthorize(origin, branch, commitDate, clientId) // IMPORTANT: no await! otherwise we interrupt the regular operations for too long, and we also get deeper into a recursive interceptor response.
         .then(res => {
-          if (res.data.repo._REQUEST_DIFF) {
+          if (res.data?.repo._REQUEST_DIFF) {
             CAWDiffs.sendDiffs(CAWStore.activeProjects[clientId], clientId)
           }
         })

@@ -1,23 +1,23 @@
 import config from '@/config/config'
 
-export const CAWStore = {
+const CAWStore = {
   colorTheme: 1, // 1 = Light, 2 = Dark, 3 = High Contrast
   user: undefined,
   tokens: undefined,
   panel: undefined,
 
   /* tmpDir: {
-   *   name: '/tmp/cA_-12750-bA2Le6JKQ4Ad/'
+   *   name: '/tmp/caw-12750-bA2Le6JKQ4Ad/'
    *   ... // see npm tmp package
    * }
    */
   tmpDir: undefined,
 
   /*
-   * instance based temp directories (one for each GUID)
+   * instance based temp directories (one for each CID)
    * uTmpDir: {
-   *   qwe123: '/tmp/caw_-12750-bA2L/',
-   *   dfk230: '/tmp/caw_-2245h-hJ2k',
+   *   qwe123: '/tmp/caw_12750-bA2L/',
+   *   dfk230: '/tmp/caw_2245h-hJ2k',
    * }
    */
   uTmpDir: {},
@@ -77,11 +77,17 @@ export const CAWStore = {
 
   /*
    * activeProjects: {
-   *   'sjwk123': { ... }, // active project for caw = 'sjwk123'
-   *   'dh84hjk': { ... }, // active project for caw = 'dh84hjk'
+   *   'sjwk123': { ... }, // active project for cid = 'sjwk123'
+   *   'dh84hjk': { ... }, // active project for cid = 'dh84hjk'
    * }
    */
   activeProjects: {},
+
+  /*
+   * Each client uses a timer for each project, to sync up code diffs with the server.
+   * We store these timers one for each project root, to avoid sync problems when the user has the same repo in two different local directories.
+   */
+  timers: {},
 
   /* selectedContributor: {
    *   diffDir, // the temp folder where the file is extracted
@@ -127,9 +133,8 @@ export const CAWStore = {
   doc: undefined, // active document (specific doc format for Atom, VSCode)
   line: 0, // cursor line nr in document
 
-  wsStation: undefined, // socketIO Client communicating with CodeAwareness
-
-  wsGardener: undefined, // socketIO Server communicating with the editors
+  wsStation: {}, // Socket sync with CodeAwareness extensions (one socket for each client / editor extension)
+  wsGardener: null, // socketIO sync with CodeAwareness API (a single socket)
 
   clear: () => {
     CAWStore.selectedContributor = undefined
@@ -165,3 +170,5 @@ export const CAWWork = {
   tokenInterval: 0,
   syncTimer: null,
 }
+
+export default CAWStore

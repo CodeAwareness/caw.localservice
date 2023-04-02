@@ -9,7 +9,7 @@ import Config from '@/config/config'
 import { generateUUID } from '@/utils/string'
 import shell from '@/services/shell'
 import diffs from '@/services/diffs'
-import { CAWStore } from '@/services/store'
+import CAWStore from '@/services/store'
 import logger from '@/logger'
 
 import CAWAPI, { API_SHARE_ACCEPT, API_SHARE_FINFO, API_SHARE_OINFO, API_SHARE_UPLOAD } from '@/services/api'
