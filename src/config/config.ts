@@ -34,6 +34,8 @@ const envVarsSchema = Joi.object()
   .unknown()
 
 const { value: envVars, error } = envVarsSchema.prefs({ errors: { label: 'key' } }).validate(process.env)
+const DEBUG = ['development', 'test'].includes(envVars.NODE_ENV)
+const LOCAL = !!envVars.LOCAL_API
 
 if (error) {
   throw new Error(`Config validation error: ${error.message}`)
@@ -43,21 +45,20 @@ const PORT_LOCAL = envVars.PORT || 48048
 const PORT_LOCAL_API = 3008
 
 /* The REST API */
-const API_SERVER = process.env.LOCAL ? `localhost:${PORT_LOCAL_API}`      : 'api.codeawareness.com'
-const API_URL    = process.env.LOCAL ? `http://${API_SERVER}/v1`          : `https://${API_SERVER}/v1`
+const API_SERVER = LOCAL ? `localhost:${PORT_LOCAL_API}` : 'api.codeawareness.com'
+const API_URL = DEBUG ? `http://${API_SERVER}/v1` : `https://${API_SERVER}/v1`
 
 /* This WSS API will be used to sync up comments, perform voice/video conference etc */
-const SERVER_WSS = process.env.LOCAL ? `ws://localhost:${PORT_LOCAL_API}` : 'wss://api.codeawareness.com'
+const SERVER_WSS = LOCAL ? `ws://localhost:${PORT_LOCAL_API}` : 'wss://api.codeawareness.com'
 const WSS_NAMESPACE = 'svc'
 
-const PIPE_CLIENTS = '/var/tmp/caw/clients'
-const CONFIGURATION_FILE = '.CAW'
+const PIPE_CATALOG = DEBUG ? 'catalog_dev' : 'catalog'
+// TODO: move some of this config into a .caw file, either toml or yaml
+const CONFIGURATION_FILE = '.caw'
 const CODE_AWARENESS_SCHEMA = 'CAW'
 const SYNC_INTERVAL = 100 * 1000 // upload local diffs to the server every minute or so
 const SYNC_THRESHOLD = 1000 // don't sync too often
 const MAX_NR_OF_SHA_TO_COMPARE = 5
-
-// console.log('CONFIG: (local, SYNC_INTERVAL, API_URL, EXT_URL)', process.env.LOCAL, SYNC_INTERVAL, API_URL, EXT_URL)
 
 const LOG_LEVEL = process.env.LOG_LEVEL || 'debug' // ['verbose', 'debug', 'error']
 
@@ -77,6 +78,7 @@ const Config = {
   API_SERVER,
   API_URL,
   CONFIGURATION_FILE,
+  DEBUG,
   EXTRACT_BRANCH_DIR,
   EXTRACT_LOCAL_DIR,
   EXTRACT_PEER_DIR,
@@ -84,7 +86,7 @@ const Config = {
   LOG_LEVEL,
   MAX_NR_OF_SHA_TO_COMPARE,
   CODE_AWARENESS_SCHEMA,
-  PIPE_CLIENTS,
+  PIPE_CATALOG,
   PORT_LOCAL,
   SERVER_WSS,
   SYNC_INTERVAL,

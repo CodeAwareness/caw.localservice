@@ -1,14 +1,13 @@
-import EventEmitter from 'events'
-
 import logger from '@/logger'
 
 import { Socket } from 'net'
+import config from '@/config/config'
 import IPC from '@/services/ipc'
 import gstationRouter from '@/routes/v1/x-grand-station'
 
 const clients = []
 
-const ipcCatalog = new IPC('catalog')
+const ipcCatalog = new IPC(config.PIPE_CATALOG)
 
 function init(): void {
   initPipe()
