@@ -29,7 +29,7 @@ mkdirp.sync(uploadDir)
 const envVarsSchema = Joi.object()
   .keys({
     NODE_ENV: Joi.string().valid('production', 'development', 'test').required(),
-    PORT: Joi.number().default(48408),
+    PORT: Joi.number().default(48048),
   })
   .unknown()
 
