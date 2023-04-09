@@ -73,31 +73,26 @@ const loggerConsole = {
   log: function(...args: any[]): void {
     if (!trains.includes(args[0].toLowerCase().split(':')[0]) && !trains.includes('all')) return
     trace()
-    args.unshift('GRAND STATION')
     console.log(map(args, stringify))
   },
   info: function(...args: any[]): void {
     if (!trains.includes(args[0].toLowerCase().split(':')[0]) && !trains.includes('all')) return
     trace()
-    args.unshift('GRAND STATION')
     console.info(map(args, stringify))
   },
   warn: function(...args: any[]): void {
     if (!trains.includes(args[0].toLowerCase().split(':')[0]) && !trains.includes('all')) return
     trace()
-    args.unshift('GRAND STATION')
     console.warn(map(args, stringify))
   },
   debug: function(...args: any[]): void {
     if (!trains.includes(args[0].toLowerCase().split(':')[0]) && !trains.includes('all')) return
     trace()
-    args.unshift('GRAND STATION')
     console.info(map(args, stringify))
   },
   error: function(...args: any[]): void {
     if (!trains.includes(args[0].toLowerCase().split(':')[0]) && !trains.includes('all')) return
     trace()
-    args.unshift('GRAND STATION')
     console.error(map(args, stringify))
   },
 }

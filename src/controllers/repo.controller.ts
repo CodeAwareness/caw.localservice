@@ -70,7 +70,7 @@ function selectProject(fpath: string, cid: string, socket: Socket): Promise<any>
       .then(newProject => {
         project = newProject
         project.activePath = fpath.substr(project.root)
-        logger.info('REPO: the relative active path is', project.activeProjects)
+        logger.info('REPO: the relative active path is', project.activePath)
         CAWStore.projects.push(project) // TODO: used for SCM, but we need to also use socket id, cid
         CAWStore.activeProjects[cid] = project
         setupClientSync(cid, project, socket)
