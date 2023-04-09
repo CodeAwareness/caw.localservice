@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 import { map } from 'lodash'
-import api from '@/services/api'
+
+let trains = ['all']
+let traceEnabled = true
 
 const circularReplacer = () => {
   const seen = new WeakSet()
@@ -24,6 +26,7 @@ function stringify(arg) {
 }
 
 function trace() {
+  if (!traceEnabled) return
   const lines = getStackTrace().split('\n').filter(l => (l.includes('localservice') && !l.includes('logger') && !l.includes('node_modules')))
   lines.push('')
   console.debug(lines.join('\n'))
@@ -31,64 +34,71 @@ function trace() {
 
 /* eslint-disable no-console */
 /* eslint-disable n/handle-callback-err */
-const logger = {
+/*
+const loggerForGoogle = {
   log: function(...args: any[]): void {
     console.log('CAW.LS:', map(args, stringify))
     trace()
     args.unshift('GRAND STATION')
-    api.axiosAPI.post(`${api.API_LOG}/log`, args).catch(_err => {})
   },
   info: function(...args: any[]): void {
     console.info('CAW.LS:', map(args, stringify))
     trace()
     args.unshift('GRAND STATION')
-    api.axiosAPI.post(`${api.API_LOG}/info`, args).catch(_err => {})
   },
   warn: function(...args: any[]): void {
     console.warn('CAW.LS:', map(args, stringify))
     trace()
     args.unshift('GRAND STATION')
-    api.axiosAPI.post(`${api.API_LOG}/warn`, args).catch(_err => {})
   },
   debug: function(...args: any[]): void {
     console.info('CAW.LS:', map(args, stringify))
     trace()
     args.unshift('GRAND STATION')
-    api.axiosAPI.post(`${api.API_LOG}/debug`, args).catch(_err => {})
   },
   error: function(...args: any[]): void {
     console.error('CAW.LS:', map(args, stringify))
     trace()
     args.unshift('GRAND STATION')
-    api.axiosAPI.post(`${api.API_LOG}/error`, args).catch(_err => {})
   },
 }
+*/
 
 const loggerConsole = {
+  init: function(domains, trace) {
+    trains = domains.toLowerCase().split(',')
+    traceEnabled = trace
+    console.log('LOGGER: init', trains)
+  },
   log: function(...args: any[]): void {
+    if (!trains.includes(args[0].toLowerCase().split(':')[0]) && !trains.includes('all')) return
     trace()
     args.unshift('GRAND STATION')
-    console.log('CAW.LS:', map(args, stringify))
+    console.log(map(args, stringify))
   },
   info: function(...args: any[]): void {
+    if (!trains.includes(args[0].toLowerCase().split(':')[0]) && !trains.includes('all')) return
     trace()
     args.unshift('GRAND STATION')
-    console.info('CAW.LS:', map(args, stringify))
+    console.info(map(args, stringify))
   },
   warn: function(...args: any[]): void {
+    if (!trains.includes(args[0].toLowerCase().split(':')[0]) && !trains.includes('all')) return
     trace()
     args.unshift('GRAND STATION')
-    console.warn('CAW.LS:', map(args, stringify))
+    console.warn(map(args, stringify))
   },
   debug: function(...args: any[]): void {
+    if (!trains.includes(args[0].toLowerCase().split(':')[0]) && !trains.includes('all')) return
     trace()
     args.unshift('GRAND STATION')
-    console.info('CAW.LS:', map(args, stringify))
+    console.info(map(args, stringify))
   },
   error: function(...args: any[]): void {
+    if (!trains.includes(args[0].toLowerCase().split(':')[0]) && !trains.includes('all')) return
     trace()
     args.unshift('GRAND STATION')
-    console.error('CAW.LS:', map(args, stringify))
+    console.error(map(args, stringify))
   },
 }
 

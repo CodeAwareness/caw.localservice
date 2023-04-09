@@ -4,8 +4,9 @@ import mkdirp from 'mkdirp'
 import tmp from 'tmp'
 import Keyv from 'keyv'
 
-import Joi    from '@hapi/joi'
+import Joi from '@hapi/joi'
 import CAWStore from '@/services/store'
+import logger from '@/logger'
 
 const dbpath = path.join(process.cwd(), 'storage.sqlite')
 
@@ -28,6 +29,8 @@ mkdirp.sync(uploadDir)
 
 const envVarsSchema = Joi.object()
   .keys({
+    CAW_CATALOG: Joi.string().default('catalog'),
+    CAW_DEBUG: Joi.string().default('all'),
     NODE_ENV: Joi.string().valid('production', 'development', 'test').required(),
     PORT: Joi.number().default(48048),
   })
@@ -36,12 +39,14 @@ const envVarsSchema = Joi.object()
 const { value: envVars, error } = envVarsSchema.prefs({ errors: { label: 'key' } }).validate(process.env)
 const DEBUG = ['development', 'test'].includes(envVars.NODE_ENV)
 const LOCAL = !!envVars.LOCAL_API
+const TRACE = !!envVars.TRACE
+logger.init(envVars.CAW_DEBUG, TRACE)
 
 if (error) {
   throw new Error(`Config validation error: ${error.message}`)
 }
 
-const PORT_LOCAL = envVars.PORT || 48048
+const PORT_LOCAL = envVars.PORT
 const PORT_LOCAL_API = 3008
 
 /* The REST API */
@@ -52,7 +57,8 @@ const API_URL = DEBUG ? `http://${API_SERVER}/v1` : `https://${API_SERVER}/v1`
 const SERVER_WSS = LOCAL ? `ws://localhost:${PORT_LOCAL_API}` : 'wss://api.codeawareness.com'
 const WSS_NAMESPACE = 'svc'
 
-const PIPE_CATALOG = DEBUG ? 'catalog_dev' : 'catalog'
+const PIPE_CATALOG = DEBUG ? envVars.CAW_CATALOG + '_dev' : envVars.CAW_CATALOG
+console.log('connecting to catalog', PIPE_CATALOG)
 // TODO: move some of this config into a .caw file, either toml or yaml
 const CONFIGURATION_FILE = '.caw'
 const CODE_AWARENESS_SCHEMA = 'CAW'

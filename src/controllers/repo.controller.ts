@@ -55,8 +55,7 @@ function getProjectFromPath(fpath: string) {
 }
 
 /**
- * Select the current project for the CodeAwareness client, and UPDATES the server with its latest DIFFS.
- * We look at the file that's activated and select the project that matches its path.
+ * Select the project containing the requested file path, and UPDATE the server with its latest DIFFS.
  *
  * @param string the file path for the current file open in the editor
  * @param string the client ID
@@ -74,10 +73,7 @@ function selectProject(fpath: string, cid: string, socket: Socket): Promise<any>
         logger.info('REPO: the relative active path is', project.activeProjects)
         CAWStore.projects.push(project) // TODO: used for SCM, but we need to also use socket id, cid
         CAWStore.activeProjects[cid] = project
-        CAWDiffs.sendDiffs(project, cid) // Not waiting at the moment, because we're only returning OK from the server
-        const timer = CAWStore.timers[project.root]
-        if (timer) clearInterval(timer[cid])
-        CAWStore.timers[project.root] = setupPeriodicSync(project, cid, socket)
+        setupClientSync(cid, project, socket)
         return git.command(wsFolder, 'git branch --no-color')
       })
       .then(stdout => {
@@ -86,13 +82,32 @@ function selectProject(fpath: string, cid: string, socket: Socket): Promise<any>
         project.branches = lines.map(line => line.replace('* ', '').replace(/\s/g, '')).filter(a => a)
         return project
       })
+  } else {
+    setupClientSync(cid, project, socket)
   }
   CAWStore.activeProjects[cid] = project
   // TODO: send diffs on a timer? (for example when more than 5 minutes have passed)
   return Promise.resolve(project)
 }
 
-function setupPeriodicSync(project: any, cid: string, socket: Socket) {
+function setupClientSync(cid, project, socket) {
+  if (!CAWStore.timers[cid]) CAWStore.timers[cid] = {}
+  const timer = CAWStore.timers[cid][project.root]
+  if (!timer) {
+    // some other client may have already setup a sync process for the same project
+    const exists = Object.keys(CAWStore.timers).map(cid => CAWStore.timers[cid][project.root]).filter(r => r !== undefined)[0]
+    if (!exists) {
+      CAWStore.timers[cid][project.root] = setupPeriodicSync(project, cid, socket)
+    } else {
+      return setInterval(() => {
+        CAWStore.wsStation[cid].emit('res:sync:setup', { action: 'refresh', root: project.root })
+      }, config.SYNC_INTERVAL)
+    }
+  }
+}
+
+function setupPeriodicSync(project: any, cid: string, socket: Socket): ReturnType<typeof setInterval> {
+  logger.log(`IPC: setting up sync for ${cid}`)
   return setInterval(() => {
     CAWDiffs.sendDiffs(project, cid)
       .then(() => {
@@ -168,11 +183,9 @@ function addSubmodules({ folder, cid }: TRepoAddReq): Promise<void> {
 
 function getTmpDir(cid) {
   if (!CAWStore.uTmpDir[cid]) {
-    logger.log('GET TMP DIR', CAWStore.tmpDir, cid)
     const uPath = path.join(CAWStore.tmpDir, cid)
     fs.mkdirSync(uPath)
     CAWStore.uTmpDir[cid] = uPath
-    logger.info('GARDENER: created temp dir', uPath)
   }
 
   this.emit('res:repo:get-tmp-dir', { tmpDir: CAWStore.uTmpDir[cid] })

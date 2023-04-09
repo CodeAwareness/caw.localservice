@@ -47,6 +47,31 @@ yarn build
 yarn start
 ```
 
+# Multi-user run
+
+Running multiple CodeAwareness LS instances allows you to use different usernames for different clients. This is how i made the presentation video for Code Awareness. Just make sure you modify the client extension to point to the right catalog file pipe.
+
+Step 1. Run the CodeAwareness LS in your existing folder, with default parameters:
+```
+cd ca.localservice
+CAW_CATALOG=catalog PORT=48048 yarn dev
+```
+
+Step 2. Link the folder to a new location and run it with new parameters:
+```
+cd ../
+ln -s ca.localservice ca.2.localservice
+CAW_CATALOG=catalog2 PORT=48049 yarn dev
+```
+
+# Debug levels
+
+Our localservice has a ton of logs, which can make it hard to debug. To print only specific debug messages, take a look at the logger patterns in our code and use the one you want. For example, we can print only IPC and DIFFS logs by running LS with the following environment variables:
+
+```
+CAW_CATALOG=catalog2 PORT=48049 DEBUG=ipc,diffs yarn dev
+```
+
 # Test
 
 NOTE: Tests don't yet work. We're currently working on porting tests from an older version of this project.

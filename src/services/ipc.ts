@@ -4,6 +4,7 @@ import net, { Socket } from 'net'
 import { EventEmitter } from 'node:events'
 
 import CAWStore from '@/services/store'
+import logger from '@/logger'
 
 const delimiter = '\f'
 
@@ -18,11 +19,13 @@ class IPC {
   private ipcBuffer = ''
   private socket = null as Socket | null
   private id = os.hostname()
+  private handlers = {}
+  private errHandlers = {}
 
   constructor(guid: string) {
     if (guid) this.path = this.socketRoot + this.appspace + guid
     this.cid = guid
-    console.log('New IPC', this.path)
+    logger.log('IPC: New IPC', this.path)
     /* TODO: Windows pipe path
     if (process.platform === 'win32' && !path.startsWith('\\\\.\\pipe\\')) {
       path = path.replace(/^\//, '')
@@ -36,40 +39,43 @@ class IPC {
     try {
       fs.unlinkSync(this.path)
     } catch (err) {
-      console.log('Pipe does not exist. Initializing.', this.path)
+      logger.log('IPC: Pipe does not exist. Initializing.', this.path)
     }
     this.server = net.createServer((socket: Socket) => {
       this.socket = socket
       socket.setEncoding('utf8')
       socket.on('end', () => {
-        console.log('Client disconnected: ', this.path)
-        CAWStore.activeProjects[this.cid]?.map(p => {
-          if (CAWStore.timers[p.root]) clearInterval(CAWStore.timers[p.root])
-        })
-
+        const timers = CAWStore.timers[this.cid]
+        if (timers) {
+          logger.log(`IPC: Client disconnected: ${this.path}. Cleaning up active projects (${Object.keys(timers).length} projects).`)
+            Object.keys(timers).map(p => {
+              if (timers[p]) clearInterval(timers[p])
+            })
+            delete CAWStore.timers[this.cid]
+          }
       })
-      socket.on('error', err => { console.log('Socket error: ', this.path, err) })
+      socket.on('error', err => { logger.log('IPC: Socket error: ', this.path, err) })
       socket.on('data', data => this.onData(data))
     })
-    this.server.on('error', (err) => { console.log('server error', this.path, err) })
+    this.server.on('error', (err) => { logger.log('IPC: server error', this.path, err) })
   }
 
   start() {
-    console.log('starting server on ', this.path)
+    logger.log('IPC: starting server on ', this.path)
     this.server.listen(this.path)
   }
 
   stop() {
-    console.log('closing server on ', this.path)
+    logger.log('IPC: closing server on ', this.path)
     this.server.close()
   }
 
   emit(message: string) {
     if (!this.socket) {
-      console.log('Cannot dispatch event. No socket for', this.id)
+      logger.log('IPC: Cannot dispatch event. No socket for', this.id)
       return
     }
-    console.log('Dispatching event to ', this.id, this.path, ' : ', message.substring(0, 100))
+    logger.log('IPC: Dispatching event to ', this.id, this.path, ' : ', JSON.parse(message))
     this.socket.write(message + delimiter)
   }
 
@@ -77,17 +83,17 @@ class IPC {
     this.ipcBuffer += data.toString()
 
     if (this.ipcBuffer.indexOf(delimiter) === -1) {
-      console.log('Messages are pretty large, is this really necessary?')
+      logger.log('IPC: Messages are pretty large, is this really necessary?')
       return
     }
 
     const handler = (action: string, body: any) => {
-      console.info('IPC: Client: resolved action', action)
+      logger.info('IPC: Client: resolved action', action)
       this.emit(JSON.stringify({ action: `res:${action}`, body }))
     }
 
     const errHandler = (action: string, err: any) => {
-      console.error('IPC: socket error', action, err)
+      logger.error('IPC: socket error', action, err)
       this.emit(JSON.stringify({ action: `err:${action}`, err }))
     }
 
@@ -95,9 +101,15 @@ class IPC {
     events.pop()
     events.map(event => {
       const { action, data, err } = JSON.parse(event)
-      console.log('Detected event', action)
-      this.pubsub.on(`res:${action}`, body => handler(action, body))
-      this.pubsub.on(`error:${action}`, err => errHandler(action, err))
+      logger.log('IPC: Detected event', action, this.handlers)
+      if (!this.handlers[ `res:${action}` ]) {
+        this.pubsub.on(`res:${action}`, body => handler(action, body))
+        this.handlers[ `res:${action}` ] = true
+      }
+      if (!this.errHandlers[ `res:${action}` ]) {
+        this.pubsub.on(`error:${action}`, err => errHandler(action, err))
+        this.errHandlers[ `res:${action}` ] = true
+      }
       this.pubsub.emit(action, data)
     })
 

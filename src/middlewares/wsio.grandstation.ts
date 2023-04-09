@@ -35,7 +35,6 @@ class CAWClient {
     this.ipcClient = new IPC(this.guid)
     this.ipcClient.setup()
     gstationRouter.init(this.ipcClient.pubsub)
-    console.log('Client setup complete')
     this.ipcClient.start()
   }
 

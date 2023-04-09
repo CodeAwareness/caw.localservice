@@ -39,7 +39,7 @@ function diffWithBranch({ branch, cid }): Promise<any> {
   const userFile = project.activePath.substr(project.root.length + 1)
   return git.command(wsFolder, 'git rev-parse --show-toplevel')
     .then(folder => {
-      logger.log('diff branch in ', folder)
+      logger.log('DIFFS: branch in ', folder)
       // TODO: git submodules: how do we branch diff on a submodule?
       const name = path.basename(wsFolder)
       const relativeDir = userFile.substr(0, userFile.length - path.basename(userFile).length)
@@ -185,7 +185,7 @@ function sendCommitLog(project: any): Promise<string> {
     )
       .then(res => {
         project.cSHA = res.data?.sha
-        logger.info('DIFF: getCommonSHA for (origin, cSHA, head)', project.origin, project.cSHA, project.head)
+        logger.info('DIFFS: getCommonSHA for (origin, cSHA, head)', project.origin, project.cSHA, project.head)
         return project.cSHA
       })
   }
@@ -318,7 +318,7 @@ function sendDiffs(project: any, cid: string): Promise<void> {
         logger.info('DIFFS: finished writing all streams')
         return new Promise((resolve, reject) => {
           stream
-            .on('error', err => reject(new Error('DIFF: error streaming files.' + err))) // TODO: is this failing if we simplify to `on('error', reject)` ?
+            .on('error', err => reject(new Error('DIFFS: error streaming files.' + err))) // TODO: is this failing if we simplify to `on('error', reject)` ?
             .on('close', resolve)
             .on('end', resolve)
             .on('finish', resolve)
@@ -452,7 +452,7 @@ async function updateGit(/* extractDir: string */): Promise<void> {
 
 /************************************************************************************
  * Refresh the peer changes for the active file.
- * 1. Download the changes (line numbers only) from the server
+ * 1. Download the changes (line numbers only) from the server (once per SYNC_THRESHOLD)
  * 2. Diff against the common SHA
  * 3. Shift the line markers received from the server, to account for local changes.
  *

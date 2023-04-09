@@ -140,13 +140,13 @@ const CAWStore = {
     CAWStore.selectedContributor = undefined
   },
 
-  reset: (caw?: string) => {
+  reset: (cid?: string) => {
     CAWStore.tokens = undefined
     CAWStore.user = undefined
     CAWStore.panel = undefined
     CAWStore.colorTheme = 1
     CAWStore.projects = []
-    if (caw) CAWStore.activeProjects[caw] = undefined
+    if (cid) CAWStore.activeProjects[cid] = undefined
     else CAWStore.activeProjects = {}
     CAWStore.selectedBranch = undefined
     CAWStore.selectedContributor = undefined

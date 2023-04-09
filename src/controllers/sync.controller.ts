@@ -2,7 +2,7 @@ import CAWStore from '@/services/store'
 import logger from '@/logger'
 
 function setup(data) {
-  logger.log('Seting up sync process for client', data.cid)
+  logger.log('IPC: Seting up sync process for client', data.cid)
   this.emit('res:sync:setup')
   CAWStore.wsStation[data.cid] = this
 }
