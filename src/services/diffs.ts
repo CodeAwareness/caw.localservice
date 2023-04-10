@@ -91,8 +91,6 @@ function diffWithBranch({ branch, cid }): Promise<any> {
 function diffWithContributor({ contrib, fpath, origin, cid }): Promise<any> {
   const tmpDir = CAWStore.uTmpDir[cid]
   const project = CAWStore.activeProjects[cid]
-  console.log('ACTIVE PROJECTS', CAWStore.activeProjects, cid)
-  console.log('CONTRIB', contrib)
   const wsFolder = project.root
   const relPath = shell.getRelativePath(fpath, project)
   // !!!!! CAWWorkspace.selectContributor(ct)
@@ -453,7 +451,7 @@ async function updateGit(/* extractDir: string */): Promise<void> {
 /************************************************************************************
  * Refresh the peer changes for the active file.
  * 1. Download the changes (line numbers only) from the server (once per SYNC_THRESHOLD)
- * 2. Diff against the common SHA
+ * 2. Diff against their respective commits
  * 3. Shift the line markers received from the server, to account for local changes.
  *
  * TODO: cleanup older changes; the user closes tabs (maybe) but we're still keeping
@@ -483,6 +481,9 @@ function refreshChanges(project: any, filePath: string, doc: string, cid: string
   return downloadChanges(project, fpath, cid)
     .then(() => {
       logger.info(`DIFFS: will check local diffs for ${fpath}`, project.changes)
+      /* perform aggregate diffs instead of the cSHA; users may send diffs and then
+       * go offline for a while, which make their diffs stale against an old SHA.
+       */
       return getLinesChangedLocaly(project, fpath, doc, cid)
     })
     .then(() => {
@@ -567,7 +568,7 @@ function getLinesChangedLocaly(project: any, fpath: string, doc: string, cid: st
   const wsName = path.basename(wsFolder)
   const tmpDir = CAWStore.uTmpDir[cid]
   if (!project.changes[fpath]) return Promise.resolve()
-  /* TODO: right now we're limiting the git archive and diff operations to maximum 5 different commits; optimize and improve if possible */
+  /* TODO: right now we're limiting the git archive and diff operations to maximum 20 different commits; optimize and improve if possible */
   const shas = Object.keys(project.changes[fpath].alines).slice(0, Config.MAX_NR_OF_SHA_TO_COMPARE)
   logger.info('DIFFS: getLinesChangedLocaly shas', shas)
 

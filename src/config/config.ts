@@ -64,7 +64,7 @@ const CONFIGURATION_FILE = '.caw'
 const CODE_AWARENESS_SCHEMA = 'CAW'
 const SYNC_INTERVAL = 100 * 1000 // upload local diffs to the server every minute or so
 const SYNC_THRESHOLD = 1000 // don't sync too often
-const MAX_NR_OF_SHA_TO_COMPARE = 5
+const MAX_NR_OF_SHA_TO_COMPARE = 20
 
 const LOG_LEVEL = process.env.LOG_LEVEL || 'debug' // ['verbose', 'debug', 'error']
 

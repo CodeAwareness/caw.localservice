@@ -253,6 +253,7 @@ type TSendDiff = {
 
 /**
  * when a file is saved in the editor, we send the diffs to the server and refresh
+ * TODO: send only the fpath diffs not the entire project
  */
 async function sendDiffs(data: TSendDiff) {
   const { fpath, doc, cid } = data
