@@ -22,7 +22,7 @@ function getStackTrace() {
 }
 
 function stringify(arg) {
-  return JSON.stringify(arg, circularReplacer())?.substr(0, 1500)
+  return JSON.stringify(arg, circularReplacer())?.substring(0, 1500).replace(/("[^ "]+:[^ "]+")/, '\x1b[33m$1\x1b[0m')
 }
 
 function trace() {
@@ -71,29 +71,29 @@ const loggerConsole = {
     console.log('LOGGER: init', trains)
   },
   log: function(...args: any[]): void {
-    if (!trains.includes(args[0].toLowerCase().split(':')[0]) && !trains.includes('all')) return
+    if (!trains.includes(args[0]?.toLowerCase().split(':')[0]) && !trains.includes('all')) return
     trace()
-    console.log(map(args, stringify))
+    console.dir(args, { depth: 6 })
   },
   info: function(...args: any[]): void {
-    if (!trains.includes(args[0].toLowerCase().split(':')[0]) && !trains.includes('all')) return
+    if (!trains.includes(args[0]?.toLowerCase().split(':')[0]) && !trains.includes('all')) return
     trace()
-    console.info(map(args, stringify))
+    console.info(map(args, stringify).join(' '))
   },
   warn: function(...args: any[]): void {
-    if (!trains.includes(args[0].toLowerCase().split(':')[0]) && !trains.includes('all')) return
+    if (!trains.includes(args[0]?.toLowerCase().split(':')[0]) && !trains.includes('all')) return
     trace()
-    console.warn(map(args, stringify))
+    console.warn(args)
   },
   debug: function(...args: any[]): void {
-    if (!trains.includes(args[0].toLowerCase().split(':')[0]) && !trains.includes('all')) return
+    if (!trains.includes(args[0]?.toLowerCase().split(':')[0]) && !trains.includes('all')) return
     trace()
-    console.info(map(args, stringify))
+    console.info(args)
   },
   error: function(...args: any[]): void {
-    if (!trains.includes(args[0].toLowerCase().split(':')[0]) && !trains.includes('all')) return
+    if (!trains.includes(args[0]?.toLowerCase().split(':')[0]) && !trains.includes('all')) return
     trace()
-    console.error(map(args, stringify))
+    console.error(args)
   },
 }
 

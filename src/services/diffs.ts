@@ -42,7 +42,7 @@ function diffWithBranch({ branch, cid }): Promise<any> {
       logger.log('DIFFS: branch in ', folder)
       // TODO: git submodules: how do we branch diff on a submodule?
       const name = path.basename(wsFolder)
-      const relativeDir = userFile.substr(0, userFile.length - path.basename(userFile).length)
+      const relativeDir = userFile.substring(0, userFile.length - path.basename(userFile).length)
       const localDir = path.join(tmpDir, name, Config.EXTRACT_BRANCH_DIR)
       mkdirp.sync(path.join(localDir, relativeDir))
       peerFile = path.join(tmpDir, name, Config.EXTRACT_BRANCH_DIR, userFile)
@@ -279,7 +279,7 @@ function sendDiffs(project: any, cid: string): Promise<void> {
   createEmpty(tmpProjectDiff)
   createEmpty(emptyFile)
 
-  // TODO: get all remotes instead of just origin
+  // TODO: get all remotes instead of just origin (take a look at linux repo)
   // TODO: only sendCommitLog at the beginning, and then when the commit history has changed. How do we monitor the git history?
   return sendCommitLog(project)
     .then(cSHA => {
@@ -472,7 +472,7 @@ function refreshChanges(project: any, filePath: string, doc: string, cid: string
   PENDING_DIFFS[fpath] = true // this operation can take a while, so we don't want to start it several times per second
   // @ts-ignore
   if (lastDownloadDiff[wsFolder] && new Date() - lastDownloadDiff[wsFolder] < Config.SYNC_THRESHOLD) {
-    logger.info('STILL FRESH', lastDownloadDiff[wsFolder], new Date())
+    logger.info('DIFFS: still fresh (lastDownloadDiff, now)', lastDownloadDiff[wsFolder], new Date())
     return Promise.resolve()
   }
 
@@ -590,20 +590,13 @@ function getLinesChangedLocaly(project: any, fpath: string, doc: string, cid: st
         logger.info('DIFFS: ARCHIVE', archiveFile, sha, fpath)
         return git.command(wsFolder, `git archive --format=tar -o ${archiveFile} ${sha} ${fpath}`)
       })
-      .catch(err => {
-        // TODO: improve error control for chained promises, does this even work as intended??
-        // when git archive fails it's usually because the ${sha} is not present locally.
-        delete project.changes[fpath].alines[sha]
-        logger.info('DIFFS: git archive failed', err)
-        throw new Error(`Could not git archive with sha: ${sha} ${fpath}`)
-      })
       .then(() => {
         logger.info('DIFFS: tar.x', archiveDir)
         return tar.x({ file: archiveFile, cwd: archiveDir })
       })
       .then(() => {
         logger.info('DIFFS: getLinesChangedLocaly diff', activeFile)
-        return git.command(wsFolder, `git diff -b -U0 ${path.join(archiveDir, fpath)} ${activeFile}`)
+        return git.command(wsFolder, `git diff -b -U0 --no-color --exit-code ${path.join(archiveDir, fpath)} ${activeFile}`)
       })
       .then(parseDiffFile)
       .then(localChanges => {
@@ -613,7 +606,12 @@ function getLinesChangedLocaly(project: any, fpath: string, doc: string, cid: st
         project.gitDiff[fpath][sha] = localChanges
       })
       .catch(err => {
-        logger.warn('DIFFS: local git diff failed', err)
+        console.log('ERROR IN PARSE DIFFS', err)
+        // TODO: improve error control for chained promises
+        // when git archive fails it's usually because the ${sha} is not present locally.
+        delete project.changes[fpath].alines[sha]
+        logger.info('DIFFS: git archive failed', err)
+        throw new Error(`Could not git archive with sha: ${sha} ${fpath}`)
       })
   })
 
@@ -642,7 +640,7 @@ function shiftWithGitDiff(project: any, fpath: string): void {
     const lines = changes.alines[sha] || []
     const localLines = gitDiff[sha] || []
     project.changes[fpath].alines[sha] = shiftLineMarkers(lines, localLines)
-    // logger.log('DIFFS: shiftWithGitDiff (localLines, alines, fpath)', localLines, project.changes[fpath].alines, fpath)
+    logger.log('DIFFS: shiftWithGitDiff (localLines, alines, fpath, gitDiff)', localLines, project.changes[fpath].alines, fpath, gitDiff)
   })
 }
 
@@ -663,15 +661,19 @@ function shiftWithLiveEdits(project: any, fpath: string): void {
 
 function shiftLineMarkers(lines: number[], ranges: any[]): Array<number> {
   let shift = 0
-  let pshift = 0
+  let pshift = 0 // progressive shift as we go through all diff ranges
   let newLines = []
-  // logger.log('shiftLineMarkers (lines, ranges)', lines, ranges)
+  logger.log('shiftLineMarkers (lines, ranges)', lines, ranges)
   if (!ranges.length) return lines
   ranges.map(block => {
     shift = block.replaceLen - block.range.len
+    console.log('SHIFT', shift, pshift)
     const counted = []
     lines.map((line, i) => {
-      if (line - pshift > block.range.line) lines[i] = Math.max(block.range.line, lines[i] + shift)
+      if (line + pshift >= block.range.line) {
+        lines[i] = Math.max(block.range.line, lines[i] + shift)
+        console.log('SHIFT GT', block.range, line, lines[i])
+      }
     })
     pshift = shift
     newLines = lines.filter(n => {
@@ -704,7 +706,7 @@ function parseDiffFile(diffs: string): Array<TDiffReplace> {
   let delLines = 0
   let insLines = 0
   for (const line of lines) {
-    const start = line.substr(0, 3)
+    const start = line.substring(0, 3)
     if (['---', '+++', 'ind'].includes(start)) continue
     if (line[0] === '-') {
       delLines++

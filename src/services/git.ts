@@ -11,8 +11,17 @@ async function gitExec(command: string, options = {}): Promise<string> {
   // TODO: maybe use spawn instead of exec (more efficient since it doesn't spin up any shell;
   // also allows larger data to be returned, but we have to handle streaming data instead of a simple assignment)
   // however, git execution context may be affected...
-  const data = await exec(command, options)
-  if (data.stderr) logger.log('GIT: exec warning or error', command, data.stderr)
+  let data
+  try {
+    data = await exec(command, options)
+  } catch(err) {
+    if (err.stderr) {
+      logger.error('GIT: exec warning or error', command, err.stderr)
+      throw err
+    } else if (err.stdout) {
+      return err.stdout // TODO: wtf is this...
+    }
+  }
   return data.stdout
 }
 

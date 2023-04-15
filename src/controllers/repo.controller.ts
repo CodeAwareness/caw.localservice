@@ -33,6 +33,11 @@ async function activatePath(data: any): Promise<any> {
   /* select the project corresponding to the activated path; if there is no project matching, we add as new project */
   const project = await selectProject(fpath, cid, this)
   project.activePath = fpath
+  logger.log('REPO: activatePath project selected', fpath, project)
+
+  if (!project.cSHA) {
+    await CAWDiffs.sendDiffs(project, cid)
+  }
 
   /* next up: download changes from peers */
   return CAWDiffs
@@ -69,7 +74,7 @@ function selectProject(fpath: string, cid: string, socket: Socket): Promise<any>
       .then(folder => add({ folder, cid }, socket))
       .then(newProject => {
         project = newProject
-        project.activePath = fpath.substr(project.root)
+        project.activePath = fpath.substring(0, project.root.length + 1)
         logger.info('REPO: the relative active path is', project.activePath)
         CAWStore.projects.push(project) // TODO: used for SCM, but we need to also use socket id, cid
         CAWStore.activeProjects[cid] = project
