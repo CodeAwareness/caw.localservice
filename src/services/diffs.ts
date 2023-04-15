@@ -294,7 +294,7 @@ function sendDiffs(project: any, cid: string): Promise<void> {
     })
     .then(() => {
       logger.info('DIFFS: appending cSHA and diffs (cSHA, wsFolder, tmpProjectDiff)', project.cSHA, wsFolder, tmpProjectDiff)
-      return git.command(wsFolder, `git diff -b -U0 --no-color ${project.cSHA} >> ${tmpProjectDiff}`)
+      return git.command(wsFolder, `git diff -b -U0 --no-color --diff-algorithm=minimal ${project.cSHA} >> ${tmpProjectDiff}`)
       // TODO: maybe also include changes not yet saved (all active editors) / realtime mode ?
     })
     .then(() => {
@@ -596,7 +596,7 @@ function getLinesChangedLocaly(project: any, fpath: string, doc: string, cid: st
       })
       .then(() => {
         logger.info('DIFFS: getLinesChangedLocaly diff', activeFile)
-        return git.command(wsFolder, `git diff -b -U0 --no-color --exit-code ${path.join(archiveDir, fpath)} ${activeFile}`)
+        return git.command(wsFolder, `git diff -b -U0 --no-color --exit-code --diff-algorithm=minimal ${path.join(archiveDir, fpath)} ${activeFile}`)
       })
       .then(parseDiffFile)
       .then(localChanges => {
@@ -606,7 +606,7 @@ function getLinesChangedLocaly(project: any, fpath: string, doc: string, cid: st
         project.gitDiff[fpath][sha] = localChanges
       })
       .catch(err => {
-        console.log('ERROR IN PARSE DIFFS', err)
+        logger.log('DIFFS: ERROR IN PARSE DIFFS', err)
         // TODO: improve error control for chained promises
         // when git archive fails it's usually because the ${sha} is not present locally.
         delete project.changes[fpath].alines[sha]
@@ -640,7 +640,7 @@ function shiftWithGitDiff(project: any, fpath: string): void {
     const lines = changes.alines[sha] || []
     const localLines = gitDiff[sha] || []
     project.changes[fpath].alines[sha] = shiftLineMarkers(lines, localLines)
-    logger.log('DIFFS: shiftWithGitDiff (localLines, alines, fpath, gitDiff)', localLines, project.changes[fpath].alines, fpath, gitDiff)
+    // logger.log('DIFFS: shiftWithGitDiff (localLines, alines, fpath, gitDiff)', localLines, project.changes[fpath].alines, fpath, gitDiff)
   })
 }
 
@@ -659,22 +659,21 @@ function shiftWithLiveEdits(project: any, fpath: string): void {
   })
 }
 
+/*
+ * lines: the line numbers changed at peers;
+ * ranges: the local changes based on cSHA
+ */
 function shiftLineMarkers(lines: number[], ranges: any[]): Array<number> {
   let shift = 0
   let pshift = 0 // progressive shift as we go through all diff ranges
   let newLines = []
-  logger.log('shiftLineMarkers (lines, ranges)', lines, ranges)
+  // logger.log('shiftLineMarkers (lines, ranges)', lines, ranges)
   if (!ranges.length) return lines
   ranges.map(block => {
     shift = block.replaceLen - block.range.len
-    console.log('SHIFT', shift, pshift)
+    const isInsert = block.range.len === 0
     const counted = []
-    lines.map((line, i) => {
-      if (line + pshift >= block.range.line) {
-        lines[i] = Math.max(block.range.line, lines[i] + shift)
-        console.log('SHIFT GT', block.range, line, lines[i])
-      }
-    })
+    lines.map((line, i) => (line >= block.range.line) && (lines[i] += shift))
     pshift = shift
     newLines = lines.filter(n => {
       if (!counted[n]) {
@@ -766,7 +765,7 @@ async function sendAdhocDiffs(diffDir: string, cid: string): Promise<void> {
   createEmpty(tmpProjectDiff)
   createEmpty(emptyFile)
 
-  await git.command(gitDir, `git diff -b -U0 --no-color ${sha} >> ${tmpProjectDiff}`)
+  await git.command(gitDir, `git diff -b -U0 --no-color --diff-algorithm=minimal ${sha} >> ${tmpProjectDiff}`)
 
   return uploadDiffs({
     activePath: '', // TODO: add slide number, and connect to receive updates via socket
