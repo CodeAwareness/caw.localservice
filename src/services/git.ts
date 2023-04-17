@@ -14,7 +14,7 @@ async function gitExec(command: string, options = {}): Promise<string> {
   let data
   try {
     data = await exec(command, options)
-  } catch(err) {
+  } catch (err) {
     if (err.stderr) {
       logger.error('GIT: exec warning or error', command, err.stderr)
       throw err

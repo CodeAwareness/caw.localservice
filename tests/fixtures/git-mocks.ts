@@ -1,5 +1,5 @@
 /* eslint-disable indent */
-export const GIT_MOCKS = {}
+export const GIT_MOCKS: any = {}
 
 GIT_MOCKS.FETCH = ''
 

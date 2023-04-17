@@ -1,0 +1,3 @@
+[submodule "tests/fixtures/atom-svelte-transpiler"]
+	path = tests/fixtures/atom-svelte-transpiler
+	url = https://github.com/peer8/atom-svelte-transpiler.git

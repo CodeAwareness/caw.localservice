@@ -4,7 +4,7 @@ import * as _ from 'lodash'
 import path from 'path'
 import type { Socket } from 'net'
 
-import logger from '@/config/logger'
+import logger from '@/logger'
 import config from '@/config/config'
 
 import git from '@/services/git'

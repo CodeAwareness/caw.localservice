@@ -1,7 +1,7 @@
 import * as path from 'path'
 import { readdirSync, stat } from 'node:fs'
 
-import logger from '@/config/logger'
+import logger from '@/logger'
 import git from './git'
 
 import CAWStore from './store'

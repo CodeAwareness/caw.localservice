@@ -9,7 +9,7 @@ import * as child from 'child_process'
 import app from '@/app'
 import { API_REPO_CONTRIB, API_SHARE_ACCEPT, API_SHARE_START, API_SHARE_UPLOAD } from '@/services/api'
 import Config from '@/config/config'
-import { CΩStore } from '@/services/store'
+import CΩStore from '@/services/store'
 
 // TODO: Windows env setup
 const tmpDir = '/tmp/codeawareness.local'

@@ -4,7 +4,7 @@ import fs from 'node:fs'
 import wsStation from './middlewares/wsio.grandstation'
 import wsGardener from './middlewares/wsio.gardener'
 import config from './config/config'
-import logger from './config/logger'
+import logger from './logger'
 import os from 'os'
 
 /* Uncomment this block if you wish to keep auth info between service restarts

@@ -1,12 +1,40 @@
 import { faker } from '@faker-js/faker'
+import path from 'path'
 import nock from 'nock'
 
-import git from '../../src/services/git'
 import { GIT_MOCKS } from '../fixtures/git-mocks'
 
-import CΩAPI from '../../src/services/api'
-import config from '../../src/config/config'
-import { CΩStore } from '../../src/services/store'
+import config from '@/config/config'
+import git from '@/services/git'
+import CAWAPI from '@/services/api'
+import CAWStore from '@/services/store'
+import RepoController from '@/controllers/repo.controller'
+
+export function prepareTmp(cid) {
+  let tmp
+  const ws = {
+    emit: arg => tmp = arg.tmpDir
+  }
+  RepoController.getTmpDir.bind(ws)(cid)
+  return tmp
+}
+
+export function prepareProject(cid) {
+  const data = {
+    fpath: path.join(__dirname, '../fixtures/atom-svelte-transpiler/README.md'),
+    cid: 123,
+    doc: '',
+  }
+
+  let project
+  const mockEmit = {
+    emit: (k, p) => project = p
+  }
+
+  return RepoController
+    .activatePath.bind(mockEmit)(data)
+    .then(() => project)
+}
 
 let gitDiffIndex = 0
 export function mockGitForSendDiffs() {
@@ -59,14 +87,14 @@ export function makeTokens(options) {
   const newRefresh = { expires: new Date().valueOf() + 70000, token: faker.datatype.uuid() }
   const tokens = { access: newAccess, refresh: newRefresh }
   if (options && options.store) {
-    CΩStore.tokens = { access, refresh }
-    CΩStore.user = { _id: faker.datatype.uuid(), email: faker.internet.email() }
+    CAWStore.tokens = { access, refresh }
+    CAWStore.user = { _id: faker.datatype.uuid(), email: faker.internet.email() }
   }
 
   let nockPersist
   if (options.addRefreshMock) {
     nockPersist = nock(config.API_URL)
-      .post(CΩAPI.API_AUTH_REFRESH_TOKENS)
+      .post(CAWAPI.API_AUTH_REFRESH_TOKENS)
       .reply(200, { tokens })
 
     if (options.persist) nockPersist.persist()

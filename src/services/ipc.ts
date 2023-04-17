@@ -48,11 +48,11 @@ class IPC {
         const timers = CAWStore.timers[this.cid]
         if (timers) {
           logger.log(`IPC: Client disconnected: ${this.path}. Cleaning up active projects (${Object.keys(timers).length} projects).`)
-            Object.keys(timers).map(p => {
-              if (timers[p]) clearInterval(timers[p])
-            })
-            delete CAWStore.timers[this.cid]
-          }
+          Object.keys(timers).map(p => {
+            if (timers[p]) clearInterval(timers[p])
+          })
+          delete CAWStore.timers[this.cid]
+        }
       })
       socket.on('error', err => { logger.log('IPC: Socket error: ', this.path, err) })
       socket.on('data', data => this.onData(data))
@@ -102,13 +102,13 @@ class IPC {
     events.map(event => {
       const { action, data, err } = JSON.parse(event)
       logger.log('IPC: Detected event', action, this.handlers)
-      if (!this.handlers[ `res:${action}` ]) {
+      if (!this.handlers[`res:${action}`]) {
         this.pubsub.on(`res:${action}`, body => handler(action, body))
-        this.handlers[ `res:${action}` ] = true
+        this.handlers[`res:${action}`] = true
       }
-      if (!this.errHandlers[ `res:${action}` ]) {
+      if (!this.errHandlers[`res:${action}`]) {
         this.pubsub.on(`error:${action}`, err => errHandler(action, err))
-        this.errHandlers[ `res:${action}` ] = true
+        this.errHandlers[`res:${action}`] = true
       }
       this.pubsub.emit(action, data)
     })
