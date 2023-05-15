@@ -63,7 +63,7 @@ describe('Code Awareness diffs', () => {
       // TEST
       try {
         await CAWDiffs.sendCommitLog(project)
-      } catch(err) {
+      } catch (err) {
         console.error(err)
       }
 

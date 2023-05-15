@@ -71,27 +71,37 @@ const loggerConsole = {
     console.log('LOGGER: init', trains)
   },
   log: function(...args: any[]): void {
-    if (!trains.includes(args[0]?.toLowerCase().split(':')[0]) && !trains.includes('all')) return
+    try {
+      if (!trains.includes(args[0]?.toLowerCase().split(':')[0]) && !trains.includes('all')) return
+    } catch (err) {}
     trace()
     console.dir(args, { depth: 6 })
   },
   info: function(...args: any[]): void {
-    if (!trains.includes(args[0]?.toLowerCase().split(':')[0]) && !trains.includes('all')) return
+    try {
+      if (!trains.includes(args[0]?.toLowerCase().split(':')[0]) && !trains.includes('all')) return
+    } catch (err) {}
     trace()
     console.info(map(args, stringify).join(' '))
   },
   warn: function(...args: any[]): void {
-    if (!trains.includes(args[0]?.toLowerCase().split(':')[0]) && !trains.includes('all')) return
+    try {
+      if (!trains.includes(args[0]?.toLowerCase().split(':')[0]) && !trains.includes('all')) return
+    } catch (err) {}
     trace()
     console.warn(args)
   },
   debug: function(...args: any[]): void {
-    if (!trains.includes(args[0]?.toLowerCase().split(':')[0]) && !trains.includes('all')) return
+    try {
+      if (!trains.includes(args[0]?.toLowerCase().split(':')[0]) && !trains.includes('all')) return
+    } catch (err) {}
     trace()
     console.info(args)
   },
   error: function(...args: any[]): void {
-    if (!trains.includes(args[0]?.toLowerCase().split(':')[0]) && !trains.includes('all')) return
+    try {
+      if (!trains.includes(args[0]?.toLowerCase().split(':')[0]) && !trains.includes('all')) return
+    } catch (err) {}
     trace()
     console.error(args)
   },

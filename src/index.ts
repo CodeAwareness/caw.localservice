@@ -1,11 +1,7 @@
-import app from './app'
-import https from 'https'
-import fs from 'node:fs'
 import wsStation from './middlewares/wsio.grandstation'
 import wsGardener from './middlewares/wsio.gardener'
 import config from './config/config'
 import logger from './logger'
-import os from 'os'
 
 /* Uncomment this block if you wish to keep auth info between service restarts
 restoreAuthInfo() // TODO: this is not resolving async, but it should be ok
@@ -15,22 +11,6 @@ async function restoreAuthInfo() {
   CAWStore.tokens = await config.authStore.get('tokens')
 }
 */
-
-const homedir = os.homedir()
-// Nice addin that creates a localhost cert. Thank you Microsoft.
-const server = https.createServer(
-  {
-    key:  fs.readFileSync(`${homedir}/.office-addin-dev-certs/localhost.key`),
-    cert: fs.readFileSync(`${homedir}/.office-addin-dev-certs/localhost.crt`),
-    ca:   fs.readFileSync(`${homedir}/.office-addin-dev-certs/ca.crt`),
-  },
-  app as unknown as any,
-)
-
-// DEPRECATED: we now use file pipe IPC
-server.listen(config.port, config.host, () => {
-  logger.info(`Listening on HTTPS ${config.host}:${config.port}`)
-})
 
 // Note: for MacOS / Linux we can use unix pipes: ws+unix:///absolute/path/to/uds_socket
 // For Electron based applications we are restricted to using ws://
@@ -50,9 +30,4 @@ process.on('unhandledRejection', unexpectedErrorHandler)
 
 process.on('SIGTERM', () => {
   logger.info('SIGTERM received')
-  if (server) {
-    server.close()
-  }
 })
-
-export default server

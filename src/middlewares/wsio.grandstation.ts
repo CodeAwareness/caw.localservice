@@ -3,10 +3,12 @@ import logger from '@/logger'
 import { Socket } from 'net'
 import config from '@/config/config'
 import IPC from '@/services/ipc'
+import CAWStore from '@/services/store'
 import gstationRouter from '@/routes/v1/x-grand-station'
 
 const clients = []
 
+console.log('connecting to catalog', config.PIPE_CATALOG)
 const ipcCatalog = new IPC(config.PIPE_CATALOG)
 
 function init(): void {
@@ -30,6 +32,8 @@ class CAWClient {
 
   constructor(id: string) {
     this.guid = id
+    if (!CAWStore.wsStation) CAWStore.wsStation = {}
+    CAWStore.wsStation[id] = this
     /* Event names will be pushed to this instance's `actions` */
     this.actions = []
     this.ipcClient = new IPC(this.guid)

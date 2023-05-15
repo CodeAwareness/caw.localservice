@@ -1,14 +1,12 @@
 # Code Awareness client system service
 
-This is the local (client) system service I call "the Gardener". In the Code Awareness architecture, the Gardener has the role of handling requests from different editors and applications, and performing the necessary git diffs and similar actions, communicating with the Code Awareness API in the cloud, and more.
+This is the local (client) system service I call "the Gardener". In the Code Awareness architecture, the Gardener has the role of handling requests from different editors and applications, and performing the necessary actions to aggregate and transmit code differences to the Code Awareness API in the cloud.
 
 This service needs to be wrapped and packaged separately for Windows, MacOS, Linux.
 
 TODO: We could use node-windows, node-mac, and systemd to ensure proper launching, restarting and logging.
 
-We're also using node-ipc for communication with editor plugins when we have access to unix pipes, or secure webSockets when we don't.
-
-For clients that cannot use a Unix pipe, the service listens for websockets on port 48408. We have the port customization on our TODO list, since it's a complex problem involving coordination between this service and various clients, such as PowerPoint addons, VSCode extensions, vim/emacs plugins, etc.
+We're using a unix pipe (or windows named pipes) for communication with editor plugins.
 
 ## Getting Started
 
@@ -54,14 +52,14 @@ Running multiple CodeAwareness LS instances allows you to use different username
 Step 1. Run the CodeAwareness LS in your existing folder, with default parameters:
 ```
 cd ca.localservice
-CAW_CATALOG=catalog PORT=48048 yarn dev
+CAW_CATALOG=catalog yarn dev
 ```
 
 Step 2. Link the folder to a new location and run it with new parameters:
 ```
 cd ../
 ln -s ca.localservice ca.2.localservice
-CAW_CATALOG=catalog2 PORT=48049 yarn dev
+CAW_CATALOG=catalog2 yarn dev
 ```
 
 # Debug levels
@@ -69,7 +67,7 @@ CAW_CATALOG=catalog2 PORT=48049 yarn dev
 Our localservice has a ton of logs, which can make it hard to debug. To print only specific debug messages, take a look at the logger patterns in our code and use the one you want. For example, we can print only IPC and DIFFS logs by running LS with the following environment variables:
 
 ```
-CAW_CATALOG=catalog2 PORT=48049 DEBUG=ipc,diffs yarn dev
+CAW_CATALOG=catalog2 DEBUG=ipc,diffs yarn dev
 ```
 
 # Test
