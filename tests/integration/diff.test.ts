@@ -39,7 +39,7 @@ afterEach(() => {
 
 describe('Code Awareness diffs', () => {
   describe('Sending diffs', () => {
-    test.only('sending commit log should return the common SHA', async () => {
+    test('sending commit log should return the common SHA', async () => {
       // helpers.mockGitForSendDiffs()
       helpers.makeTokens({ store: true })
       CAWAPI.clearAuth()

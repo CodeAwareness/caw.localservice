@@ -13,7 +13,7 @@ import RepoController from '@/controllers/repo.controller'
 export function prepareTmp(cid) {
   let tmp
   const ws = {
-    emit: arg => tmp = arg.tmpDir
+    emit: arg => (tmp = arg.tmpDir)
   }
   RepoController.getTmpDir.bind(ws)(cid)
   return tmp
@@ -28,7 +28,7 @@ export function prepareProject(cid) {
 
   let project
   const mockEmit = {
-    emit: (k, p) => project = p
+    emit: (k, p) => (project = p)
   }
 
   return RepoController

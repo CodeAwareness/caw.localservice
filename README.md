@@ -14,29 +14,15 @@ We're using a unix pipe (or windows named pipes) for communication with editor p
 
 Note: at this time I don't have a clean install that just works out-of-the-box. Instead you'll need a nodeJS environment, and you'll be running the local service in dev mode.
 
-1. Clone the repo, install the dependencies.
+Clone the repo, install the dependencies.
 
 ```bash
 yarn
 ```
 
-2. Install localhost certificates (will only last for about a month I think):
-
-```bash
-npx office-addin-dev-certs install
-```
-
-Communication through Unix pipe does not require the use of a localhost certificate.
-
 # Development setup
 
 When you need to work with multiple components on the same local system, you'll need to install nginx and configure a common access port, to avoid CORS issues. In the case of VSCode, we do this to run both the local service and the VSCode webview panel on port 8885.
-
-1. Install `nginx` and copy the `codeawareness.nginx.conf` into your servers folder. Restart nginx to take effect.
-
-```bash
-brew services restart nginx
-```
 
 # Run
 
