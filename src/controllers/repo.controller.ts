@@ -4,6 +4,8 @@ import * as _ from 'lodash'
 import path from 'path'
 import type { Socket } from 'net'
 
+import type { TContribBlock } from '@/services/diffs'
+
 import logger from '@/logger'
 import config from '@/config/config'
 
@@ -217,6 +219,7 @@ type TContribDiffInfo = {
   contrib: any
   origin: string
   cid: string
+  doc: string
 }
 
 /**
@@ -260,21 +263,26 @@ type TSendDiff = {
  * when a file is saved in the editor, we send the diffs to the server and refresh
  * TODO: send only the fpath diffs not the entire project
  */
-async function sendDiffs(data: TSendDiff) {
+function sendDiffs(data: TSendDiff) {
   const { fpath, doc, cid } = data
   logger.log('REPO: sendDiffs, cid, fpath', cid, fpath)
   const project = getProjectFromPath(fpath)
-  await CAWDiffs.sendDiffs(project, cid)
-  return CAWDiffs.refreshChanges(project, project.activePath, doc, cid)
-    .then(() => {
-      this.emit('res:repo:file-saved', project)
-    })
+  return CAWDiffs.sendDiffs(project, cid)
+    .then(() => CAWDiffs.refreshChanges(project, project.activePath, doc, cid))
+    .then(() => this.emit('res:repo:file-saved', project))
+}
+
+function cycleContrib(data: TContribBlock) {
+  return CAWDiffs
+    .cycleContrib(data)
+    .then(diffs => this.emit('res:repo:cycle-contrib', diffs))
 }
 
 const repoController = {
   activatePath,
   add,
   addSubmodules,
+  cycleContrib,
   diffWithBranch,
   diffWithContributor,
   getTmpDir,
