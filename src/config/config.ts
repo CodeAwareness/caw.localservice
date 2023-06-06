@@ -66,7 +66,7 @@ const PIPE_CATALOG = DEBUG ? envVars.CAW_CATALOG + '_dev' : envVars.CAW_CATALOG
 
 // TODO: move some of this config into a .caw file, either toml or yaml
 const CONFIGURATION_FILE = '.caw'
-const SYNC_INTERVAL = 5 * 60 * 1000 // upload local diffs to the server every minute or so
+const SYNC_INTERVAL = 1 * 60 * 1000 // upload local diffs to the server every minute or so
 const SYNC_THRESHOLD = 1000 // don't sync too often
 
 // We aggregate changes against multiple SHA values. This is the maximum nr of previous commits we consider for our diffs.
@@ -74,8 +74,14 @@ const MAX_NR_OF_SHA_TO_COMPARE = 20
 
 const LOG_LEVEL = process.env.LOG_LEVEL || 'debug' // ['verbose', 'debug', 'error']
 
+// ARCHIVE_DIR where we unpack the previous version of a file from the git repository
+const ARCHIVE_DIR = 'a'
+
 // EXTRACT_BRANCH_DIR where we extract the file from a specific branch, to be compared with the activeTextEditor
 const EXTRACT_BRANCH_DIR = 'b'
+
+// EXTRACT_DOWNLOAD_DIR where we download all the diff files from peers
+const EXTRACT_DOWNLOAD_DIR = 'd'
 
 // EXTRACT_LOCAL_DIR where we write the contents of the activeTextEditor, to be compared with peer files or otherwise processed with git commands
 const EXTRACT_LOCAL_DIR = 'l'
@@ -83,15 +89,17 @@ const EXTRACT_LOCAL_DIR = 'l'
 // EXTRACT_REPO_DIR where we gather all the files from common SHA commit, but only those touched by a peer
 const EXTRACT_REPO_DIR = 'r'
 
-// EXTRACT_PEER_DIR where we have the peer versions for the files touched by a single peer
+// EXTRACT_PEER_DIR where we have the peer versions of the files
 const EXTRACT_PEER_DIR = 'e'
 
 const Config = {
   API_SERVER,
   API_URL,
+  ARCHIVE_DIR,
   CONFIGURATION_FILE,
   DEBUG,
   EXTRACT_BRANCH_DIR,
+  EXTRACT_DOWNLOAD_DIR,
   EXTRACT_LOCAL_DIR,
   EXTRACT_PEER_DIR,
   EXTRACT_REPO_DIR,

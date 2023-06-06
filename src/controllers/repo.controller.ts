@@ -191,7 +191,17 @@ function addSubmodules({ folder, cid }: TRepoAddReq): Promise<void> {
 function getTmpDir(cid) {
   if (!CAWStore.uTmpDir[cid]) {
     const uPath = path.join(CAWStore.tmpDir, cid)
-    fs.mkdirSync(uPath)
+    try {
+      fs.mkdirSync(uPath)
+      fs.mkdirSync(path.join(uPath, config.ARCHIVE_DIR))
+      fs.mkdirSync(path.join(uPath, config.EXTRACT_BRANCH_DIR))
+      fs.mkdirSync(path.join(uPath, config.EXTRACT_DOWNLOAD_DIR))
+      fs.mkdirSync(path.join(uPath, config.EXTRACT_LOCAL_DIR))
+      fs.mkdirSync(path.join(uPath, config.EXTRACT_PEER_DIR))
+      fs.mkdirSync(path.join(uPath, config.EXTRACT_REPO_DIR))
+    } catch (err) {
+      console.error(err)
+    }
     CAWStore.uTmpDir[cid] = uPath
   }
 

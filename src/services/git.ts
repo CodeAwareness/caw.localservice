@@ -22,7 +22,7 @@ async function gitExec(command: string, options = {}): Promise<string> {
       return err.stdout // TODO: wtf is this...
     }
   }
-  return data.stdout
+  return data?.stdout
 }
 
 function command(wsFolder: string, cmd: string): Promise<string> {
@@ -45,6 +45,7 @@ function command(wsFolder: string, cmd: string): Promise<string> {
   }
 
   logger.info('GIT:', cmd, 'in folder', options.cwd)
+  // TODO: timeout or better handling; the patch command, for example, will ask for user input if no files are present in the cwd.
   return gitExec(cmd, options)
 }
 

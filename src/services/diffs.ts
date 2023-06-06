@@ -1,14 +1,14 @@
-import mkdirp from 'mkdirp'
+import { mkdirp } from 'mkdirp'
 import path from 'path'
 import tar from 'tar'
-import rimraf from 'rimraf'
-import * as _ from 'lodash'
+import { rimraf } from 'rimraf'
 import FormData from 'form-data'
+import * as _ from 'lodash'
 
 import { createGzip } from 'zlib'
 import { PowerShell } from 'node-powershell'
 import childProcess from 'child_process'
-import { promises as fs, createReadStream, createWriteStream, openSync, closeSync } from 'node:fs'
+import { promises as fs, constants as fsConstants, createReadStream, createWriteStream, openSync, closeSync } from 'node:fs'
 import { pipeline } from 'stream'
 // import { AxiosResponse } from 'axios'
 // import replaceStream from 'replacestream' // doesn't work (!
@@ -19,10 +19,39 @@ import logger from '@/logger'
 import git from './git'
 import shell from './shell'
 import CAWStore from './store'
-import CAWAPI, { API_REPO_COMMITS, API_REPO_COMMON_SHA, API_REPO_CONTRIB, API_REPO_DIFF_FILE, API_SHARE_SLIDE_CONTRIB } from './api'
+import CAWAPI, { API_REPO_COMMITS, API_REPO_COMMON_SHA, API_REPO_CONTRIB, API_REPO_DIFF_FILE } from './api'
 
 const PENDING_DIFFS = {}
 const isWindows = !!process.env.ProgramFiles
+
+export type TDiffBlock = {
+  range: {
+    line: number,
+    len: number,
+    content: string[],
+  },
+  replaceLen: number,
+  /* TODO: I thought to remove the replaceLen; we should be able to handle all edit operations using just `line` and `len`.
+   * For example, `len = 0` should mean INSERT, while `len = 1` means REPLACE current line.
+   * However, a REPLACE with empty content could mean either "place an empty line there" or "delete that line entirely".
+   */
+}
+
+export type TContribBlock = {
+  origin: string
+  fpath: string
+  doc: string
+  cid: string
+  line: number
+  direction: number
+}
+
+export type TContribFile = {
+  title: string
+  extractDir: string
+  peerFile: string
+  fpath: string
+}
 
 /************************************************************************************
  * Diffs active file with the same file in a local branch
@@ -57,24 +86,15 @@ function diffWithBranch({ branch, cid }): Promise<any> {
 }
 
 /************************************************************************************
- * Create a git diff between the active file and the same file at another peer.
+ * Download diff file for one peer, apply the diff patch to create their version.
  *
- * - fpath is the relative path of the currently opened file (or ppt slide)
- *
- * Open the VSCode standard diff window.
- * We're processing the unified diffs from the peer,
- * and recreate their file in a temporary folder,
- * after which we can open a standard diff VSCode window.
- *
- * TODO: maybe (!) for small teams, download all diffs at once,
- * rather than one request for each contributor;
- *
- * As a guideline, CodeAwareness should focus on small teams.
- * Perhaps this can change in the future.
+ * - fpath is the relative path of the currently opened file
  *
  * TODO: this works for VSCode, maybe other editors need a different workflow.
  *
- * @param { ct: Object, fpath: string, origin: string, wsFolder: string }
+ * TODO: this can be massively optimized.
+ *
+ * @param { ct: Object, fpath: string, origin: string, doc: string, cid: string }
  *
  * ct = contributor: {
  *   changes: {
@@ -88,43 +108,37 @@ function diffWithBranch({ branch, cid }): Promise<any> {
  * }
  *
  ************************************************************************************/
-function diffWithContributor({ contrib, fpath, origin, cid, doc }): Promise<any> {
+function extractContributor({ contrib, fpath, origin, cid, doc }): Promise<TContribFile> {
   const tmpDir = CAWStore.uTmpDir[cid]
 
   const project = CAWStore.activeProjects[cid]
   const wsFolder = project.root
   const relPath = shell.getRelativePath(fpath, project)
-  const wsName = path.basename(wsFolder)
-  const archiveDir = path.join(tmpDir, wsName)
-  mkdirp.sync(archiveDir)
+  const archiveDir = path.join(tmpDir, Config.EXTRACT_PEER_DIR, contrib._id)
   /* downloadedFile: we save the diffs received from the server to TMP/active.diffs */
   const downloadedFile = path.join(archiveDir, '_caw.active.diffs')
   /* archiveFile: we use git archive to extract the active file from the cSHA commit */
   const archiveFile = path.join(archiveDir, `local-${contrib.changes.sha}.tar`) // TODO: we should retrieve a fresh copy to ensure that the downloaded diff is still corresponding to the SHA
   /* extractDir: we extract the active file from the archive in this folder, so we can run git apply on it */
-  const extractDir = path.join(archiveDir, Config.EXTRACT_PEER_DIR, contrib._id)
-  rimraf.sync(extractDir)
-  mkdirp.sync(path.join(extractDir, path.dirname(fpath)))
+  const extractDir = path.join(tmpDir, Config.EXTRACT_PEER_DIR, contrib._id)
+  const fdir = path.dirname(fpath)
+  rimraf.sync(path.join(extractDir, fdir))
+  mkdirp.sync(path.join(extractDir, fdir))
   /* peerFile: we finally instruct VSCode to open a diff window between the active file and the extracted file, which now has applied diffs to it */
   const peerFile = path.join(extractDir, relPath)
-  logger.info('DIFFS: diffWithContributor (ct, fpath, extractDir)', contrib, fpath, extractDir)
+  logger.info('DIFFS: extractContributor (ct, fpath, extractDir)', contrib, fpath, extractDir)
 
   const uri = encodeURIComponent(origin)
   return CAWAPI.axiosAPI
     .get(`${API_REPO_DIFF_FILE}?origin=${uri}&fpath=${contrib.changes.s3key}`)
-    .then(saveDownloaded)
+    .then(saveDownloaded(downloadedFile))
     .then(gitArchive)
     .then(untar)
     .then(applyDiffs)
-    .then(saveDoc)
-    .then(vscodeOpenDiffs)
-    .catch(logger.error)
-
-  function saveDownloaded({ data }) {
-    return fs.writeFile(downloadedFile, data + '\n')
-  }
+    .then(assembleFiles)
 
   function gitArchive() {
+    // TODO: if file exists do not archive again (no overwrite necessary)
     return git.command(wsFolder, `git archive --format=tar -o ${archiveFile} ${contrib.changes.sha} ${fpath}`)
   }
 
@@ -138,23 +152,10 @@ function diffWithContributor({ contrib, fpath, origin, cid, doc }): Promise<any>
     return git.command(extractDir, `${cmd} -p1 < ${downloadedFile}`)
   }
 
-  async function saveDoc() {
-    const tmpFilename = _.uniqueId(path.basename(fpath))
-    try {
-      await fs.mkdir(path.join(tmpDir, 'tmp'))
-    } catch {
-      // dir exists; nothing todo.
-    }
-    const tmpDoc = path.join(tmpDir, 'tmp', tmpFilename)
-    return fs
-      .writeFile(tmpDoc, doc)
-      .then(() => tmpDoc)
-  }
-
-  function vscodeOpenDiffs(tmpDoc) {
+  function assembleFiles() {
     const title = `CAW#${path.basename(fpath)} ↔ Peer changes`
     logger.info('DIFFS: vscodeOpenDiffs (ct, peerFile, fpath)', contrib, peerFile, fpath)
-    return { title, extractDir, peerFile, fpath: tmpDoc }
+    return { title, extractDir, peerFile, fpath: doc }
   }
 }
 
@@ -277,7 +278,7 @@ function sendDiffs(project: any, cid: string): Promise<void> {
     lastSendDiff[wsFolder] = new Date()
   }
   const wsName = path.basename(wsFolder)
-  const diffDir = path.join(tmpDir, wsName)
+  const diffDir = path.join(tmpDir)
   /* TODO: only send Diffs if requested by the server or if additional changes were made since the last diff.
    * To do that we can run a git diff, plus untracked file diffs, and get a checksum from each: save and compare on next call.
    * if (!project.diffRequested) return Promise.resolve()
@@ -464,9 +465,9 @@ async function updateGit(/* extractDir: string */): Promise<void> {
 
 /************************************************************************************
  * Refresh the peer changes for the active file.
- * 1. Download the changes (line numbers only) from the server (once per SYNC_THRESHOLD)
- * 2. Diff against their respective commits
- * 3. Shift the line markers received from the server, to account for local changes.
+ * 1. Download the diffs from the server (once per SYNC_THRESHOLD)
+ * 2. Apply diff against their respective commits, to obtain the peer file
+ * 3. Diff peer file against the current doc
  *
  * TODO: cleanup older changes; the user closes tabs (maybe) but we're still keeping
  * the changes in CAWStore (project.changes)
@@ -484,33 +485,30 @@ function refreshChanges(project: any, filePath: string, doc: string, cid: string
   const fpath = filePath.includes(project.root) ? filePath.substr(project.root.length + 1) : filePath
   logger.log('DIFFS: refreshChanges (origin, fpath, user)', project.origin, fpath, CAWStore.user?.email)
   PENDING_DIFFS[fpath] = true // this operation can take a while, so we don't want to start it several times per second
+  const retPromise = Promise.resolve()
   // @ts-ignore
   if (lastDownloadDiff[wsFolder] && new Date() - lastDownloadDiff[wsFolder] < Config.SYNC_THRESHOLD) {
     logger.info('DIFFS: still fresh (lastDownloadDiff, now)', lastDownloadDiff[wsFolder], new Date())
-    return Promise.resolve()
+  } else {
+    lastDownloadDiff[wsFolder] = new Date()
+    retPromise.then(() => downloadChanges(project, fpath, cid))
   }
 
-  lastDownloadDiff[wsFolder] = new Date()
+  retPromise.then(() => {
+    logger.info(`DIFFS: will check local diffs for ${fpath}`, project.changes)
+    return applyDiffs({ fpath, cid, doc })
+  })
 
-  return downloadChanges(project, fpath, cid)
-    .then(() => {
-      logger.info(`DIFFS: will check local diffs for ${fpath}`, project.changes)
-      /* perform aggregate diffs instead of the cSHA; users may send diffs and then
-       * go offline for a while, which make their diffs stale against an old SHA.
-       */
-      return getLinesChangedLocaly(project, fpath, doc, cid)
-    })
-    .then(() => {
-      logger.info(`DIFFS: will shift markers (changes) for ${fpath}`, project.changes)
-      if (project.changes[fpath]) {
-        shiftWithGitDiff(project, fpath)
-        shiftWithLiveEdits(project, fpath) // include editing operations since the git diff was initiated
-        delete PENDING_DIFFS[fpath] // pending diffs complete
-      }
-      return project
-    })
-    .catch(logger.error)
+  retPromise.then(() => {
+    return project
+  })
+
+  retPromise.catch(logger.error)
+
+  return retPromise
 }
+
+const saveDownloaded = fpath => res => fs.writeFile(fpath, res.data + '\n')
 
 /************************************************************************************
  * We download the list of contributors for the active file,
@@ -525,10 +523,13 @@ function refreshChanges(project: any, filePath: string, doc: string, cid: string
  * @param fpath string - the file path of the active document
  * @param cid string - the client ID
  ************************************************************************************/
-function downloadChanges(project: any, fpath: string, cid: string): Promise<void> {
+function downloadChanges(project: any, fpath: string, cid: string): Promise<void | any[]> {
   const currentUserId = CAWStore.user?._id.toString()
   if (!currentUserId) return Promise.reject(new Error('Not logged in.'))
   const uri = encodeURIComponent(project.origin)
+  const tmpDir = CAWStore.uTmpDir[cid]
+  const downloadRoot = path.join(tmpDir, Config.EXTRACT_DOWNLOAD_DIR)
+
   return CAWAPI.axiosAPI
     .get(`${API_REPO_CONTRIB}?origin=${uri}&fpath=${fpath}&clientId=${cid}`)
     .then((res) => {
@@ -538,8 +539,9 @@ function downloadChanges(project: any, fpath: string, cid: string): Promise<void
       // merge contributors
       if (!project.contributors) project.contributors = {}
       data.users.filter(u => u._id !== currentUserId).forEach(u => (project.contributors[u._id] = u))
-      project.changes = {}
-      data.tree?.forEach(f => project.changes[f.file] || (project.changes[f.file] = {})) // if already exists, don't overwrite
+      if (!project.changes) project.changes = {}
+      // Setup file tree for this repository. When asking for changes on a file, we take the opportunity to refresh the peer file tree as well.
+      data.tree?.forEach(f => (project.changes[f.file] || (project.changes[f.file] = {}))) // We don't overwrite the existing File tree (VSCode left panel)
       /**
        * data.file.changes: {
        *   uid1: { sha: sha, lines: lines, s3key: s3key }
@@ -547,176 +549,35 @@ function downloadChanges(project: any, fpath: string, cid: string): Promise<void
        *   ...
        * }
        */
-      project.changes[fpath] = data.file.changes
-      // TODO: when contributors have different cSHA values, we need to diff against each one
-      // so aggregate based on cSHA (multiple aggregates)
-      const lines = {}
-      if (data.file.changes) {
-        delete data.file.changes[currentUserId]
-        Object.keys(data.file.changes).map(uid => {
-          const sha = data.file.changes[uid].sha
-          if (!lines[sha]) lines[sha] = []
-          data.file.changes[uid].lines.map(line => {
-            if (!~lines[sha].indexOf(line)) lines[sha].push(line)
-          })
-        })
-        project.changes[fpath].alines = lines
-        logger.info('DIFFS: aggregate lines: (lines, changes[fpath])', lines, project.changes[fpath])
-      }
+      project.changes[fpath] = { users: data.users, file: data.file }
+
+      const promises = []
+      promises.push(
+        // TODO: this has the potential of crashing when the user shuffles through files quickly
+        rimraf(downloadRoot) // TODO: on windows we should be using `rimraf.windows.sync(...)
+          .then(() => fs.mkdir(downloadRoot))
+      )
+      Object.keys(data.file.changes).forEach(uid => {
+        const s3key = data.file.changes[uid].s3key
+        const downloadedFile = path.join(downloadRoot, `${uid}.diff`)
+        promises.push(
+          CAWAPI.axiosAPI
+            .get(`${API_REPO_DIFF_FILE}?origin=${uri}&fpath=${s3key}`)
+            .then(saveDownloaded(downloadedFile))
+        )
+      })
+
+      /* eslint-disable-next-line @typescript-eslint/no-empty-function */
+      return Promise.all(promises)
     })
     .catch(err => {
-      logger.info('DIFFS: no contributors for this file', err.core, err.config.url, err.data)
+      console.trace()
+      logger.info('DIFFS: no contributors for this file.', err.core, err.config?.url, err.data, err)
     })
 }
 
-/************************************************************************************
- * Getting the changes from the active document (not yet written to disk).
- *
- * @param project object - CAWStore project
- * @param fpath string - the file path of the active document
- * @param doc string - the document text content
- * @param cid string - the client ID
- ************************************************************************************/
-function getLinesChangedLocaly(project: any, fpath: string, doc: string, cid: string): Promise<void> {
-  const wsFolder = project.root
-  const wsName = path.basename(wsFolder)
-  const tmpDir = CAWStore.uTmpDir[cid]
-  if (!project.changes[fpath]) return Promise.resolve()
-  /* TODO: right now we're limiting the git archive and diff operations to maximum 20 different commits; optimize and improve if possible */
-  const shas = Object.keys(project.changes[fpath].alines).slice(0, Config.MAX_NR_OF_SHA_TO_COMPARE)
-  logger.info('DIFFS: getLinesChangedLocaly shas', shas)
-
-  const tmpCompareDir = path.join(tmpDir, wsName, Config.EXTRACT_LOCAL_DIR)
-  const activeFile = path.join(tmpCompareDir, fpath)
-  mkdirp.sync(path.dirname(activeFile))
-
-  const archiveDir = path.join(tmpDir, wsName, Config.EXTRACT_REPO_DIR)
-  mkdirp.sync(archiveDir)
-
-  clearLocalDiffs(project)
-
-  let shaPromise = fs.writeFile(activeFile, doc)
-
-  shas.forEach(sha => {
-    const archiveFile = path.join(archiveDir, `_caw.archive-${sha}`)
-    shaPromise = shaPromise
-      .then(() => {
-        logger.info('DIFFS: ARCHIVE', archiveFile, sha, fpath)
-        return git.command(wsFolder, `git archive --format=tar -o ${archiveFile} ${sha} ${fpath}`)
-      })
-      .then(() => {
-        logger.info('DIFFS: tar.x', archiveDir)
-        return tar.x({ file: archiveFile, cwd: archiveDir })
-      })
-      .then(() => {
-        logger.info('DIFFS: getLinesChangedLocaly diff', activeFile)
-        return git.command(wsFolder, `git diff -b -U0 --no-color --exit-code --diff-algorithm=patience ${path.join(archiveDir, fpath)} ${activeFile}`)
-      })
-      .then(parseDiffFile)
-      .then(localChanges => {
-        logger.info('DIFFS: getLinesChangedLocaly localChanges', localChanges)
-        if (!project.gitDiff) project.gitDiff = {}
-        if (!project.gitDiff[fpath]) project.gitDiff[fpath] = {}
-        project.gitDiff[fpath][sha] = localChanges
-      })
-      .catch(err => {
-        logger.log('DIFFS: ERROR IN PARSE DIFFS', err)
-        // TODO: improve error control for chained promises
-        // when git archive fails it's usually because the ${sha} is not present locally.
-        delete project.changes[fpath].alines[sha]
-        logger.info('DIFFS: git archive failed', err)
-        throw new Error(`Could not git archive with sha: ${sha} ${fpath}`)
-      })
-  })
-
-  return shaPromise
-}
-
-/************************************************************************************
- * Update (shift) the line markers to account for the local edits and git diffs since the cSHA
- * Operation order:
- * - gitDiff
- * - local edits after the git diff was initiated (if the user is quick on keyboard)
- * - aggregate lines
- *
- * @param project object - project
- * @param fpath string - the file path for which we extracted the diffs
- *
- ************************************************************************************/
-function shiftWithGitDiff(project: any, fpath: string): void {
-  // logger.info('DIFFS: shiftWithGitDiff (project, fpath)', project, fpath)
-  if (!project.gitDiff || !project.gitDiff[fpath] || !project.changes[fpath]) return
-
-  const shas = Object.keys(project.changes[fpath].alines).slice(0, Config.MAX_NR_OF_SHA_TO_COMPARE)
-  shas.map(sha => {
-    const changes = project.changes && project.changes[fpath] || {}
-    const gitDiff = project.gitDiff && project.gitDiff[fpath] || {}
-    const lines = changes.alines[sha] || []
-    const localLines = gitDiff[sha] || []
-    project.changes[fpath].alines[sha] = shiftLineMarkers(lines, localLines)
-    // logger.log('DIFFS: shiftWithGitDiff (localLines, alines, fpath, gitDiff)', localLines, project.changes[fpath].alines, fpath, gitDiff)
-  })
-}
-
-function shiftWithLiveEdits(project: any, fpath: string): void {
-  if (!project.changes || !project.changes[fpath]) return
-  const shas = Object.keys(project.changes[fpath].alines).slice(0, Config.MAX_NR_OF_SHA_TO_COMPARE)
-  const { editorDiff } = project
-  if (!editorDiff || !editorDiff[fpath]) return
-
-  const liveLines = editorDiff[fpath]
-  shas.map(sha => {
-    const lines = project.changes[fpath].alines[sha] || []
-    editorDiff[fpath] = []
-    project.changes[fpath].alines[sha] = shiftLineMarkers(lines, liveLines)
-    // logger.log('DIFFS: shiftWithLiveEdits (liveLines, alines)', liveLines, project.changes[fpath].alines)
-  })
-}
-
-/*
- * lines: the line numbers changed at peers;
- * ranges: the local changes based on cSHA
- */
-function shiftLineMarkers(lines: number[], ranges: any[]): Array<number> {
-  let shift = 0
-  let pshift = 0 // progressive shift as we go through all diff ranges
-  let newLines = []
-  // logger.log('shiftLineMarkers (lines, ranges)', lines, ranges)
-  if (!ranges.length) return lines
-  ranges.map(block => {
-    shift = block.replaceLen - block.range.len
-    const isInsert = block.range.len === 0
-    const counted = []
-    lines.map((line, i) => (line >= block.range.line) && (lines[i] += shift))
-    pshift = shift
-    newLines = lines.filter(n => {
-      if (!counted[n]) {
-        counted[n] = true
-        return true
-      }
-    })
-  })
-
-  return newLines
-}
-
-function clearLocalDiffs(project: any) {
-  project.gitDiff = []
-}
-
-type TDiffReplace = {
-  range: {
-    line: number,
-    len: number,
-  },
-  replaceLen: number,
-  /* TODO: I thought to remove the replaceLen; we should be able to handle all edit operations using just `line` and `len`.
-   * For example, `len = 0` should mean INSERT, while `len = 1` means REPLACE current line.
-   * However, a REPLACE with empty content could mean either "place an empty line there" or "delete that line entirely".
-   */
-}
-
-function parseDiffFile(diffs: string): Array<TDiffReplace> {
+function parseDiffFile(diffs: string): Array<TDiffBlock> {
+  logger.info('parsing diff file of length', diffs.length)
   const lines = diffs.split('\n')
   const changes = []
   let sLine = 0
@@ -768,68 +629,11 @@ async function unzip({ extractDir, zipFile }): Promise<void> {
   await shell.rmFile(zipFile)
 }
 
-// TODO: error handling of all these awaits
-// TODO: it seems this crashes when closing the file (with save): `spawn C:\WINDOWS\system32\cmd.exe ENOENT`
-async function sendAdhocDiffs(diffDir: string, cid: string): Promise<void> {
-  if (lastSendDiff[diffDir]) {
-    /* @ts-ignore */
-    if (new Date() - lastSendDiff[diffDir] < Config.SYNC_THRESHOLD) return Promise.resolve()
-  } else {
-    lastSendDiff[diffDir] = new Date()
-  }
-  const gitDir = path.join(diffDir, Config.EXTRACT_LOCAL_DIR)
-  const origin = (await git.command(gitDir, 'git remote get-url origin')).trim()
-  const sha = (await git.command(gitDir, 'git rev-list --max-parents=0 HEAD')).trim()
-  const tmpProjectDiff = path.join(diffDir, 'uploaded.diff')
-  const tmpDir = CAWStore.uTmpDir[cid]
-  const emptyFile = path.join(tmpDir, 'empty.p8')
-
-  createEmpty(tmpProjectDiff)
-  createEmpty(emptyFile)
-
-  await git.command(gitDir, `git diff -b -U0 --no-color --diff-algorithm=patience ${sha} >> ${tmpProjectDiff}`)
-
-  return uploadDiffs({
-    activePath: '', // TODO: add slide number, and connect to receive updates via socket
-    cSHA: sha,
-    diffDir,
-    origin,
-  })
-}
-
-// TODO: move PPT related fn into a separate module
-async function refreshAdhocChanges({ origin, fpath }): Promise<void> {
-  /* TODO: add caching (so we don't keep on asking for the same file when the user mad-clicks the same contributor) */
-
-  logger.log('DIFFS: downloadDiffs ad-hoc (origin, fpath, user)', origin, fpath, CAWStore.user)
-  PENDING_DIFFS[fpath] = true // this operation can take a while, so we don't want to start it several times per second
-  /* @ts-ignore */
-  if (lastDownloadDiff[origin] && new Date() - lastDownloadDiff[origin] < Config.SYNC_THRESHOLD) {
-    return Promise.resolve()
-  }
-
-  lastDownloadDiff[origin] = new Date()
-
-  const uri = encodeURIComponent(origin)
-  return CAWAPI
-    .axiosAPI(`${API_SHARE_SLIDE_CONTRIB}?origin=${uri}&fpath=${fpath}`, { method: 'GET', responseType: 'json' })
-    .then(res => res.data)
-}
-
-export type TContribBlock = {
-  origin: string
-  fpath: string
-  doc: string
-  cid: string
-  line: number
-  direction: number
-}
-
-let peers = {}
+const peers = {}
 
 async function nextPeer(project, fpath) {
-  const blocks = await Config.repoStore.get('blocks')
-  const peer = await Config.repoStore.get('currentPeer')
+  // const blocks = await Config.repoStore.get('blocks')
+  // const peer = await Config.repoStore.get('currentPeer')
   const relPath = fpath.substr(project.root.length + 1)
   const uid = Object.keys(project.changes[relPath])[0]
   if (!peers[project.origin]) peers[project.origin] = {}
@@ -843,16 +647,8 @@ async function nextPeer(project, fpath) {
   }
 }
 
-export type TContribFile = {
-  title: string
-  extractDir: string
-  peerFile: string
-  fpath: string
-}
-
 async function cycleContrib(block: TContribBlock) {
   const project = CAWStore.activeProjects[block.cid]
-  const tmpDir = CAWStore.uTmpDir[block.cid]
   const peer = {
     contrib: await nextPeer(project, block.fpath),
     fpath: block.fpath,
@@ -860,19 +656,14 @@ async function cycleContrib(block: TContribBlock) {
     cid: block.cid,
     doc: block.doc,
   }
-  let diffs
-  return diffWithContributor(peer)
+  return extractContributor(peer)
     .then((data: TContribFile) => {
-      const { peerFile, fpath } = data
       const wsFolder = project.root
-      const relPath = block.fpath.substr(project.root.length + 1)
       // Peer file is extracted in data.peerFile
       // Current doc is written in data.fpath
       return git.command(wsFolder, `git diff -b -U0 --no-color --diff-algorithm=patience ${data.fpath} ${data.peerFile}`)
     })
-    .then(diffs => {
-      return parseDiffFile(diffs)
-    })
+    .then(parseDiffFile)
     .then(ranges => {
       const matching = ranges.filter(obj => {
         const start = obj.range.line
@@ -883,21 +674,118 @@ async function cycleContrib(block: TContribBlock) {
     })
 }
 
+/**
+ * We apply diffs on a live document sent to us by the client.
+ * The diffs are applied against each peer version. These versions have been downloaded already before calling this function.
+ *
+ * TODO: sequential execution: for many contributors to the same file, these diffs running concurrently will overwhelm the local machine
+ */
+function applyDiffs({ cid, fpath, doc }) {
+  const tmpDir = CAWStore.uTmpDir[cid]
+  const project = CAWStore.activeProjects[cid]
+  const wsFolder = project.root
+  const changes = project.changes[fpath].file.changes
+  const downloadRoot = path.join(tmpDir, Config.EXTRACT_DOWNLOAD_DIR)
+
+  async function applyUserChanges(uid) {
+    const { sha } = changes[uid]
+    const extractDir = path.join(tmpDir, Config.EXTRACT_PEER_DIR, uid)
+    const archiveDir = extractDir
+    try {
+      await mkdirp(archiveDir)
+    } catch (err) {
+      // nothing
+    }
+    const downloadedFile = path.join(downloadRoot, `${uid}.diff`)
+    /* archiveFile: we use git archive to extract the active file from the cSHA commit */
+    const archiveFile = path.join(archiveDir, `local-${sha}.tar`)
+    /* peerFile: this is the peer version of `fpath` diffs applied */
+    const peerFile = path.join(extractDir, fpath)
+
+    const patchFile = () => {
+      // return git.command(extractDir, `git apply --whitespace=nowarn ${downloadedFile}`) // TODO: would be nice if this worked
+      const cmd = isWindows ? '"C:\\Program Files\\Git\\usr\\bin\\patch.exe"' : 'patch'
+      return git.command(extractDir, `${cmd} ${fpath} ${downloadedFile}`)
+    }
+
+    const diffWithDoc = () => git.command(wsFolder, `git diff -b -U0 --no-color --diff-algorithm=patience ${doc} ${peerFile}`)
+
+    const updateProject = diffs => (changes[uid].diffs = diffs)
+
+    const createArchive = () => {
+      return git
+        .command(wsFolder, `git archive --format=tar -o ${archiveFile} ${sha} ${fpath}`)
+        .then(archiveExists)
+        .catch(logger.error)
+    }
+
+    const archiveExists = (data) => {
+      /* extractDir: we extract the active file from the archive in this folder, so we can run git apply on it */
+      const fdir = path.dirname(fpath)
+      rimraf.sync(path.join(extractDir, fdir))
+      mkdirp.sync(path.join(extractDir, fdir))
+      /* peerFile: we finally instruct VSCode to open a diff window between the active file and the extracted file, which now has applied diffs to it */
+      logger.info('DIFFS: extractContributor (ct, fpath, extractDir)', changes[uid], fpath, extractDir)
+      const untar = () => {
+        // tar.x({ file: `local-${sha}.tar`, cwd: extractDir }) // TODO: why is tar.x not returning a promise?
+        return git.command(extractDir, `tar xvf local-${sha}.tar`)
+      }
+
+      return untar()
+        .then(patchFile)
+        .then(diffWithDoc)
+        .then(parseDiffFile)
+        .then(updateProject)
+    }
+
+    return fs
+      .access(archiveFile, fsConstants.R_OK)
+      .then(archiveExists)
+      .catch(createArchive)
+  }
+
+  return Promise.all(
+    Object.keys(changes).map(applyUserChanges)
+  )
+}
+
+/**
+ * to a temp file and run a diff between it and a peer version.
+ * @param Object { contrib: object, fpath: string, origin: string, cid: string, doc: string }
+ */
+async function diffWithContributor({ contrib, fpath, cid }) {
+  const tmpDir = CAWStore.uTmpDir[cid]
+  const tmpFilename = _.uniqueId(path.basename(fpath))
+  try {
+    await fs.mkdir(path.join(tmpDir, 'tmp'))
+  } catch {
+    // folder exists; nothing to do.
+  }
+  const tmpDoc = path.join(tmpDir, 'tmp', tmpFilename)
+  const peer = {
+    contrib,
+    fpath,
+    origin,
+    cid,
+    doc: tmpDoc,
+  }
+  return extractContributor(peer)
+}
+
 const CAWDiffs = {
+  applyDiffs,
   clear,
   compress,
   cycleContrib,
   diffWithContributor,
   diffWithBranch,
+  downloadChanges,
   initGit,
-  refreshAdhocChanges,
   refreshChanges,
   shareFile,
   shareFolder,
-  sendAdhocDiffs,
   sendCommitLog,
   sendDiffs,
-  shiftWithLiveEdits,
   unzip,
   updateGit,
   uploadDiffs, // IMPORTANT: used for mocking purposes in integration tests; use sendDiffs instead

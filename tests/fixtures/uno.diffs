@@ -1,0 +1,84 @@
+diff --git a/README.md b/README.md
+index 06e3dd2..46942d4 100644
+--- a/README.md
++++ b/README.md
+@@ -11,6 +11,7 @@ As most developers do, I've started this project after becoming really frustrate
+ - you cannot make anything serious using mongoose without eventually calling native driver functions, which then makes me wonder why do we even want to use mongoose?
+ - mongoose is a huge project, an empty project with `npm i mongoose` quickly arrives at 14 MB (out of which mongoDB is 9.5MB)
+ - I am a strong believer in the "single responsibility" paradigm, "do one thing and do it well". You need data validation? Install a data validation library. You need aliased fields? Install an alias translator (this package). You need virtual fields? Install a virtual field provider. And so on.
++- ORMs and ODMs have been the source of many project disasters, especially when it comes to performance.
+ - And finally, and perhaps most importantly, MongoDB driver commands should have never been overridden in this way. It makes it a lot harder to keep mongoose in sync with MongoDB evolution, prevents the devs from using mongoDB as intended by 10gen, and creates a lot of confusion and mistrust towards this wonderful database system. (have you heard people complaining that mongoDB corrupted their data? It's most likely not MongoDB).
+ 
+ ## Features
+@@ -20,7 +21,7 @@ As most developers do, I've started this project after becoming really frustrate
+ - aliased fields (more about this below)
+ - automatic handling of `createdAt` and `updatedAt` timestamp fields
+ 
+-Note: this package adds 38kb to your project. Consequently, it does not provide any of the following features provided by mongoose:
++Note: this package adds 38kb to your project. Consequently, it does not provide any of the following features (use mongoose if you need them):
+ 
+   - schema validation
+   - discriminators
+@@ -40,10 +41,6 @@ When we code, we'd like to work with nice long field names, but those get stored
+ 
+ Saving short keys in the database has been a good way to improve database metrics, even though 10gen explains [here](https://www.mongodb.com/docs/manual/core/data-model-operations/#storage-optimization-for-small-documents) that this optimization is really beneficial only for small documents.
+ 
+-## Why NOT schema validation
+-
+-Much like express and other web servers don't come up request/response validation out of the box, I think we should be free to choose different validation engines as we see fit, and just plug them in. Or perhaps, we'd like to let mongoDB validate our schema, instead of us doing it in the code.
+-
+ ## Installation
+ 
+ `npm i mongo-alias`
+@@ -62,10 +59,10 @@ Note: currently there are some listeners (most likely the mongoDB `client.on(...
+ import type { TMongoAlias } from 'mongo-alias'
+ import { initMongo } from 'mongo-alias'
+ 
+-const data: TMongoAlias = await initMongo(config.mongo.url, config.mongo.db, options)
++const mongo: TMongoAlias = await initMongo(config.mongo.url, config.mongo.db, options)
+ 
+ // now you have data.mongoClient and data.db to work with
+-const col = data.db.collection('users')
++const col = mongo.db.collection('users')
+ const doc = await col.findOne(/* query, projection, options */)
+ ```
+ 
+diff --git a/src/mongo.service.ts b/src/mongo.service.ts
+index fb69176..75fa387 100644
+--- a/src/mongo.service.ts
++++ b/src/mongo.service.ts
+@@ -71,6 +71,7 @@ export async function closeMongo() {
+   await mongoClient?.close()
+ }
+ 
++/* TMongoPack Accumulator consisting of Schema and Query */
+ export type TMongoPack = {
+   schema: any
+   query: Array<string>
+@@ -177,7 +178,9 @@ const unalias = (query, schema) => {
+     }
+ 
+     /* TODO: somewhere we're getting an empty item in the array, which gets translated into a null */
+-    if (parsed instanceof Array) parsed = parsed.filter(a => a !== undefined)
++    if (parsed instanceof Array) {
++      parsed = parsed.filter(a => a !== undefined)
++    }
+   })
+ 
+   return parsed
+@@ -237,6 +240,7 @@ export function Model(schema: any, collection, options?: TOptions) {
+   })
+ 
+   const wrapArray = cursor => {
++    // replace the toArray method of the cursor, so that we can format the results (replace short aliases with full names)
+     const { toArray } = cursor
+     cursor.toArray = async () => {
+       const items = await toArray.bind(cursor)()
+@@ -245,7 +249,6 @@ export function Model(schema: any, collection, options?: TOptions) {
+     return cursor
+   }
+ 
+-  /* TODO: add more native mongoDB functions here */
+   return {
+     countDocuments: function(filter?: any, options?: any) {
+       const mongoFilter = unalias(filter, schema)

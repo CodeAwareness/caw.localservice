@@ -1,0 +1,73 @@
+diff --git a/README.md b/README.md
+index b3bb20d..64417bd 100644
+--- a/README.md
++++ b/README.md
+@@ -4,6 +4,8 @@ This extension provides CodeAwareness functionality, which enabled you to work i
+ 
+ Once you login to codeawareness.com you can check other people's progress, and instantly diff your code against theirs without having to wait for a PR or even a git push.
+ 
++And by instantly, I mean within 5 or 10 minutes from them saving the file.
++
+ # Testing
+ 
+ 1. Unzip the `tests/fixtures/test.repo.zip` file
+diff --git a/src/config.js b/src/config.js
+index 0843a6f..5081c8c 100644
+--- a/src/config.js
++++ b/src/config.js
+@@ -1,5 +1,7 @@
++// Something
+ require('dotenv').config()
+ 
++// We're using nginx on port 8886 to coordinate between API, Local Service, editor panel, etc.
+ const PORT_LOCAL = 8886
+ const CONFIGURATION_FILE = '.peer8'
+ const PEER8_SCHEMA = 'peer8'
+@@ -8,14 +10,16 @@ const API_URL = process.env.LOCAL ? `http://localhost:${PORT_LOCAL}/api/v1` : 'h
+ 
+ // Workspace: SYNC_INTERVAL gives the timer for syncing with the server
+ const SYNC_INTERVAL = 1000 * 100 // download diffs from the server every minute or so
++
+ // Diffs: SYNC_THRESHOLD gives the throttling interval for sending and receiving diffs
+ const SYNC_THRESHOLD = 1000 // avoid too many send/receive requests per second
+ 
+-const MAX_NR_OF_SHA_TO_COMPARE = 5
++// TODO: The maximum number of commit SHAs to compare from HEAD down
++const MAX_NR_OF_SHA_TO_COMPARE = 5 // should probably be something like 200 commits
+ 
+ // console.log('CONFIG: (local, SYNC_INTERVAL, API_URL, EXT_URL)', process.env.LOCAL, SYNC_INTERVAL, API_URL, EXT_URL)
+ 
+-const LOG_LEVEL = process.env.LOG_LEVEL || 'debug' // ['verbose', 'debug', 'error']
++const LOG_LEVEL = process.env.LOG_LEVEL || 'debug' // one of ['verbose', 'debug', 'error']
+ 
+ // EXTRACT_BRANCH_DIR where we extract the file from a specific branch, to be compared with the activeTextEditor
+ const EXTRACT_BRANCH_DIR = 'b'
+@@ -32,7 +36,6 @@ const EXTRACT_PEER_DIR = 'e'
+ export {
+   API_URL,
+   CONFIGURATION_FILE,
+-  EXT_URL,
+   EXTRACT_BRANCH_DIR,
+   EXTRACT_LOCAL_DIR,
+   EXTRACT_PEER_DIR,
+diff --git a/src/extension.js b/src/extension.js
+index 7130470..d1579b1 100644
+--- a/src/extension.js
++++ b/src/extension.js
+@@ -87,7 +87,7 @@ function setupWatchers(context) {
+   TDP.clearWorkspace()
+   workspace.workspaceFolders.map(folder => subscriptions.push(window.registerTreeDataProvider('peer8Files', TDP.addPeerWorkspace(folder))))
+   subscriptions.push(workspace.registerTextDocumentContentProvider(PEER8_SCHEMA, peer8DocumentContentProvider))
+-  subscriptions.push(peer8CodeLensProvider()) // TODO: codeLens helpers
++  subscriptions.push(peer8CodeLensProvider())
+ 
+   // Sync workspace folders
+   subscriptions.push(workspace.onDidChangeWorkspaceFolders(e => {
+@@ -155,7 +155,6 @@ function setupWatchers(context) {
+     Peer8Editor
+       .setActiveEditor(editor)
+       .then(Peer8Workspace.refreshChanges)
+-      .catch(err => console.log(err.toString()))
+   })
+ 
+   /************************************************************************************

@@ -1,4 +1,5 @@
 module.exports = {
+  testMatch: ["**/tests/integration/**/*.ts"],
   moduleNameMapper: { '^@/(.*)$': '<rootDir>/src/$1' },
   preset: 'ts-jest',
   testEnvironment: 'node',

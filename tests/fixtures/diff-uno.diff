@@ -1,0 +1,573 @@
+diff --git a/.nvmrc b/.nvmrc
+index 8351c19..48082f7 100644
+--- a/.nvmrc
++++ b/.nvmrc
+@@ -1 +1 @@
+-14
++12
+diff --git a/README.md b/README.md
+index b3bb20d..7dd038c 100644
+--- a/README.md
++++ b/README.md
+@@ -8,3 +8,13 @@ Once you login to codeawareness.com you can check other people's progress, and i
+ 
+ 1. Unzip the `tests/fixtures/test.repo.zip` file
+ 2. Run `yarn test` or `yarn test:watch`
++
++# Development
++
++We need 3 different components:
++
++- VSCode extension
++- VSCode web panel
++- Code Awareness local service
++
++# Listen here
+\ No newline at end of file
+diff --git a/package.json b/package.json
+index af61f15..7c23133 100644
+--- a/package.json
++++ b/package.json
+@@ -219,7 +219,7 @@
+     "prod": "export NODE_ENV=production; npm i; webpack --mode production",
+     "watch": "eslint ./src && NODE_ENV=development webpack --mode development --watch",
+     "watch-prod": "export NODE_ENV=production; eslint './src/**/*' && webpack --mode production --watch",
+-    "dev": "NODE_ENV=development webpack --mode development",
++    "dev": "webpack --mode development",
+     "test": "export LOCAL=1; jest -i",
+     "test:watch": "export LOCAL=1; jest -i --watchAll",
+     "coverage": "export LOG_LEVEL=none && jest -i --coverage",
+@@ -278,7 +278,6 @@
+     "axios-retry": "^3.1.9",
+     "dotenv": "^8.2.0",
+     "form-data": "^4.0.0",
+-    "fs-extra": "^10.0.0",
+     "lodash": "^4.17.21",
+     "mkdirp": "^1.0.4",
+     "rimraf": "^3.0.2",
+diff --git a/src/config.js b/src/config.js
+index 0843a6f..f63ae37 100644
+--- a/src/config.js
++++ b/src/config.js
+@@ -1,16 +1,11 @@
+ require('dotenv').config()
+ 
+ const PORT_LOCAL = 8886
+-const CONFIGURATION_FILE = '.peer8'
+-const PEER8_SCHEMA = 'peer8'
++const CONFIGURATION_FILE = '.codeawareness'
++const PEER8_SCHEMA = 'codeawareness'
+ const EXT_URL = process.env.LOCAL ? `http://localhost:${PORT_LOCAL}` : 'https://ext.peer8.com' // Peer8 Webview server
+ const API_URL = process.env.LOCAL ? `http://localhost:${PORT_LOCAL}/api/v1` : 'https://api.peer8.com/v1'
+-
+-// Workspace: SYNC_INTERVAL gives the timer for syncing with the server
+-const SYNC_INTERVAL = 1000 * 100 // download diffs from the server every minute or so
+-// Diffs: SYNC_THRESHOLD gives the throttling interval for sending and receiving diffs
+-const SYNC_THRESHOLD = 1000 // avoid too many send/receive requests per second
+-
++const SYNC_INTERVAL = 1000 // download diffs from the server every minute !! IMPORTANT: this is currently used in both workspace and diffs
+ const MAX_NR_OF_SHA_TO_COMPARE = 5
+ 
+ // console.log('CONFIG: (local, SYNC_INTERVAL, API_URL, EXT_URL)', process.env.LOCAL, SYNC_INTERVAL, API_URL, EXT_URL)
+@@ -42,5 +37,4 @@ export {
+   PEER8_SCHEMA,
+   PORT_LOCAL,
+   SYNC_INTERVAL,
+-  SYNC_THRESHOLD,
+ }
+diff --git a/src/extension.js b/src/extension.js
+index 7130470..d1579b1 100644
+--- a/src/extension.js
++++ b/src/extension.js
+@@ -87,7 +87,7 @@ function setupWatchers(context) {
+   TDP.clearWorkspace()
+   workspace.workspaceFolders.map(folder => subscriptions.push(window.registerTreeDataProvider('peer8Files', TDP.addPeerWorkspace(folder))))
+   subscriptions.push(workspace.registerTextDocumentContentProvider(PEER8_SCHEMA, peer8DocumentContentProvider))
+-  subscriptions.push(peer8CodeLensProvider()) // TODO: codeLens helpers
++  subscriptions.push(peer8CodeLensProvider())
+ 
+   // Sync workspace folders
+   subscriptions.push(workspace.onDidChangeWorkspaceFolders(e => {
+@@ -155,7 +155,6 @@ function setupWatchers(context) {
+     Peer8Editor
+       .setActiveEditor(editor)
+       .then(Peer8Workspace.refreshChanges)
+-      .catch(err => console.log(err.toString()))
+   })
+ 
+   /************************************************************************************
+diff --git a/src/lib/fs.js b/src/lib/fs.js
+index e7cab1c..f42bfe8 100644
+--- a/src/lib/fs.js
++++ b/src/lib/fs.js
+@@ -2,7 +2,6 @@ import {
+   constants,
+   openSync as fsOpenSync,
+   closeSync as fsCloseSync,
+-  copyFile as fsCopyFile,
+   readFile as fsReadFile,
+   readFileSync as fsReadFileSync,
+   writeFile as fsWriteFile,
+@@ -25,8 +24,6 @@ import { logger } from './logger'
+ 
+ const isWindows = !!process.env.ProgramFiles
+ 
+-// TODO: get rid of this wrapper if possible.
+-
+ export function pathJoin() {
+   if (isWindows) return join(...arguments).replace(/^[\\/]/, '')
+   return join(...arguments)
+@@ -77,14 +74,13 @@ export function rmDir(path) {
+   })
+ }
+ 
+-// TODO: maybe use fs-extra instead
+ export function copyFolder(source, dest) {
+   // TODO: OPTIMIZE: maybe use spawn instead of exec (more efficient since it doesn't spin up any shell)
+   return new Promise((resolve, reject) => {
+     let command
+     if (isWindows) {
+       logger.info('FS: Windows system, trying xcopy source dest')
+-      command = `xcopy /h /r /j /k /o /q /s /e ${source} ${dest}` // wow, fuck, lol, wtf, seriously?!!/???@@
++      command = `xcopy /h /j /k /o /q /s /e ${source} ${dest}` // wow, fuck, lol, wtf, seriously?!!/???@@
+     } else {
+       command = `cp -r ${source} ${dest}`
+     }
+@@ -96,12 +92,6 @@ export function copyFolder(source, dest) {
+   })
+ }
+ 
+-export function copyFile(source, dest) {
+-  return new Promise((resolve, reject) => {
+-    fsCopyFile(source, dest, error => error && (reject(error) || 1) || resolve())
+-  })
+-}
+-
+ export function createEmpty(file) {
+   fsCloseSync(fsOpenSync(file, 'w'))
+ }
+diff --git a/src/lib/ipc.js b/src/lib/ipc.js
+index bb28f3c..c0f2623 100644
+--- a/src/lib/ipc.js
++++ b/src/lib/ipc.js
+@@ -34,18 +34,6 @@ function processSystemEvent(key, data) {
+       init()
+       break
+ 
+-    case 'adhoc:receiveShared':
+-      Peer8Workspace.receiveShared(data)
+-      break
+-
+-    case 'adhoc:shareFile':
+-      Peer8Workspace.shareFile(data)
+-      break
+-
+-    case 'adhoc:shareFolder':
+-      Peer8Workspace.shareFolder(data)
+-      break
+-
+     case 'branch:select':
+       Peer8Diffs.diffWithBranch(data)
+       break
+diff --git a/src/lib/peer8.api.js b/src/lib/peer8.api.js
+index f2b7f08..fd7073e 100644
+--- a/src/lib/peer8.api.js
++++ b/src/lib/peer8.api.js
+@@ -16,8 +16,6 @@ const API_REPO_COMMITS        = '/repos/commits'
+ const API_REPO_COMMON_SHA     = '/repos/common-sha'
+ const API_REPO_CONTRIB        = '/repos/contrib'
+ const API_REPO_DIFF_FILE      = '/repos/diff'
+-const API_SHARE_START         = '/share/start'
+-const API_SHARE_ACCEPT        = '/share/accept'
+ 
+ axios.defaults.adapter = require('axios/lib/adapters/http')
+ const axiosAPI = axios.create({ baseURL: API_URL })
+@@ -174,20 +172,6 @@ const login = ({ email, password }) => axiosAPI.post(API_AUTH_LOGIN, { email, pa
+ 
+ const submitAuthBranch = ({ origin, sha, branch, commitDate }) => axiosAPI.post(API_REPO_SWARM_AUTH, { origin, sha, branch, commitDate })
+ 
+-const sendAdhocShare = ({ zipFile, origin, groups }) => {
+-  const zipForm = new FormData()
+-  zipForm.append('origin', origin)
+-  zipForm.append('groups', groups)
+-  zipForm.append('zipFile', createReadStream(zipFile), { filename: zipFile }) // !! the file HAS to be last appended to FormData
+-  return axiosAPI
+-    .post(API_SHARE_START, zipForm, { headers: zipForm.getHeaders() })
+-    .then(res => res.data)
+-}
+-
+-const receiveShared = link => {
+-  return axiosAPI.get(`${API_SHARE_ACCEPT}?i=${link}`)
+-}
+-
+ const Peer8API = {
+   clearAuth,
+   downloadDiffFile,
+@@ -196,9 +180,7 @@ const Peer8API = {
+   getRepo,
+   login,
+   logout,
+-  receiveShared,
+   refreshToken,
+-  sendAdhocShare,
+   sendCommitLog,
+   sendDiffs,
+   sendLatestSHA,
+diff --git a/src/lib/peer8.diffs.js b/src/lib/peer8.diffs.js
+index d559722..974627b 100644
+--- a/src/lib/peer8.diffs.js
++++ b/src/lib/peer8.diffs.js
+@@ -1,18 +1,15 @@
+ import mkdirp from 'mkdirp'
+-import { basename, dirname, extname } from 'path'
++import { basename, dirname } from 'path'
+ import tar from 'tar'
+ import rimraf from 'rimraf'
+-import * as _ from 'lodash'
+ import { createGzip } from 'zlib'
+ import { pipeline } from 'stream'
+ // import replaceStream from 'replacestream' // doesn't work (!)
+ 
+-import { EXTRACT_BRANCH_DIR, EXTRACT_LOCAL_DIR, EXTRACT_PEER_DIR, EXTRACT_REPO_DIR, MAX_NR_OF_SHA_TO_COMPARE, SYNC_THRESHOLD } from '../config'
++import { EXTRACT_BRANCH_DIR, EXTRACT_LOCAL_DIR, EXTRACT_PEER_DIR, EXTRACT_REPO_DIR, MAX_NR_OF_SHA_TO_COMPARE, SYNC_INTERVAL } from '../config'
+ import { logger } from './logger'
+ 
+ import {
+-  copyFile,
+-  copyFolder,
+   createEmpty,
+   createReadStream,
+   createWriteStream,
+@@ -43,13 +40,9 @@ const isWindows = !!process.env.ProgramFiles
+  * create unified diffs against untracked git files.
+  ************************************************************************************/
+ let emptyFile
+-let tmpDir
+-let adhocDir
+ 
+ function init() {
+-  tmpDir = Peer8Store.tmpDir.name
+-  emptyFile = pathJoin(tmpDir, 'empty.p8')
+-  adhocDir = pathJoin(tmpDir, 'adhoc')
++  emptyFile = pathJoin(Peer8Store.tmpDir.name, 'empty.p8')
+ }
+ 
+ /************************************************************************************
+@@ -60,6 +53,7 @@ function init() {
+ function diffWithBranch(branch) {
+   let peerFile
+   let wsFolder = Peer8Store.activeProject.root
++  const { tmpDir } = Peer8Store
+   Peer8Store.selectedBranch = branch
+   Peer8Store.selectContributor = undefined
+   const userFile = Peer8Store.activeProject.activePath
+@@ -68,9 +62,9 @@ function diffWithBranch(branch) {
+       wsFolder = folder.trim()
+       const name = basename(wsFolder)
+       const relativeDir = userFile.substr(0, userFile.length - basename(userFile).length)
+-      const localDir = pathJoin(tmpDir, name, EXTRACT_BRANCH_DIR)
++      const localDir = pathJoin(tmpDir.name, name, EXTRACT_BRANCH_DIR)
+       mkdirp.sync(pathJoin(localDir, relativeDir))
+-      peerFile = pathJoin(tmpDir, name, EXTRACT_BRANCH_DIR, userFile)
++      peerFile = pathJoin(tmpDir.name, name, EXTRACT_BRANCH_DIR, userFile)
+       return git.gitCommand(wsFolder, `git --work-tree=${localDir} checkout ${branch} -- ${userFile}`)
+     })
+     .then(() => {
+@@ -100,7 +94,7 @@ function diffWithContributor(ct) {
+   const userFile = Peer8Store.activeProject.activePath
+   const wsFolder = Peer8Store.activeProject.root
+   const wsName = basename(wsFolder)
+-  const archiveDir = pathJoin(tmpDir, wsName)
++  const archiveDir = pathJoin(Peer8Store.tmpDir.name, wsName)
+   mkdirp.sync(archiveDir)
+   /* downloadedFile: we save the diffs received from the server to TMP/active.diffs */
+   const downloadedFile = pathJoin(archiveDir, '_peer8.active.diffs')
+@@ -124,7 +118,7 @@ function diffWithContributor(ct) {
+     .catch(console.error)
+ 
+   function saveDownloaded({ data }) {
+-    return writeFile(downloadedFile, data + '\n')
++    writeFile(downloadedFile, data + '\n')
+   }
+ 
+   function gitArchive() {
+@@ -145,7 +139,7 @@ function diffWithContributor(ct) {
+     const title = `Peer8#${basename(userFile)} ↔ Peer changes`
+     logger.log('DIFFS: vscodeOpenDiffs (ct, peerFile, userFile)', ct, peerFile, userFile)
+     logger.log('ACTIVE PATH', Peer8Store.activeProject.activePath)
+-    // if (Peer8Store.activeProject.activePath.includes(tmpDir)) return Promise.resolve() // Looking at a vscode.diff window
++    // if (Peer8Store.activeProject.activePath.includes(Peer8Store.tmpDir.name)) return Promise.resolve() // Looking at a vscode.diff window
+     openDiffs({ title, peerFile, userFile: pathJoin(wsFolder, userFile) })
+   }
+ }
+@@ -246,12 +240,13 @@ function sendDiffs(project) {
+   const activePath = project.activePath || ''
+   // TODO: better throttling mechanism, maybe an express middleware
+   if (lastSendDiff[wsFolder]) {
+-    if (new Date() - lastSendDiff[wsFolder] < SYNC_THRESHOLD) return Promise.resolve()
++    const syncInterval = workspace.getConfiguration('peer8').get('syncInterval') || SYNC_INTERVAL
++    if (new Date() - lastSendDiff[wsFolder] < syncInterval) return Promise.resolve()
+   } else {
+     lastSendDiff[wsFolder] = new Date()
+   }
+   const wsName = basename(wsFolder)
+-  const diffDir = pathJoin(tmpDir, wsName)
++  const diffDir = pathJoin(Peer8Store.tmpDir.name, wsName)
+   const { origin } = project
+   logger.log('DIFFS: sendDiffs (wsFolder, origin)', wsFolder, origin)
+   mkdirp.sync(diffDir)
+@@ -318,8 +313,9 @@ function sendDiffs(project) {
+ }
+ 
+ function uploadDiffs({ wsFolder, origin, cSHA, activePath }) {
++  const  { tmpDir } = Peer8Store
+   const wsName = basename(wsFolder)
+-  const diffDir = pathJoin(tmpDir, wsName)
++  const diffDir = pathJoin(tmpDir.name, wsName)
+   mkdirp.sync(diffDir)
+ 
+   // TODO: I think we sometimes get a file error (cSHA.gz does not exist) -- verify
+@@ -346,61 +342,6 @@ function compress(input, output) {
+   })
+ }
+ 
+-/************************************************************************************
+- * AdHoc Sharing files or folders
+- ************************************************************************************/
+-function receiveShared(link) {
+-  return Peer8API.receiveShared(link)
+-    .then()
+-}
+-
+-function shareFile(filePath, groups) {
+-  setupShare(filePath, groups)
+-}
+-
+-function shareFolder(folder, groups) {
+-  setupShare(folder, groups, true)
+-}
+-
+-function setupShare(fPath, groups, isFolder) {
+-  const filename = basename(fPath)
+-  const origin = _.uniqueId(filename + '-') // TODO: this uniqueId only works for multiple sequential calls I think, because it just spits out 1, 2, 3
+-  const adhocRepo = pathJoin(adhocDir, origin)
+-  const zipFile = pathJoin(adhocDir, `${origin}.zip`)
+-  rimraf.sync(adhocRepo)
+-  mkdirp.sync(adhocRepo)
+-  const copyOp = isFolder ? copyFolder : copyFile
+-  return copyOp(fPath, adhocRepo)
+-    .then(() => {
+-      return adhocInitGit(adhocRepo, origin)
+-    })
+-    .then(() => {
+-      return git.gitCommand(adhocRepo, `git archive --format zip --output ${zipFile} HEAD`)
+-    })
+-    .then(() => {
+-      return git.gitCommand(adhocRepo, 'git rev-list HEAD -n1')
+-    })
+-    .then(cSHA => {
+-      return Peer8API.sendAdhocShare({ zipFile, origin, groups })
+-    })
+-}
+-
+-function adhocInitGit(adhocRepo, origin) {
+-  return git.gitCommand(adhocRepo, 'git init')
+-    .then(() => {
+-      return git.gitCommand(adhocRepo, 'git branch -M main')
+-    })
+-    .then(() => {
+-      return git.gitCommand(adhocRepo, 'git add .')
+-    })
+-    .then(() => {
+-      return git.gitCommand(adhocRepo, `git commit -am 'initial commit'`)
+-    })
+-    .then(() => {
+-      return git.gitCommand(adhocRepo, `git remote add origin '${origin}'`)
+-    })
+-}
+-
+ /************************************************************************************
+  * refreshChanges
+  *
+@@ -422,7 +363,8 @@ function refreshChanges(project, fpath) {
+ 
+   logger.log('DIFFS: downloadDiffs (origin, fpath, user)', project.origin, fpath, Peer8Store.user)
+   PENDING_DIFFS[fpath] = true // this operation can take a while, so we don't want to start it several times per second
+-  if (lastDownloadDiff[wsFolder] && new Date() - lastDownloadDiff[wsFolder] < SYNC_THRESHOLD) {
++  const syncInterval = SYNC_INTERVAL // workspace.getConfiguration('peer8').get('syncInterval') || SYNC_INTERVAL
++  if (lastDownloadDiff[wsFolder] && new Date() - lastDownloadDiff[wsFolder] < syncInterval) {
+     return Promise.resolve()
+   }
+ 
+@@ -505,11 +447,11 @@ function getLinesChangedLocaly(project, fpath) {
+   const shas = Object.keys(project.changes[fpath].alines).slice(0, MAX_NR_OF_SHA_TO_COMPARE)
+   logger.log('DIFFS: getLinesChangedLocaly shas', shas)
+ 
+-  const tmpCompareDir = pathJoin(tmpDir, wsName, EXTRACT_LOCAL_DIR)
++  const tmpCompareDir = pathJoin(Peer8Store.tmpDir.name, wsName, EXTRACT_LOCAL_DIR)
+   const activeFile = pathJoin(tmpCompareDir, fpath)
+   mkdirp.sync(dirname(activeFile))
+ 
+-  const archiveDir = pathJoin(tmpDir, wsName, EXTRACT_REPO_DIR)
++  const archiveDir = pathJoin(Peer8Store.tmpDir.name, wsName, EXTRACT_REPO_DIR)
+   mkdirp.sync(archiveDir)
+ 
+   clearLocalDiffs(project)
+@@ -666,13 +608,10 @@ function clear() {
+ 
+ const Peer8Diffs = {
+   clear,
+-  compress,
+   diffWithContributor,
+   diffWithBranch,
+   init,
+   refreshChanges,
+-  shareFile,
+-  shareFolder,
+   sendCommitLog,
+   sendDiffs,
+   shiftWithLiveEdits,
+diff --git a/src/lib/peer8.editor.js b/src/lib/peer8.editor.js
+index fd570f4..0681651 100644
+--- a/src/lib/peer8.editor.js
++++ b/src/lib/peer8.editor.js
+@@ -18,7 +18,7 @@ const isWindows = !!process.env.ProgramFiles
+  * @param Object - editor object from VSCode
+  *
+  * We're setting up the workspace everytime a new editor is activated,
+- * because the user may have several repositories open, or a file outside any repo.
++ * because the user may have several repositories open.
+  ************************************************************************************/
+ function setActiveEditor(editor) {
+   Peer8Store.clear()
+@@ -34,7 +34,9 @@ function setActiveEditor(editor) {
+   // TODO: (maybe) should be able to get rid of activeContext and work only through Peer8Store
+   activeContext.uri = uri
+   setDirty(true)
+-  return Peer8Workspace.setupRepoFrom({ uri, line })
++  return Peer8Workspace
++    .setupRepoFrom({ uri, line })
++    .catch(err => console.log(err.toString())) // allow it to continue when repo not found, not a git repo, etc
+ }
+ 
+ /************************************************************************************
+@@ -96,7 +98,7 @@ function closeDiffEditor() {
+ function focusTextEditor() {
+   if (getActiveTextEditor()) return
+   const editors = window.visibleTextEditors
+-  return setActiveEditor(editors[0])
++  setActiveEditor(editors[0])
+ }
+ 
+ /************************************************************************************
+diff --git a/src/lib/peer8.scm.js b/src/lib/peer8.scm.js
+index 7d614f0..b1bd05f 100644
+--- a/src/lib/peer8.scm.js
++++ b/src/lib/peer8.scm.js
+@@ -72,7 +72,6 @@ function removeSubmodules(workspaceFolder) {
+   const wsFolder = workspaceFolder.uri ? workspaceFolder.uri.path : workspaceFolder
+   return git.gitCommand(wsFolder, 'git submodule status')
+     .then(out => {
+-      if (!out.trim()) return
+       const subs = out.split('\n').map(line => / ([^\s]+) /.exec(line)[1])
+       subs.map(sub => removeProject(pathJoin(wsFolder, sub)))
+     })
+diff --git a/src/lib/peer8.workspace.js b/src/lib/peer8.workspace.js
+index 8a9d24f..f6275fe 100644
+--- a/src/lib/peer8.workspace.js
++++ b/src/lib/peer8.workspace.js
+@@ -27,6 +27,7 @@ const isWindows = !!process.env.ProgramFiles
+ function init() {
+   setupTempFiles()
+   Peer8Diffs.init()
++  // if (window) Peer8Editor.setActiveEditor(window.activeTextEditor)
+ }
+ 
+ function dispose() {
+@@ -44,7 +45,7 @@ function getActiveTmpFile() {
+ }
+ 
+ function setupTempFiles() {
+-  const tmpDir = Peer8Store.tmpDir = dirSync({ prefix: 'peer8', keep: true, unsafeCleanup: true })
++  const tmpDir = Peer8Store.tmpDir = dirSync({ prefix: 'peer8_', keep: true, unsafeCleanup: true })
+   _tmpFile = pathJoin(tmpDir.name, 'active-text-editor.txt')
+   logger.info('WORKSPACE: temporary folder used: ', tmpDir)
+ }
+@@ -71,7 +72,7 @@ function setupWorker() {
+   // on second thought, syncWithServer also downloads new diffs, so it's important we do it periodically;
+   // however, uploading diffs every time is a waste of traffic and local resources too,
+   // so let's sync downloadDiffs periodically and uploadDiffs upon save document only;
+-  Peer8Work.syncTimer = setInterval(syncWithServer, syncInterval)
++  Peer8Work.syncTimer = setInterval(syncWithServer, syncInterval * 100)
+   return sendAllProjects()
+     .then(syncWithServer)
+ }
+@@ -224,7 +225,6 @@ function setupRepoFrom({ line, uri }) {
+   const roots = _.filter(Peer8Store.projects, p => normUri.includes(p.root.toLowerCase()))
+   logger.info('WORKSPACE: setupRepoFrom (uri, projects)', uri, Peer8Store.projects, roots)
+   if (!roots || !roots.length) {
+-    Peer8Panel.postMessage({ command: 'setMode', data: { mode: 'empty' } })
+     return Promise.reject(new Error(`File is not part of any projects in your workspaces: ${uri}`))
+   }
+   Peer8Store.activeProject = roots.reduce((r, item) => {
+@@ -298,38 +298,6 @@ function getSelectedContributor() {
+   return Peer8Store.selectedContributor
+ }
+ 
+-/************************************************************************************
+- * AdHoc sharing a file or the entire folder of the currently opened file.
+- *
+- * Share file will send the entire file, zipped, to CodeAwareness where it will be stores in an
+- * S3 bucket, with a uniquely generated path that can be shared with other people.
+- *
+- * Share folder will first create a git archive of the folder, effectively duplicating the folder
+- * into a temporary location. Then, its .git folder will be zipped and sent to CodeAwareness.
+- *
+- * @param Array - a list of names for the groups to be created.
+- ************************************************************************************/
+-function receiveShared(invitation) {
+-  return Peer8Diffs.receiveShared(invitation)
+-}
+-
+-/**
+- * TODO: how to decide whether it's adhoc mode or repo mode, next time when we open the same project?
+- * One idea would be to store a token inside .peer8 config file. This sould be simple enough, but we're already adding a .git folder.
+- * For a PowerPoint it's not even possible, because it rewrites the entire structure upon saving the file.
+- */
+-function shareFile({ groups }) {
+-  return Peer8Diffs
+-    .shareFile(Peer8Store.activeProject.activePath, groups)
+-    .then(data => {
+-      Peer8Panel.postMessage({ command: 'setMode', data: { mode: 'adhoc' } })
+-    })
+-}
+-
+-function shareFolder(groups) {
+-  return Peer8Diffs.shareFolder(Peer8Store.activeProject.root, groups, Peer8Store.activeProject.activePath)
+-}
+-
+ /************************************************************************************
+  * Export module
+  ************************************************************************************/
+@@ -351,8 +319,6 @@ export const Peer8Workspace = {
+   setupRepoFrom,
+   setupWorker,
+   setupTempFiles,
+-  shareFile,
+-  shareFolder,
+   syncProject,
+   syncWithServer,
+ }
+diff --git a/src/lib/settings.js b/src/lib/settings.js
+index 07440ef..63f9c78 100644
+--- a/src/lib/settings.js
++++ b/src/lib/settings.js
+@@ -11,7 +11,7 @@ import { Peer8Store } from './peer8.store'
+  * Projects may contain a .peer8 file, in which the user can store their own personalised settings.
+  * These .peer8 files function in a similar way to .eslintrc and .editorconfig files
+  *
+- * TODO: securely store API keys for persistent login
++ * TODO: think about security, IF we include API keys and other info in these files (should then be added to .gitignore)
+  */
+ function checkConfigurationFile(/* context */) {
+   const vscodeConfig = workspace.getConfiguration('peer8')

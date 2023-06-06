@@ -80,15 +80,15 @@ export function resetMocks() {
 }
 
 export function makeTokens(options) {
-  const access = { expires: new Date().valueOf() + 10000, token: faker.datatype.uuid() }
-  const refresh = { expires: new Date().valueOf() + 60000, token: faker.datatype.uuid() }
+  const access = { expires: new Date().valueOf() + 10000, token: faker.string.uuid() }
+  const refresh = { expires: new Date().valueOf() + 60000, token: faker.string.uuid() }
   const preEmpt = 2000
-  const newAccess = { expires: new Date().valueOf() + 20000, token: faker.datatype.uuid() }
-  const newRefresh = { expires: new Date().valueOf() + 70000, token: faker.datatype.uuid() }
+  const newAccess = { expires: new Date().valueOf() + 20000, token: faker.string.uuid() }
+  const newRefresh = { expires: new Date().valueOf() + 70000, token: faker.string.uuid() }
   const tokens = { access: newAccess, refresh: newRefresh }
   if (options && options.store) {
     CAWStore.tokens = { access, refresh }
-    CAWStore.user = { _id: faker.datatype.uuid(), email: faker.internet.email() }
+    CAWStore.user = { _id: faker.string.uuid(), email: faker.internet.email() }
   }
 
   let nockPersist

@@ -1,3 +1,6 @@
 [submodule "tests/fixtures/atom-svelte-transpiler"]
 	path = tests/fixtures/atom-svelte-transpiler
 	url = https://github.com/peer8/atom-svelte-transpiler.git
+[submodule "tests/fixtures/mongo-alias"]
+	path = tests/fixtures/mongo-alias
+	url = https://github.com/CodeAwareness/mongo-alias.git
