@@ -105,6 +105,12 @@ const loggerConsole = {
     trace()
     console.error(args)
   },
+  time: function(label) {
+    console.time(label)
+  },
+  timeEnd: function(label) {
+    console.timeEnd(label)
+  }
 }
 
 export default loggerConsole

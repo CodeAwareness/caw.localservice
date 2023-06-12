@@ -1,5 +1,5 @@
 import { mkdirp } from 'mkdirp'
-import path from 'path'
+import path, { relative } from 'path'
 import tar from 'tar'
 import { rimraf } from 'rimraf'
 import FormData from 'form-data'
@@ -20,6 +20,7 @@ import git from './git'
 import shell from './shell'
 import CAWStore from './store'
 import CAWAPI, { API_REPO_COMMITS, API_REPO_COMMON_SHA, API_REPO_CONTRIB, API_REPO_DIFF_FILE } from './api'
+import { config } from 'dotenv'
 
 const PENDING_DIFFS = {}
 const isWindows = !!process.env.ProgramFiles
@@ -108,17 +109,19 @@ function diffWithBranch({ branch, cid }): Promise<any> {
  * }
  *
  ************************************************************************************/
-function extractContributor({ contrib, fpath, origin, cid, doc }): Promise<TContribFile> {
+function extractContributor({ contrib, fpath, cid, doc }): Promise<TContribFile> {
   const tmpDir = CAWStore.uTmpDir[cid]
 
   const project = CAWStore.activeProjects[cid]
+  const origin = project.origin
   const wsFolder = project.root
   const relPath = shell.getRelativePath(fpath, project)
   const archiveDir = path.join(tmpDir, Config.EXTRACT_PEER_DIR, contrib._id)
   /* downloadedFile: we save the diffs received from the server to TMP/active.diffs */
   const downloadedFile = path.join(archiveDir, '_caw.active.diffs')
+  const changes = project.changes[relPath].file.changes[contrib._id]
   /* archiveFile: we use git archive to extract the active file from the cSHA commit */
-  const archiveFile = path.join(archiveDir, `local-${contrib.changes.sha}.tar`) // TODO: we should retrieve a fresh copy to ensure that the downloaded diff is still corresponding to the SHA
+  const archiveFile = path.join(archiveDir, `local-${changes.sha}.tar`) // TODO: we should retrieve a fresh copy to ensure that the downloaded diff is still corresponding to the SHA
   /* extractDir: we extract the active file from the archive in this folder, so we can run git apply on it */
   const extractDir = path.join(tmpDir, Config.EXTRACT_PEER_DIR, contrib._id)
   const fdir = path.dirname(fpath)
@@ -130,7 +133,7 @@ function extractContributor({ contrib, fpath, origin, cid, doc }): Promise<TCont
 
   const uri = encodeURIComponent(origin)
   return CAWAPI.axiosAPI
-    .get(`${API_REPO_DIFF_FILE}?origin=${uri}&fpath=${contrib.changes.s3key}`)
+    .get(`${API_REPO_DIFF_FILE}?origin=${uri}&fpath=${changes.s3key}`)
     .then(saveDownloaded(downloadedFile))
     .then(gitArchive)
     .then(untar)
@@ -139,7 +142,7 @@ function extractContributor({ contrib, fpath, origin, cid, doc }): Promise<TCont
 
   function gitArchive() {
     // TODO: if file exists do not archive again (no overwrite necessary)
-    return git.command(wsFolder, `git archive --format=tar -o ${archiveFile} ${contrib.changes.sha} ${fpath}`)
+    return git.command(wsFolder, `git archive --format=tar -o ${archiveFile} ${changes.sha} ${fpath}`)
   }
 
   function untar() {
@@ -485,27 +488,30 @@ function refreshChanges(project: any, filePath: string, doc: string, cid: string
   const fpath = filePath.includes(project.root) ? filePath.substr(project.root.length + 1) : filePath
   logger.log('DIFFS: refreshChanges (origin, fpath, user)', project.origin, fpath, CAWStore.user?.email)
   PENDING_DIFFS[fpath] = true // this operation can take a while, so we don't want to start it several times per second
-  const retPromise = Promise.resolve()
+  const tmpDir = CAWStore.uTmpDir[cid]
+  const docFile = path.join(tmpDir, Config.EXTRACT_LOCAL_DIR, 'active-doc')
+  const retPromise = fs.writeFile(docFile, doc)
+  let tailPromise: Promise<any> = retPromise
   // @ts-ignore
   if (lastDownloadDiff[wsFolder] && new Date() - lastDownloadDiff[wsFolder] < Config.SYNC_THRESHOLD) {
     logger.info('DIFFS: still fresh (lastDownloadDiff, now)', lastDownloadDiff[wsFolder], new Date())
   } else {
     lastDownloadDiff[wsFolder] = new Date()
-    retPromise.then(() => downloadChanges(project, fpath, cid))
+    tailPromise = retPromise.then(() => downloadChanges(project, fpath, cid))
   }
 
-  retPromise.then(() => {
+  tailPromise = tailPromise.then(() => {
     logger.info(`DIFFS: will check local diffs for ${fpath}`, project.changes)
-    return applyDiffs({ fpath, cid, doc })
+    return applyDiffs({ fpath, cid, doc: docFile })
   })
 
-  retPromise.then(() => {
+  tailPromise = tailPromise.then(() => {
     return project
   })
 
-  retPromise.catch(logger.error)
+  tailPromise.catch(logger.error)
 
-  return retPromise
+  return tailPromise
 }
 
 const saveDownloaded = fpath => res => fs.writeFile(fpath, res.data + '\n')
@@ -568,7 +574,7 @@ function downloadChanges(project: any, fpath: string, cid: string): Promise<void
       })
 
       /* eslint-disable-next-line @typescript-eslint/no-empty-function */
-      return Promise.all(promises)
+      return Promise.allSettled(promises)
     })
     .catch(err => {
       console.trace()
@@ -577,7 +583,7 @@ function downloadChanges(project: any, fpath: string, cid: string): Promise<void
 }
 
 function parseDiffFile(diffs: string): Array<TDiffBlock> {
-  logger.info('parsing diff file of length', diffs.length)
+  logger.info('Parsing diff file of length', diffs.length)
   const lines = diffs.split('\n')
   const changes = []
   let sLine = 0
@@ -631,32 +637,44 @@ async function unzip({ extractDir, zipFile }): Promise<void> {
 
 const peers = {}
 
-async function nextPeer(project, fpath) {
+const nextPeer = (block: TContribBlock) => fpath => {
+  const project = CAWStore.activeProjects[block.cid]
   // const blocks = await Config.repoStore.get('blocks')
   // const peer = await Config.repoStore.get('currentPeer')
-  const relPath = fpath.substr(project.root.length + 1)
-  const uid = Object.keys(project.changes[relPath])[0]
-  if (!peers[project.origin]) peers[project.origin] = {}
-  peers[project.origin][relPath] = uid
+  const relPath = shell.getRelativePath(block.fpath, project)
+  const changes = project.changes[relPath]
+  const { users } = changes
+  let i = peers[project.origin]
+  if (i === undefined) {
+    i = peers[project.origin] = 0
+  } else {
+    i = peers[project.origin] += block.direction > 0 ? 1 : -1
+  }
+  if (i >= users.length) peers[project.origin] = 0
+  if (i < 0) peers[project.origin] = users.length - 1
+  const uid = users[peers[project.origin]]._id
+  const { sha, s3key } = project.changes[relPath].file.changes[uid]
   return  {
     _id: uid,
-    changes: {
-      sha: project.changes[relPath][uid].sha,
-      s3key: project.changes[relPath][uid].s3key,
-    },
+    changes: { sha, s3key },
   }
 }
 
 async function cycleContrib(block: TContribBlock) {
   const project = CAWStore.activeProjects[block.cid]
-  const peer = {
-    contrib: await nextPeer(project, block.fpath),
-    fpath: block.fpath,
-    origin: block.origin,
-    cid: block.cid,
-    doc: block.doc,
-  }
-  return extractContributor(peer)
+  const tmpDir = CAWStore.uTmpDir[block.cid]
+  const docFile = path.join(tmpDir, Config.EXTRACT_LOCAL_DIR, 'active-doc')
+  return fs.writeFile(docFile, block.doc)
+    .then(nextPeer(block))
+    .then(contrib => {
+      const peer = {
+        contrib,
+        fpath: block.fpath,
+        cid: block.cid,
+        doc: docFile,
+      }
+      return extractContributor(peer)
+    })
     .then((data: TContribFile) => {
       const wsFolder = project.root
       // Peer file is extracted in data.peerFile
@@ -684,8 +702,17 @@ function applyDiffs({ cid, fpath, doc }) {
   const tmpDir = CAWStore.uTmpDir[cid]
   const project = CAWStore.activeProjects[cid]
   const wsFolder = project.root
-  const changes = project.changes[fpath].file.changes
+  const changes = project.changes[fpath]?.file?.changes
   const downloadRoot = path.join(tmpDir, Config.EXTRACT_DOWNLOAD_DIR)
+
+  if (!changes) return
+
+  // The response from the server contains all users, including current user, which we don't need to process here.
+  const { _id } = CAWStore.user
+  delete changes[_id]
+  console.log('\x1b[33m users for this file \x1b[0m', project.changes[fpath], 'with current user having id', _id)
+  const index = project.changes[fpath].users.findIndex(el => el._id === _id)
+  if (index !== -1) project.changes[fpath].users.splice(index, 1)
 
   async function applyUserChanges(uid) {
     const { sha } = changes[uid]
@@ -696,6 +723,7 @@ function applyDiffs({ cid, fpath, doc }) {
     } catch (err) {
       // nothing
     }
+
     const downloadedFile = path.join(downloadRoot, `${uid}.diff`)
     /* archiveFile: we use git archive to extract the active file from the cSHA commit */
     const archiveFile = path.join(archiveDir, `local-${sha}.tar`)
@@ -720,12 +748,8 @@ function applyDiffs({ cid, fpath, doc }) {
     }
 
     const archiveExists = (data) => {
-      /* extractDir: we extract the active file from the archive in this folder, so we can run git apply on it */
-      const fdir = path.dirname(fpath)
-      rimraf.sync(path.join(extractDir, fdir))
-      mkdirp.sync(path.join(extractDir, fdir))
       /* peerFile: we finally instruct VSCode to open a diff window between the active file and the extracted file, which now has applied diffs to it */
-      logger.info('DIFFS: extractContributor (ct, fpath, extractDir)', changes[uid], fpath, extractDir)
+      logger.info('DIFFS: archiveExists: (ct, fpath, extractDir)', changes[uid], fpath, extractDir)
       const untar = () => {
         // tar.x({ file: `local-${sha}.tar`, cwd: extractDir }) // TODO: why is tar.x not returning a promise?
         return git.command(extractDir, `tar xvf local-${sha}.tar`)
@@ -736,6 +760,7 @@ function applyDiffs({ cid, fpath, doc }) {
         .then(diffWithDoc)
         .then(parseDiffFile)
         .then(updateProject)
+        .catch(err => console.log('ERROR IN ACHIVE EXISTS', err))
     }
 
     return fs
@@ -744,9 +769,21 @@ function applyDiffs({ cid, fpath, doc }) {
       .catch(createArchive)
   }
 
-  return Promise.all(
-    Object.keys(changes).map(applyUserChanges)
-  )
+  function aggregateLines() {
+    const alines = {}
+    Object.keys(changes).forEach(uid => {
+      console.log('Aggregate Lines changes', uid, changes)
+      changes[uid].diffs.map(diff => {
+        alines[diff.range.line] = 1
+        for (let i=0; i<diff.range.len; i++) alines[diff.range.line + i] = 1
+      })
+    })
+    console.log('Aggregate Lines', alines)
+    project.changes[fpath].alines = Object.keys(alines)?.map(l => parseInt(l, 10))
+  }
+
+  return Promise.all(Object.keys(changes).map(applyUserChanges))
+    .then(aggregateLines)
 }
 
 /**
@@ -765,7 +802,6 @@ async function diffWithContributor({ contrib, fpath, cid }) {
   const peer = {
     contrib,
     fpath,
-    origin,
     cid,
     doc: tmpDoc,
   }

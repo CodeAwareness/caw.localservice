@@ -1,28 +1,28 @@
-import * as util from 'util'
 import * as child from 'child_process'
 
 import logger from '@/logger'
 
-const exec = util.promisify(child.exec)
-
 const isWindows = !!process.env.ProgramFiles
 
-async function gitExec(command: string, options = {}): Promise<string> {
+function gitExec(command: string, options = {}): Promise<string> {
   // TODO: maybe use spawn instead of exec (more efficient since it doesn't spin up any shell;
   // also allows larger data to be returned, but we have to handle streaming data instead of a simple assignment)
   // however, git execution context may be affected...
   let data
+  logger.time(`Git Command ${command}`)
   try {
-    data = await exec(command, options)
+    data = child.execSync(command, options)
+    return Promise.resolve(data?.toString())
   } catch (err) {
-    if (err.stderr) {
-      logger.error('GIT: exec warning or error', command, err.stderr)
-      throw err
+    logger.timeEnd(`Git Command ${command}`)
+    if (data?.length) return Promise.resolve(data.toString())
+    if (err.stderr?.toString()) {
+      logger.log('\x1b[33m GIT: Shell failed \x1b[0m', data?.toString(), err?.toString())
+      return Promise.reject(err.toString())
     } else if (err.stdout) {
-      return err.stdout // TODO: wtf is this...
+      return Promise.resolve(err.stdout.toString()) // TODO: wtf is this...
     }
   }
-  return data?.stdout
 }
 
 function command(wsFolder: string, cmd: string): Promise<string> {
@@ -31,6 +31,7 @@ function command(wsFolder: string, cmd: string): Promise<string> {
     windowsHide: true,
     maxBuffer: 5242880, // TODO: ensure this is enough, or do spawn / streaming instead
     cwd: undefined,
+    timeout: 10000
   }
   if (wsFolder) {
     /**
@@ -54,7 +55,7 @@ async function getRemotes(wsFolder: string): Promise<string | void> {
     .then((stdout: string) => {
       const outLines = stdout.split('\n')
       if (!outLines.length) return logger.info('no output from git remote -v')
-      const reOrigin = /github.com[:/](.+)(\.git | )/.exec(
+      const reOrigin = /[@/]+([^.]+.com[:/][^\s]+)?(\s)?/.exec(
         outLines.filter(line => /^origin/.test(line))[0],
       )
       if (!reOrigin) {

@@ -66,7 +66,7 @@ const PIPE_CATALOG = DEBUG ? envVars.CAW_CATALOG + '_dev' : envVars.CAW_CATALOG
 
 // TODO: move some of this config into a .caw file, either toml or yaml
 const CONFIGURATION_FILE = '.caw'
-const SYNC_INTERVAL = 1 * 60 * 1000 // upload local diffs to the server every minute or so
+const SYNC_INTERVAL = 6 * 60 * 1000 // upload local diffs to the server every minute or so
 const SYNC_THRESHOLD = 1000 // don't sync too often
 
 // We aggregate changes against multiple SHA values. This is the maximum nr of previous commits we consider for our diffs.

@@ -68,7 +68,7 @@ const rmFile = async (fpath: string): Promise<void> => {
 }
 
 const getRelativePath = (fpath: string, project: any) => {
-  return fpath.substr(project.root.length)
+  return fpath.substr(project.root.length + 1)
 }
 
 const Shell = {

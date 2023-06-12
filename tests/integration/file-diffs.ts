@@ -154,5 +154,11 @@ describe('Download changes', () => {
       },
       replaceLen: 1,
     })
+    expect(project.changes[fpath].alines).toEqual([
+      0, 10, 30, 44, 45, 60, 61,
+      65, 75, 182, 241, 250, 254, 260,
+      266, 272, 279, 291, 298, 299, 300,
+      308, 317, 326
+    ])
   })
 })

@@ -139,6 +139,7 @@ function add(requested: TRepoAddReq, socket?: Socket): Promise<any> {
   const ws = socket || this
   return git.getRemotes(folder)
     .then(origin => {
+      console.log('EXISTING PROJECTS', CAWStore.projects.map(p => p.origin))
       const existing = CAWStore.projects.filter(p => p.origin === origin)[0]
       if (existing) {
         ws.emit('res:repo:add', { project: existing })
