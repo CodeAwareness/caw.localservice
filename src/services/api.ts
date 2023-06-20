@@ -25,17 +25,8 @@ export const API_REPO_GET_INFO       = '/repos/info'
 export const API_REPO_SWARM_AUTH     = '/repos/swarm-auth'
 export const API_REPO_COMMITS        = '/repos/commits'
 export const API_REPO_COMMON_SHA     = '/repos/common-sha'
-export const API_REPO_CONTRIB        = '/repos/contrib'
+export const API_REPO_PEERS          = '/repos/peers'
 export const API_REPO_DIFF_FILE      = '/repos/diffs'
-
-export const API_SHARE_ACCEPT        = '/share/accept'
-export const API_SHARE_FINFO         = '/share/getFileOrigin'
-export const API_SHARE_CREATE_FILEID = '/share/new'
-export const API_SHARE_DOWNLOAD      = '/share/download'
-export const API_SHARE_OINFO         = '/share/getOriginInfo'
-export const API_SHARE_SLIDE_CONTRIB = '/share/slideContrib'
-export const API_SHARE_START         = '/share/start'
-export const API_SHARE_UPLOAD        = '/share/upload'
 
 // axios.defaults.adapter = require('axios/lib/adapters/http')
 export const axiosAPI = axios.create({ baseURL: Config.API_URL })
@@ -223,14 +214,8 @@ const CAWAPI = {
   API_REPO_SWARM_AUTH,
   API_REPO_COMMITS,
   API_REPO_COMMON_SHA,
-  API_REPO_CONTRIB,
+  API_REPO_PEERS,
   API_REPO_DIFF_FILE,
-  API_SHARE_SLIDE_CONTRIB,
-  API_SHARE_START,
-  API_SHARE_UPLOAD,
-  API_SHARE_ACCEPT,
-  API_SHARE_FINFO,
-  API_SHARE_OINFO,
 }
 
 export default CAWAPI

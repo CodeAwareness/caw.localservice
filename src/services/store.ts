@@ -37,7 +37,7 @@ const CAWStore = {
    *   team, // the team name, i.e. a team of peers with whom to share visibility (TODO)
    *   head, // the current commit (HEAD)
    *   cSHA, // the common SHA against which we diff all peers
-   *   contributors, // comments, code contributors
+   *   peers, // comments, code peers
    *   pendingGitDiff, // true / false - the local git diff operation is pending
    *   activePath, // currently opened file, relative path
    *   line, // current cursor line
@@ -70,7 +70,7 @@ const CAWStore = {
    *     },
    *     ...
    *   }
-   *   selectedContributor, // currently selected contributor for diffs
+   *   selectedPeer, // currently selected peer for diffs
    *   }, ...]
    */
   projects: [],
@@ -89,18 +89,18 @@ const CAWStore = {
    */
   timers: {},
 
-  /* selectedContributor: {
+  /* selectedPeer: {
    *   diffDir, // the temp folder where the file is extracted
    *   diff, // filename only of the current diff
    *   lupd, // date of file update
    *   origin, // github url of this repo
-   *   email, // contributor email address
-   *   avatar, // contributor profile pic
-   *   user, // contributor user id
+   *   email, // peer email address
+   *   avatar, // peer profile pic
+   *   user, // peer user id
    *   _id, // contribution id
    * }
    */
-  selectedContributor: undefined,
+  selectedPeer: undefined,
 
   /* selectedBranch: 'dev'
   */
@@ -137,7 +137,7 @@ const CAWStore = {
   wsGardener: null, // socketIO sync with CodeAwareness API (a single socket)
 
   clear: () => {
-    CAWStore.selectedContributor = undefined
+    CAWStore.selectedPeer = undefined
   },
 
   reset: (cid?: string) => {
@@ -149,7 +149,7 @@ const CAWStore = {
     if (cid) CAWStore.activeProjects[cid] = undefined
     else CAWStore.activeProjects = {}
     CAWStore.selectedBranch = undefined
-    CAWStore.selectedContributor = undefined
+    CAWStore.selectedPeer = undefined
     CAWStore.peerFS = {}
     CAWStore.doc = undefined
     CAWStore.line = 0

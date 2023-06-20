@@ -134,7 +134,7 @@ function add(requested: TRepoAddReq, socket?: Socket): Promise<any> {
   }
   // TODO: pull changes to local workspace
   // Setup project origins
-  const contributors = {}
+  const peers = {}
   const changes = {}
   const ws = socket || this
   return git.getRemotes(folder)
@@ -150,7 +150,7 @@ function add(requested: TRepoAddReq, socket?: Socket): Promise<any> {
       const root = folder
       const name = path.basename(root)
       // TODO: cleanup CAWStore.projects with a timeout of inactivity or something
-      const project = { name, origin, root, changes, contributors }
+      const project = { name, origin, root, changes, peers }
       logger.log('REPO: adding new project', project)
       ws.emit('res:repo:add', { project })
       return project
@@ -227,19 +227,19 @@ function diffWithBranch(info: TBranchDiffInfo) {
 
 type TContribDiffInfo = {
   fpath: string
-  contrib: any
+  peer: any
   origin: string
   cid: string
   doc: string
 }
 
 /**
- * @param info object { fpath, contrib, origin, cid }
+ * @param info object { fpath, peer, origin, cid }
  */
-function diffWithContributor(info: TContribDiffInfo) {
+function diffWithPeer(info: TContribDiffInfo) {
   return CAWDiffs
-    .diffWithContributor(info)
-    .then(diffs => this.emit('res:repo:diff-contrib', diffs))
+    .diffWithPeer(info)
+    .then(diffs => this.emit('res:repo:diff-peer', diffs))
 }
 
 function readFile({ fpath }) {
@@ -283,19 +283,19 @@ function sendDiffs(data: TSendDiff) {
     .then(() => this.emit('res:repo:file-saved', project))
 }
 
-function cycleContrib(data: TContribBlock) {
+function cycleBlock(data: TContribBlock) {
   return CAWDiffs
-    .cycleContrib(data)
-    .then(diffs => this.emit('res:repo:cycle-contrib', diffs))
+    .cycleBlock(data)
+    .then(diffs => this.emit('res:repo:cycle-block', diffs))
 }
 
 const repoController = {
   activatePath,
   add,
   addSubmodules,
-  cycleContrib,
+  cycleBlock,
   diffWithBranch,
-  diffWithContributor,
+  diffWithPeer,
   getTmpDir,
   readFile,
   remove,

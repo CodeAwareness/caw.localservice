@@ -19,13 +19,14 @@ import logger from '@/logger'
 import git from './git'
 import shell from './shell'
 import CAWStore from './store'
-import CAWAPI, { API_REPO_COMMITS, API_REPO_COMMON_SHA, API_REPO_CONTRIB, API_REPO_DIFF_FILE } from './api'
+import CAWAPI, { API_REPO_COMMITS, API_REPO_COMMON_SHA, API_REPO_PEERS, API_REPO_DIFF_FILE } from './api'
 import { config } from 'dotenv'
 
 const PENDING_DIFFS = {}
 const isWindows = !!process.env.ProgramFiles
 
 export type TDiffBlock = {
+  peer: any,
   range: {
     line: number,
     len: number,
@@ -47,7 +48,7 @@ export type TContribBlock = {
   direction: number
 }
 
-export type TContribFile = {
+export type TPeerFile = {
   title: string
   extractDir: string
   peerFile: string
@@ -59,13 +60,14 @@ export type TContribFile = {
  *
  * Open the VSCode standard diff window...
  ************************************************************************************/
-function diffWithBranch({ branch, cid }): Promise<any> {
+async function diffWithBranch({ branch, fpath, origin, cid }): Promise<any> {
   let peerFile
   const project = CAWStore.activeProjects[cid]
   const tmpDir = CAWStore.uTmpDir[cid]
+
   const wsFolder = project.root
   CAWStore.selectedBranch = branch
-  CAWStore.selectedContributor = undefined
+  CAWStore.selectedPeer = undefined
   const userFile = project.activePath.substr(project.root.length + 1)
   return git.command(wsFolder, 'git rev-parse --show-toplevel')
     .then(folder => {
@@ -97,7 +99,7 @@ function diffWithBranch({ branch, cid }): Promise<any> {
  *
  * @param { ct: Object, fpath: string, origin: string, doc: string, cid: string }
  *
- * ct = contributor: {
+ * ct = peer: {
  *   changes: {
  *    lines: [3,5,6,...],
  *    s3key: "diffs/${ct._id}/${origin}/${fpath}",
@@ -109,27 +111,28 @@ function diffWithBranch({ branch, cid }): Promise<any> {
  * }
  *
  ************************************************************************************/
-function extractContributor({ contrib, fpath, cid, doc }): Promise<TContribFile> {
+function extractPeer({ peer, fpath, cid, doc }): Promise<TPeerFile> {
   const tmpDir = CAWStore.uTmpDir[cid]
 
   const project = CAWStore.activeProjects[cid]
   const origin = project.origin
   const wsFolder = project.root
   const relPath = shell.getRelativePath(fpath, project)
-  const archiveDir = path.join(tmpDir, Config.EXTRACT_PEER_DIR, contrib._id)
+  const localFName = relPath.replace(/[\/\\]/g, '') // TODO: is there a way to guarantee absolutely zero name collision? (do it for all `localFName` in this file)
+  const archiveDir = path.join(tmpDir, Config.EXTRACT_PEER_DIR, peer._id)
   /* downloadedFile: we save the diffs received from the server to TMP/active.diffs */
   const downloadedFile = path.join(archiveDir, '_caw.active.diffs')
-  const changes = project.changes[relPath].file.changes[contrib._id]
+  const changes = project.changes[relPath].file.changes[peer._id]
   /* archiveFile: we use git archive to extract the active file from the cSHA commit */
-  const archiveFile = path.join(archiveDir, `local-${changes.sha}.tar`) // TODO: we should retrieve a fresh copy to ensure that the downloaded diff is still corresponding to the SHA
+  const archiveFile = path.join(archiveDir, `${localFName}-${changes.sha}.tar`) // TODO: we should retrieve a fresh copy to ensure that the downloaded diff is still corresponding to the SHA
   /* extractDir: we extract the active file from the archive in this folder, so we can run git apply on it */
-  const extractDir = path.join(tmpDir, Config.EXTRACT_PEER_DIR, contrib._id)
+  const extractDir = path.join(tmpDir, Config.EXTRACT_PEER_DIR, peer._id)
   const fdir = path.dirname(fpath)
   rimraf.sync(path.join(extractDir, fdir))
   mkdirp.sync(path.join(extractDir, fdir))
   /* peerFile: we finally instruct VSCode to open a diff window between the active file and the extracted file, which now has applied diffs to it */
   const peerFile = path.join(extractDir, relPath)
-  logger.info('DIFFS: extractContributor (ct, fpath, extractDir)', contrib, fpath, extractDir)
+  logger.info('DIFFS: extractPeer (ct, fpath, extractDir)', peer, fpath, extractDir)
 
   const uri = encodeURIComponent(origin)
   return CAWAPI.axiosAPI
@@ -157,7 +160,7 @@ function extractContributor({ contrib, fpath, cid, doc }): Promise<TContribFile>
 
   function assembleFiles() {
     const title = `CAW#${path.basename(fpath)} ↔ Peer changes`
-    logger.info('DIFFS: vscodeOpenDiffs (ct, peerFile, fpath)', contrib, peerFile, fpath)
+    logger.info('DIFFS: vscodeOpenDiffs (ct, peerFile, fpath)', peer, peerFile, fpath)
     return { title, extractDir, peerFile, fpath: doc }
   }
 }
@@ -367,7 +370,7 @@ function uploadDiffs({ diffDir, origin, cSHA, activePath }): Promise<void> {
         maxBodyLength: Infinity,
       }
       return CAWAPI.axiosAPI
-        .post(API_REPO_CONTRIB, zipForm, options)
+        .post(API_REPO_PEERS, zipForm, options)
         .then(res => res.data)
         .catch(err => logger.error('API error in sendDiffs', err)) // TODO: error handling
     })
@@ -385,73 +388,6 @@ function compress(input: string, output: string): Promise<void> {
       resolve()
     })
   })
-}
-
-/************************************************************************************
- * AdHoc Sharing files or folders
- ************************************************************************************/
-function shareFile(filePath: string, groups: Array<string>, cid: string) {
-  setupShare(filePath, groups, cid)
-}
-
-function shareFolder(folder: string, groups: Array<string>, cid) {
-  setupShare(folder, groups, cid, true)
-}
-
-// TODO: maybe use fs-extra instead
-function copyFolder(source: string, dest: string): Promise<string> {
-  // TODO: OPTIMIZE: maybe use spawn instead of exec (more efficient since it doesn't spin up any shell)
-  return new Promise((resolve, _reject) => {
-    const command = `cp -r ${source} ${dest}`
-    const options = { windowsHide: true }
-    if (isWindows) {
-      const ps = new PowerShell({
-        debug: true,
-        executableOptions: {
-          '-ExecutionPolicy': 'Bypass',
-          '-NoProfile': true,
-        },
-      })
-      ps.invoke(PowerShell.command`${command}`)
-        .then(output => resolve(output as any))
-        .catch(error => {
-          ps.dispose()
-          logger.error('copyFolder exec error', command, error)
-        })
-    } else {
-      childProcess.exec(command, options, (error, stdout, stderr) => {
-        if (stderr || error) logger.error('copyFolder exec error', command, error, stderr)
-        resolve(stdout)
-      })
-    }
-  })
-}
-
-function copyFile(source: string, dest: string): Promise<void> {
-  return fs.copyFile(source, dest)
-}
-
-/************************************************************************************
- * AdHoc Sharing files or folders for REPO model
- * (for Office model, please see share.controller.js)
- ************************************************************************************/
-async function setupShare(fPath: string, groups: any[], cid: string, isFolder = false): Promise<void> {
-  // TODO: refactor this and unify the Repo and Office sharing process
-  const filename = path.basename(fPath)
-  const origin = _.uniqueId(filename + '-') // TODO: this uniqueId only works for multiple sequential calls I think, because it just spits out 1, 2, 3
-  const tmpDir = CAWStore.uTmpDir[cid]
-  const adhocDir = path.join(tmpDir, 'adhoc') // for adhoc sharing files and folders
-  const adhocRepo = path.join(adhocDir, origin)
-  const zipFile = path.join(adhocDir, `${origin}.zip`)
-  rimraf.sync(adhocRepo)
-  mkdirp.sync(adhocRepo)
-  const copyOp = isFolder ? copyFolder : copyFile
-  await copyOp(fPath, adhocRepo)
-  await initGit({ extractDir: adhocRepo, origin })
-  await git.command(adhocRepo, `git archive --format zip --output ${zipFile} HEAD`)
-  await git.command(adhocRepo, 'git rev-list HEAD -n1')
-  // TODO:
-  // await CAWAPI.sendAdhocShare({ zipFile, origin, groups })
 }
 
 async function initGit({ extractDir, origin }): Promise<void> {
@@ -482,7 +418,7 @@ async function updateGit(/* extractDir: string */): Promise<void> {
  ************************************************************************************/
 const lastDownloadDiff = []
 function refreshChanges(project: any, filePath: string, doc: string, cid: string): Promise<void> {
-  /* TODO: add caching (so we don't keep on asking for the same file when the user mad-clicks the same contributor) */
+  /* TODO: add caching (so we don't keep on asking for the same file when the user mad-clicks the same peer) */
   if (!project.cSHA) return Promise.resolve()
   const wsFolder = project.root
   const fpath = filePath.includes(project.root) ? filePath.substr(project.root.length + 1) : filePath
@@ -501,7 +437,7 @@ function refreshChanges(project: any, filePath: string, doc: string, cid: string
   }
 
   tailPromise = tailPromise.then(() => {
-    logger.info(`DIFFS: will check local diffs for ${fpath}`, project.changes)
+    logger.info(`DIFFS: will check local diffs for ${fpath}`)
     return applyDiffs({ fpath, cid, doc: docFile })
   })
 
@@ -517,13 +453,13 @@ function refreshChanges(project: any, filePath: string, doc: string, cid: string
 const saveDownloaded = fpath => res => fs.writeFile(fpath, res.data + '\n')
 
 /************************************************************************************
- * We download the list of contributors for the active file,
+ * We download the list of peers for the active file,
  * and aggregate their changes to display the change markers
  *
  * The response from downloadDiffs API call includes:
  * - tree: list of aggregate changes across all peers
- * - file: list of contributors and their individual changes for the current file
- * - users: list of same contributors with their account details (avatar, email, etc)
+ * - file: list of peers and their individual changes for the current file
+ * - users: list of same peers with their account details (avatar, email, etc)
  *
  * @param project object - CAWStore project
  * @param fpath string - the file path of the active document
@@ -537,14 +473,14 @@ function downloadChanges(project: any, fpath: string, cid: string): Promise<void
   const downloadRoot = path.join(tmpDir, Config.EXTRACT_DOWNLOAD_DIR)
 
   return CAWAPI.axiosAPI
-    .get(`${API_REPO_CONTRIB}?origin=${uri}&fpath=${fpath}&clientId=${cid}`)
+    .get(`${API_REPO_PEERS}?origin=${uri}&fpath=${fpath}&clientId=${cid}`)
     .then((res) => {
-      logger.info('DIFFS: downloadDiffs contributors (origin, res.status, fpath, res.data)', project.origin, res.status, fpath, res.data.tree?.length + ' files', Object.keys(res.data.file?.changes).length + ' contributors')
+      logger.info('DIFFS: downloadDiffs peers (origin, res.status, fpath, res.data)', project.origin, res.status, fpath, res.data.tree?.length + ' files', Object.keys(res.data.file?.changes).length + ' peers')
       const { data } = res
       if (!data) return
-      // merge contributors
-      if (!project.contributors) project.contributors = {}
-      data.users.filter(u => u._id !== currentUserId).forEach(u => (project.contributors[u._id] = u))
+      // merge peers
+      if (!project.peers) project.peers = {}
+      data.users.filter(u => u._id !== currentUserId).forEach(u => (project.peers[u._id] = u))
       if (!project.changes) project.changes = {}
       // Setup file tree for this repository. When asking for changes on a file, we take the opportunity to refresh the peer file tree as well.
       data.tree?.forEach(f => (project.changes[f.file] || (project.changes[f.file] = {}))) // We don't overwrite the existing File tree (VSCode left panel)
@@ -578,7 +514,7 @@ function downloadChanges(project: any, fpath: string, cid: string): Promise<void
     })
     .catch(err => {
       console.trace()
-      logger.info('DIFFS: no contributors for this file.', err.core, err.config?.url, err.data, err)
+      logger.info('DIFFS: no peers for this file.', err.core, err.config?.url, err.data, err)
     })
 }
 
@@ -660,22 +596,24 @@ const nextPeer = (block: TContribBlock) => fpath => {
   }
 }
 
-async function cycleContrib(block: TContribBlock) {
+async function cycleBlock(block: TContribBlock, start?: number) {
   const project = CAWStore.activeProjects[block.cid]
   const tmpDir = CAWStore.uTmpDir[block.cid]
   const docFile = path.join(tmpDir, Config.EXTRACT_LOCAL_DIR, 'active-doc')
+  let peerInfo
   return fs.writeFile(docFile, block.doc)
     .then(nextPeer(block))
-    .then(contrib => {
-      const peer = {
-        contrib,
+    .then(peer => {
+      if (!start) start = peer._id
+      peerInfo = {
         fpath: block.fpath,
         cid: block.cid,
         doc: docFile,
+        peer,
       }
-      return extractContributor(peer)
+      return extractPeer(peerInfo)
     })
-    .then((data: TContribFile) => {
+    .then((data: TPeerFile) => {
       const wsFolder = project.root
       // Peer file is extracted in data.peerFile
       // Current doc is written in data.fpath
@@ -688,7 +626,12 @@ async function cycleContrib(block: TContribBlock) {
         const end = (obj.range.line || 1) + obj.range.len
         return start <= block.line && end >= block.line
       })
-      return matching && matching[0]
+      if (!matching || !matching[0]) {
+        if (peerInfo.peer._id === start) return // TODO: why does this happen? (cycling with no matching peer blocks)
+        return cycleBlock(block, start)
+      }
+      matching[0].peer = peerInfo.peer
+      return matching[0]
     })
 }
 
@@ -696,7 +639,7 @@ async function cycleContrib(block: TContribBlock) {
  * We apply diffs on a live document sent to us by the client.
  * The diffs are applied against each peer version. These versions have been downloaded already before calling this function.
  *
- * TODO: sequential execution: for many contributors to the same file, these diffs running concurrently will overwhelm the local machine
+ * TODO: sequential execution: for many peers to the same file, these diffs running concurrently will overwhelm the local machine
  */
 function applyDiffs({ cid, fpath, doc }) {
   const tmpDir = CAWStore.uTmpDir[cid]
@@ -710,7 +653,6 @@ function applyDiffs({ cid, fpath, doc }) {
   // The response from the server contains all users, including current user, which we don't need to process here.
   const { _id } = CAWStore.user
   delete changes[_id]
-  console.log('\x1b[33m users for this file \x1b[0m', project.changes[fpath], 'with current user having id', _id)
   const index = project.changes[fpath].users.findIndex(el => el._id === _id)
   if (index !== -1) project.changes[fpath].users.splice(index, 1)
 
@@ -724,9 +666,10 @@ function applyDiffs({ cid, fpath, doc }) {
       // nothing
     }
 
+    const localFName = fpath.replace(/[\/\\]/g, '')
     const downloadedFile = path.join(downloadRoot, `${uid}.diff`)
     /* archiveFile: we use git archive to extract the active file from the cSHA commit */
-    const archiveFile = path.join(archiveDir, `local-${sha}.tar`)
+    const archiveFile = path.join(archiveDir, `${localFName}-${sha}.tar`)
     /* peerFile: this is the peer version of `fpath` diffs applied */
     const peerFile = path.join(extractDir, fpath)
 
@@ -751,8 +694,7 @@ function applyDiffs({ cid, fpath, doc }) {
       /* peerFile: we finally instruct VSCode to open a diff window between the active file and the extracted file, which now has applied diffs to it */
       logger.info('DIFFS: archiveExists: (ct, fpath, extractDir)', changes[uid], fpath, extractDir)
       const untar = () => {
-        // tar.x({ file: `local-${sha}.tar`, cwd: extractDir }) // TODO: why is tar.x not returning a promise?
-        return git.command(extractDir, `tar xvf local-${sha}.tar`)
+        return git.command(extractDir, `tar xvf ${localFName}-${sha}.tar`)
       }
 
       return untar()
@@ -772,13 +714,11 @@ function applyDiffs({ cid, fpath, doc }) {
   function aggregateLines() {
     const alines = {}
     Object.keys(changes).forEach(uid => {
-      console.log('Aggregate Lines changes', uid, changes)
       changes[uid].diffs.map(diff => {
         alines[diff.range.line] = 1
         for (let i=0; i<diff.range.len; i++) alines[diff.range.line + i] = 1
       })
     })
-    console.log('Aggregate Lines', alines)
     project.changes[fpath].alines = Object.keys(alines)?.map(l => parseInt(l, 10))
   }
 
@@ -788,9 +728,9 @@ function applyDiffs({ cid, fpath, doc }) {
 
 /**
  * to a temp file and run a diff between it and a peer version.
- * @param Object { contrib: object, fpath: string, origin: string, cid: string, doc: string }
+ * @param Object { peer: object, fpath: string, origin: string, cid: string, doc: string }
  */
-async function diffWithContributor({ contrib, fpath, cid }) {
+async function diffWithPeer({ peer, fpath, cid }) {
   const tmpDir = CAWStore.uTmpDir[cid]
   const tmpFilename = _.uniqueId(path.basename(fpath))
   try {
@@ -799,27 +739,24 @@ async function diffWithContributor({ contrib, fpath, cid }) {
     // folder exists; nothing to do.
   }
   const tmpDoc = path.join(tmpDir, 'tmp', tmpFilename)
-  const peer = {
-    contrib,
+  return extractPeer({
+    peer,
     fpath,
     cid,
     doc: tmpDoc,
-  }
-  return extractContributor(peer)
+  })
 }
 
 const CAWDiffs = {
   applyDiffs,
   clear,
   compress,
-  cycleContrib,
-  diffWithContributor,
+  cycleBlock,
+  diffWithPeer,
   diffWithBranch,
   downloadChanges,
   initGit,
   refreshChanges,
-  shareFile,
-  shareFolder,
   sendCommitLog,
   sendDiffs,
   unzip,

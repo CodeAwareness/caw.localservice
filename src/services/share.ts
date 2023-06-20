@@ -158,7 +158,7 @@ async function acceptShare(origin: string): Promise<string> {
 /**
  * setupReceived
  * scope: PPT
- * desc : extract the PPT (zip) file, setup contributors and monitoring
+ * desc : extract the PPT (zip) file, setup peers and monitoring
  */
 function setupReceived({ fpath, origin, wsFolder, caw }: any): Promise<any> {
   wsFolder = wsFolder || generateWSFolder()

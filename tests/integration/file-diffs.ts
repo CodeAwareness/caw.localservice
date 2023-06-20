@@ -39,6 +39,8 @@ jest.mock('@/logger', () => ({
   log: () => {},
   info: () => {},
   debug: () => {},
+  time: console.time,
+  timeEnd: console.timeEnd,
 }))
 jest.mock('tar')
 
@@ -78,7 +80,7 @@ describe('Download changes', () => {
     const fpath = 'src/mongo.service.ts'
 
     nock(config.API_URL, { reqheaders: { authorization: `Bearer ${CAWStore.tokens.access.token}` } })
-      .get(`${CAWAPI.API_REPO_CONTRIB}?origin=${uriOrigin}&fpath=${fpath}&clientId=${cid}`, () => true)
+      .get(`${CAWAPI.API_REPO_PEERS}?origin=${uriOrigin}&fpath=${fpath}&clientId=${cid}`, () => true)
       .reply(200, contribBody)
 
     nock(config.API_URL, { reqheaders: { authorization: `Bearer ${CAWStore.tokens.access.token}` } })

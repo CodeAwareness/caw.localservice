@@ -12,14 +12,14 @@ const router = {
     /* repo:add: received when the user has added a new workspace folder to VSCode, a git repo with submodules */
     socket.on('repo:add-submodules', repoController.addSubmodules)
 
-    /* repo:cycle-contrib: received when the user is cycling a block of code through every peer change */
-    socket.on('repo:cycle-contrib', repoController.cycleContrib)
+    /* repo:cycle-block: received when the user is cycling a block of code through every peer change */
+    socket.on('repo:cycle-block', repoController.cycleBlock)
 
     /* repo:diff-branch: requesting a diff between active file and the same file in another branch */
     socket.on('repo:diff-branch', repoController.diffWithBranch)
 
-    /* repo:diff-contrib: requesting a diff between active file and a selected peer */
-    socket.on('repo:diff-contrib', repoController.diffWithContributor)
+    /* repo:diff-peer: requesting a diff between active file and a selected peer */
+    socket.on('repo:diff-peer', repoController.diffWithPeer)
 
     /* repo:file-saved: received whenever VSCode has saved the active file */
     socket.on('repo:file-saved', repoController.sendDiffs)

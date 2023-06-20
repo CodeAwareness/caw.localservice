@@ -37,7 +37,7 @@ async function addProject(workspaceFolder: any): Promise<void> {
     logger.log('SCM Not a git folder', wsFolder)
     return Promise.resolve() // TODO: maybe allow other source control tools, besides git?
   }
-  const contributors = {}
+  const peers = {}
   const changes = {}
 
   // TODO: pull changes to local workspace
@@ -48,7 +48,7 @@ async function addProject(workspaceFolder: any): Promise<void> {
       // TODO: Check all remotes (check if ANY match)
       const root = wsFolder
       const name = path.basename(root)
-      CAWStore.projects.push({ name, origin, root, changes, contributors })
+      CAWStore.projects.push({ name, origin, root, changes, peers })
     })
     .catch(err => logger.error('SCM setupOrigin ERROR', err))
 }
@@ -87,7 +87,7 @@ const clearProject = project => {
  * addFile = registerWithTDP
  *
  * DESIGN:
- * We're adding files to the CAW repository, but the user may have multiple repositories open, and we need to show diffs coresponding to multiple contributors.
+ * We're adding files to the CAW repository, but the user may have multiple repositories open, and we need to show diffs coresponding to multiple peers.
  * Our CAW repository looks like this (where searchLib, microPost are just examples of repo names)
 
  * searchLib -> aliceId -> [ services/utils.js, main.js ]
