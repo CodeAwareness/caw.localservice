@@ -12,8 +12,8 @@ function login({ email, password }: TLoginReq) {
   CAWAPI
     .post(API_AUTH_LOGIN, { email, password }, 'auth:login', this)
     .then(data => CAWStore.setAuth(data))
-    .catch(err => {
-      logger.log('auth error', err)
+    .catch(() => {
+      logger.log('auth error')
     })
 }
 
@@ -25,7 +25,7 @@ function info(cid: string) {
   const { user, tokens } = CAWStore
   logger.log('AUTH: checking auth info')
   if (tokens?.refresh?.expires < new Date().toISOString()) {
-    logger.log('AUTH: Refresh token expired')
+    logger.log('AUTH: Not logged in or Refresh token expired.')
     this.emit('res:auth:info')
     return
   }
@@ -38,7 +38,6 @@ function info(cid: string) {
 
   CAWAPI.refreshToken(tokens?.refresh.token)
     .then(() => {
-      logger.log('AUTH: token refreshed', { user })
       this.emit('res:auth:info', { user, tokens })
     })
     .catch(err => {

@@ -1,13 +1,13 @@
 import { mkdirp } from 'mkdirp'
-import path, { relative } from 'path'
+import path, { relative } from 'path' // TODO: relative path
 import tar from 'tar'
 import { rimraf } from 'rimraf'
 import FormData from 'form-data'
 import * as _ from 'lodash'
 
 import { createGzip } from 'zlib'
-import { PowerShell } from 'node-powershell'
-import childProcess from 'child_process'
+import { PowerShell } from 'node-powershell' // TODO: windows
+import childProcess from 'child_process' // TODO: do we still need this?
 import { promises as fs, constants as fsConstants, createReadStream, createWriteStream, openSync, closeSync } from 'node:fs'
 import { pipeline } from 'stream'
 // import { AxiosResponse } from 'axios'
@@ -20,7 +20,7 @@ import git from './git'
 import shell from './shell'
 import CAWStore from './store'
 import CAWAPI, { API_REPO_COMMITS, API_REPO_COMMON_SHA, API_REPO_PEERS, API_REPO_DIFF_FILE } from './api'
-import { config } from 'dotenv'
+import { config } from 'dotenv' // TODO: do we still need this?
 
 const PENDING_DIFFS = {}
 const isWindows = !!process.env.ProgramFiles
@@ -60,7 +60,7 @@ export type TPeerFile = {
  *
  * Open the VSCode standard diff window...
  ************************************************************************************/
-async function diffWithBranch({ branch, fpath, origin, cid }): Promise<any> {
+async function diffWithBranch({ branch, cid }): Promise<any> {
   let peerFile
   const project = CAWStore.activeProjects[cid]
   const tmpDir = CAWStore.uTmpDir[cid]
@@ -306,8 +306,7 @@ function sendDiffs(project: any, cid: string): Promise<void> {
     .then(cSHA => {
       if (!cSHA) throw new Error('There is no common SHA to diff against. Maybe still not authorized?')
       logger.info('DIFFS: sendDiffs wsFolder=', wsFolder, project)
-      return git.command(wsFolder, 'git ls-files --others --exclude-standard')
-      // TODO: parse .gitignore and don't add (e.g. dot files) for security reasons
+      return git.command(wsFolder, 'git ls-files --others --exclude-standard') // this also ignores any files specified in the .gitignore
     })
     .then(files => {
       if (!files.length) return

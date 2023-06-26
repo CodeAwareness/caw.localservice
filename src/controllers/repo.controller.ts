@@ -210,9 +210,7 @@ function getTmpDir(cid) {
 }
 
 type TBranchDiffInfo = {
-  fpath: string
   branch: string
-  origin: string
   cid: string
 }
 
@@ -278,6 +276,7 @@ function sendDiffs(data: TSendDiff) {
   const { fpath, doc, cid } = data
   logger.log('REPO: sendDiffs, cid, fpath', cid, fpath)
   const project = getProjectFromPath(fpath)
+  if (!project) return this.emit('res:repo:file-saved')
   return CAWDiffs.sendDiffs(project, cid)
     .then(() => CAWDiffs.refreshChanges(project, project.activePath, doc, cid))
     .then(() => this.emit('res:repo:file-saved', project))
