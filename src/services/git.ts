@@ -4,17 +4,23 @@ import logger from '@/logger'
 
 const isWindows = !!process.env.ProgramFiles
 
+let labelIndex = 0
+
 function gitExec(command: string, options = {}): Promise<string> {
   // TODO: maybe use spawn instead of exec (more efficient since it doesn't spin up any shell;
   // also allows larger data to be returned, but we have to handle streaming data instead of a simple assignment)
   // however, git execution context may be affected...
   let data
-  logger.time(`Git Command ${command}`)
+  const label = `Git Command ${labelIndex++}`
+  logger.time(label)
   try {
+    logger.timeEnd(label)
+    logger.log('\n')
     data = child.execSync(command, options)
     return Promise.resolve(data?.toString())
   } catch (err) {
-    logger.timeEnd(`Git Command ${command}`)
+    logger.timeEnd(label)
+    logger.log('\n')
     if (data?.length) return Promise.resolve(data.toString())
     if (err.stderr?.toString()) {
       logger.log('\x1b[33m GIT: Shell failed \x1b[0m', data?.toString(), err?.toString())

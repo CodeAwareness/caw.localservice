@@ -76,6 +76,7 @@ const loggerConsole = {
     } catch (err) {}
     trace()
     console.dir(args, { depth: 6 })
+    console.log('\n')
   },
   info: function(...args: any[]): void {
     try {
@@ -83,6 +84,7 @@ const loggerConsole = {
     } catch (err) {}
     trace()
     console.info(map(args, stringify).join(' '))
+    console.log('\n')
   },
   warn: function(...args: any[]): void {
     try {
@@ -90,6 +92,7 @@ const loggerConsole = {
     } catch (err) {}
     trace()
     console.warn(args)
+    console.log('\n')
   },
   debug: function(...args: any[]): void {
     try {
@@ -97,6 +100,7 @@ const loggerConsole = {
     } catch (err) {}
     trace()
     console.info(args)
+    console.log('\n')
   },
   error: function(...args: any[]): void {
     try {
@@ -104,6 +108,7 @@ const loggerConsole = {
     } catch (err) {}
     trace()
     console.error(args)
+    console.log('\n')
   },
   time: function(label) {
     console.time(label)

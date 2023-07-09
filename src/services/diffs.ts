@@ -655,6 +655,9 @@ function applyDiffs({ cid, fpath, doc }) {
   const index = project.changes[fpath].users.findIndex(el => el._id === _id)
   if (index !== -1) project.changes[fpath].users.splice(index, 1)
 
+  return Promise.all(Object.keys(changes).map(applyUserChanges))
+    .then(aggregateLines)
+
   async function applyUserChanges(uid) {
     const { sha } = changes[uid]
     const extractDir = path.join(tmpDir, Config.EXTRACT_PEER_DIR, uid)
@@ -671,6 +674,7 @@ function applyDiffs({ cid, fpath, doc }) {
     const archiveFile = path.join(archiveDir, `${localFName}-${sha}.tar`)
     /* peerFile: this is the peer version of `fpath` diffs applied */
     const peerFile = path.join(extractDir, fpath)
+    const shaFile = peerFile // the original file as it existed at SHA; later on we patch this file and it becomes peerFile as it exists currently in the peer's file system.
 
     const patchFile = () => {
       // return git.command(extractDir, `git apply --whitespace=nowarn ${downloadedFile}`) // TODO: would be nice if this worked
@@ -678,9 +682,34 @@ function applyDiffs({ cid, fpath, doc }) {
       return git.command(extractDir, `${cmd} ${fpath} ${downloadedFile}`)
     }
 
-    const diffWithDoc = () => git.command(wsFolder, `git diff -b -U0 --no-color --diff-algorithm=patience ${doc} ${peerFile}`)
+    let docDiffs, peerDiffs
 
-    const updateProject = diffs => (changes[uid].diffs = diffs)
+    // we have the fpath file as it existed at SHA, currently extracted in the `extractDir`; we make two diffs and return the difference between them.
+    const diffDoc = () => git.command(wsFolder, `git diff -b -U0 --no-color --diff-algorithm=patience ${doc} ${shaFile}`)
+    const diffPeer = () => fs.readFile(downloadedFile, 'utf-8')
+    // TODO: when the current user has changed a line in the same way a peer did,
+    // we end up showing highlights for that line anyway, because there is indeed a change relative to the cSHA.
+    // This is a source of confusion for the end user, which we should try to eliminate.
+
+    const saveDocDiffs = diffs => (docDiffs = diffs)
+    const savePeerDiffs = diffs => (peerDiffs = diffs)
+
+    const updateProject = () => {
+      if (!docDiffs.length) {
+        changes[uid].diffs = peerDiffs
+        return
+      }
+      // re-index peer diffs taking into account the current doc diffs against the same SHA
+      let docCursor = 0
+      const diffs = peerDiffs.map(diff => {
+        for (let i = docCursor; i < docDiffs.length; docCursor = ++i) {
+          if (docDiffs[i].range.line < diff.range.line) diff.range.line += docDiffs[i].replaceLen - docDiffs[i].range.len
+        }
+        return diff
+      })
+      // assign the re-indexed ranges to the project changes for this file
+      changes[uid].diffs = diffs
+    }
 
     const createArchive = () => {
       return git
@@ -690,22 +719,25 @@ function applyDiffs({ cid, fpath, doc }) {
     }
 
     const archiveExists = (data) => {
-      /* peerFile: we finally instruct VSCode to open a diff window between the active file and the extracted file, which now has applied diffs to it */
       logger.info('DIFFS: archiveExists: (ct, fpath, extractDir)', changes[uid], fpath, extractDir)
       const untar = () => {
         return git.command(extractDir, `tar xvf ${localFName}-${sha}.tar`)
       }
 
       return untar()
-        .then(patchFile)
-        .then(diffWithDoc)
+        .then(diffDoc)
         .then(parseDiffFile)
+        .then(saveDocDiffs)
+        .then(patchFile)
+        .then(diffPeer)
+        .then(parseDiffFile)
+        .then(savePeerDiffs)
         .then(updateProject)
         .catch(err => console.log('ERROR IN ACHIVE EXISTS', err))
     }
 
     return fs
-      .access(archiveFile, fsConstants.R_OK)
+      .access(archiveFile, fsConstants.R_OK) // TODO: benchmark this, it's probably too small of an improvement to keep this, we should simply the code if there's only a few ms difference.
       .then(archiveExists)
       .catch(createArchive)
   }
@@ -720,9 +752,6 @@ function applyDiffs({ cid, fpath, doc }) {
     })
     project.changes[fpath].alines = Object.keys(alines)?.map(l => parseInt(l, 10))
   }
-
-  return Promise.all(Object.keys(changes).map(applyUserChanges))
-    .then(aggregateLines)
 }
 
 /**
