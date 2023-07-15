@@ -1,3 +1,4 @@
+import path from 'node:path'
 import os from 'os'
 import fs from 'fs'
 import net, { Socket } from 'net'
@@ -7,10 +8,11 @@ import CAWStore from '@/services/store'
 import logger from '@/logger'
 
 const delimiter = '\f'
+const isWindows = !!process.env.ProgramFiles
 
 class IPC {
   public appspace = 'caw.'
-  public socketRoot = '/var/tmp/'
+  public socketRoot = isWindows ? '\\\\.\\pipe\\' : '/var/tmp/'
   public path = ''
   public cid = ''
   public pubsub = new EventEmitter()

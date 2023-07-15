@@ -55,8 +55,7 @@ if (error) {
 const PORT_LOCAL_API = 3008
 
 /* CodeAwarenesss REST API */
-const API_SERVER = LOCAL ? `localhost:${PORT_LOCAL_API}` : 'api.codeawareness.com'
-const API_URL = DEBUG ? `http://${API_SERVER}/v1` : `https://${API_SERVER}/v1`
+const API_URL = LOCAL ? `http://localhost:${PORT_LOCAL_API}/v1` : 'https://api.codeawareness.com/v1'
 
 /* This WSS API will be used to sync up comments, perform voice/video conference etc */
 const SERVER_WSS = LOCAL ? `ws://localhost:${PORT_LOCAL_API}` : 'wss://api.codeawareness.com'
@@ -93,7 +92,6 @@ const EXTRACT_REPO_DIR = 'r'
 const EXTRACT_PEER_DIR = 'e'
 
 const Config = {
-  API_SERVER,
   API_URL,
   ARCHIVE_DIR,
   CONFIGURATION_FILE,

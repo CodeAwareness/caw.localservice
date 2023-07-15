@@ -17,6 +17,9 @@
       "@/*": [ "src/*" ]
     }
   },
+  "exclude": [
+    "tests/fixtures"
+  ],
   "types": [ "node", "jest" ],
   "ts-node": {
     "require": ["tsconfig-paths/register"]

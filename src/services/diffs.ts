@@ -353,7 +353,7 @@ function uploadDiffs({ diffDir, origin, cSHA, activePath }): Promise<void> {
   // TODO: I think we sometimes get a file error (cSHA.gz does not exist) -- verify
   const diffFile = path.join(diffDir, 'uploaded.diff')
   const zipFile = path.join(diffDir, `${cSHA}.gz`)
-  logger.info('DIFFS: uploadDiffs (diffFile, zipFile)', diffFile, zipFile)
+  logger.info('DIFFS: uploadDiffs (diffFile, zipFile, origin, activePath)', diffFile, zipFile, origin, activePath)
   return compress(diffFile, zipFile)
     .then(() => {
       const zipForm = new FormData()
@@ -420,7 +420,9 @@ function refreshChanges(project: any, filePath: string, doc: string, cid: string
   /* TODO: add caching (so we don't keep on asking for the same file when the user mad-clicks the same peer) */
   if (!project.cSHA) return Promise.resolve()
   const wsFolder = project.root
-  const fpath = filePath.includes(project.root) ? filePath.substr(project.root.length + 1) : filePath
+  // Windows and VSCode on Windows have upper and lower case C:/ c:/ or even /c:/ in various versions and contexts.
+  // We do a lowercase comparison to be sure, but this may affect projects on case sensitive filesystems.
+  const fpath = filePath.toLowerCase().includes(project.root.toLowerCase()) ? filePath.substr(project.root.length + 1) : filePath
   logger.log('DIFFS: refreshChanges (origin, fpath, user)', project.origin, fpath, CAWStore.user?.email)
   PENDING_DIFFS[fpath] = true // this operation can take a while, so we don't want to start it several times per second
   const tmpDir = CAWStore.uTmpDir[cid]
