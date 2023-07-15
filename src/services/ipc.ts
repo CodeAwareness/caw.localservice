@@ -28,13 +28,6 @@ class IPC {
     if (guid) this.path = this.socketRoot + this.appspace + guid
     this.cid = guid
     logger.log('IPC: New IPC', this.path)
-    /* TODO: Windows pipe path
-    if (process.platform === 'win32' && !path.startsWith('\\\\.\\pipe\\')) {
-      path = path.replace(/^\//, '')
-      path = path.replace(/\//g, '-')
-      path = `\\\\.\\pipe\\${options.path}`
-    }
-    */
   }
 
   setup() {
