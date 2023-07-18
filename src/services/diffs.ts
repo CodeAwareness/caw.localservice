@@ -1,13 +1,11 @@
 import { mkdirp } from 'mkdirp'
-import path, { relative } from 'path' // TODO: relative path
+import path from 'path' // TODO: relative path
 import tar from 'tar'
 import { rimraf } from 'rimraf'
 import FormData from 'form-data'
 import * as _ from 'lodash'
 
 import { createGzip } from 'zlib'
-import { PowerShell } from 'node-powershell' // TODO: windows
-import childProcess from 'child_process' // TODO: do we still need this?
 import { promises as fs, constants as fsConstants, createReadStream, createWriteStream, openSync, closeSync } from 'node:fs'
 import { pipeline } from 'stream'
 // import { AxiosResponse } from 'axios'
@@ -20,7 +18,6 @@ import git from './git'
 import shell from './shell'
 import CAWStore from './store'
 import CAWAPI, { API_REPO_COMMITS, API_REPO_COMMON_SHA, API_REPO_PEERS, API_REPO_DIFF_FILE } from './api'
-import { config } from 'dotenv' // TODO: do we still need this?
 
 const PENDING_DIFFS = {}
 const isWindows = !!process.env.ProgramFiles
@@ -68,7 +65,7 @@ async function diffWithBranch({ branch, cid }): Promise<any> {
   const wsFolder = project.root
   CAWStore.selectedBranch = branch
   CAWStore.selectedPeer = undefined
-  const userFile = project.activePath.substr(project.root.length + 1)
+  const userFile = project.activePath
   return git.command(wsFolder, 'git rev-parse --show-toplevel')
     .then(folder => {
       logger.log('DIFFS: branch in ', folder)
@@ -203,6 +200,7 @@ function sendCommitLog(project: any): Promise<string> {
       { method: 'GET', responseType: 'json' }
     )
       .then(res => {
+        console.log('cSHA response', res.data)
         project.cSHA = res.data?.sha
         logger.info('DIFFS: getCommonSHA for (origin, cSHA, head)', project.origin, project.cSHA, project.head)
         return project.cSHA
@@ -283,7 +281,6 @@ function sendDiffs(project: any, cid: string): Promise<void> {
   } else {
     lastSendDiff[wsFolder] = new Date()
   }
-  const wsName = path.basename(wsFolder)
   const diffDir = path.join(tmpDir)
   /* TODO: only send Diffs if requested by the server or if additional changes were made since the last diff.
    * To do that we can run a git diff, plus untracked file diffs, and get a checksum from each: save and compare on next call.
