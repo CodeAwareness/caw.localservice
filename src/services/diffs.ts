@@ -11,6 +11,7 @@ import { pipeline } from 'stream'
 // import { AxiosResponse } from 'axios'
 // import replaceStream from 'replacestream' // doesn't work (!
 
+import { crossPlatform } from '@/utils/path'
 import Config from '@/config/config'
 import logger from '@/logger'
 
@@ -50,6 +51,10 @@ export type TPeerFile = {
   extractDir: string
   peerFile: string
   fpath: string
+}
+
+function formatLocalFile(f: string) {
+  return f.replace(/[\/\\]/g, '-')
 }
 
 /************************************************************************************
@@ -115,21 +120,23 @@ function extractPeer({ peer, fpath, cid, doc }): Promise<TPeerFile> {
   const origin = project.origin
   const wsFolder = project.root
   const relPath = shell.getRelativePath(fpath, project)
-  const localFName = relPath.replace(/[\/\\]/g, '') // TODO: is there a way to guarantee absolutely zero name collision? (do it for all `localFName` in this file)
+  const cpPath = crossPlatform(relPath)
+  const localFName = formatLocalFile(relPath) // TODO: is there a way to guarantee absolutely zero name collision? (do it for all `localFName` in this file)
   const archiveDir = path.join(tmpDir, Config.EXTRACT_PEER_DIR, peer._id)
   /* downloadedFile: we save the diffs received from the server to TMP/active.diffs */
   const downloadedFile = path.join(archiveDir, '_caw.active.diffs')
-  const changes = project.changes[relPath].file.changes[peer._id]
+  const changes = project.changes[cpPath].file.changes[peer._id]
   /* archiveFile: we use git archive to extract the active file from the cSHA commit */
   const archiveFile = path.join(archiveDir, `${localFName}-${changes.sha}.tar`) // TODO: we should retrieve a fresh copy to ensure that the downloaded diff is still corresponding to the SHA
   /* extractDir: we extract the active file from the archive in this folder, so we can run git apply on it */
   const extractDir = path.join(tmpDir, Config.EXTRACT_PEER_DIR, peer._id)
-  const fdir = path.dirname(fpath)
+  const fdir = path.dirname(relPath)
+  console.log('EXTRACT PEER', fdir, relPath, fpath, project.root)
   rimraf.sync(path.join(extractDir, fdir))
   mkdirp.sync(path.join(extractDir, fdir))
   /* peerFile: we finally instruct VSCode to open a diff window between the active file and the extracted file, which now has applied diffs to it */
   const peerFile = path.join(extractDir, relPath)
-  logger.info('DIFFS: extractPeer (ct, fpath, extractDir)', peer, fpath, extractDir)
+  logger.info('DIFFS: extractPeer (ct, relPath, fdir, extractDir)', peer, relPath, fdir, extractDir)
 
   const uri = encodeURIComponent(origin)
   return CAWAPI.axiosAPI
@@ -142,7 +149,7 @@ function extractPeer({ peer, fpath, cid, doc }): Promise<TPeerFile> {
 
   function gitArchive() {
     // TODO: if file exists do not archive again (no overwrite necessary)
-    return git.command(wsFolder, `git archive --format=tar -o ${archiveFile} ${changes.sha} ${fpath}`)
+    return git.command(wsFolder, `git archive --format=tar -o ${archiveFile} ${changes.sha} ${relPath}`)
   }
 
   function untar() {
@@ -156,8 +163,8 @@ function extractPeer({ peer, fpath, cid, doc }): Promise<TPeerFile> {
   }
 
   function assembleFiles() {
-    const title = `CAW#${path.basename(fpath)} ↔ Peer changes`
-    logger.info('DIFFS: vscodeOpenDiffs (ct, peerFile, fpath)', peer, peerFile, fpath)
+    const title = `CAW#${path.basename(relPath)} ↔ Peer changes`
+    logger.info('DIFFS: vscodeOpenDiffs (ct, peerFile, relPath)', peer, peerFile, relPath)
     return { title, extractDir, peerFile, fpath: doc }
   }
 }
@@ -419,7 +426,9 @@ function refreshChanges(project: any, filePath: string, doc: string, cid: string
   const wsFolder = project.root
   // Windows and VSCode on Windows have upper and lower case C:/ c:/ or even /c:/ in various versions and contexts.
   // We do a lowercase comparison to be sure, but this may affect projects on case sensitive filesystems.
-  const fpath = filePath.toLowerCase().includes(project.root.toLowerCase()) ? filePath.substr(project.root.length + 1) : filePath
+  const fpath = path.join(filePath).toLowerCase().includes(project.root.toLowerCase())
+    ? filePath.substr(project.root.length + 1)
+    : filePath
   logger.log('DIFFS: refreshChanges (origin, fpath, user)', project.origin, fpath, CAWStore.user?.email)
   PENDING_DIFFS[fpath] = true // this operation can take a while, so we don't want to start it several times per second
   const tmpDir = CAWStore.uTmpDir[cid]
@@ -469,9 +478,10 @@ function downloadChanges(project: any, fpath: string, cid: string): Promise<void
   const uri = encodeURIComponent(project.origin)
   const tmpDir = CAWStore.uTmpDir[cid]
   const downloadRoot = path.join(tmpDir, Config.EXTRACT_DOWNLOAD_DIR)
+  const cpPath = crossPlatform(fpath)
 
   return CAWAPI.axiosAPI
-    .get(`${API_REPO_PEERS}?origin=${uri}&fpath=${fpath}&clientId=${cid}`)
+    .get(`${API_REPO_PEERS}?origin=${uri}&fpath=${cpPath}&clientId=${cid}`)
     .then((res) => {
       logger.info('DIFFS: downloadDiffs peers (origin, res.status, fpath, res.data)', project.origin, res.status, fpath, res.data.tree?.length + ' files', Object.keys(res.data.file?.changes).length + ' peers')
       const { data } = res
@@ -489,7 +499,7 @@ function downloadChanges(project: any, fpath: string, cid: string): Promise<void
        *   ...
        * }
        */
-      project.changes[fpath] = { users: data.users, file: data.file }
+      project.changes[cpPath] = { users: data.users, file: data.file }
 
       const promises = []
       promises.push(
@@ -497,8 +507,10 @@ function downloadChanges(project: any, fpath: string, cid: string): Promise<void
         rimraf(downloadRoot) // TODO: on windows we should be using `rimraf.windows.sync(...)
           .then(() => fs.mkdir(downloadRoot))
       )
+      console.log(data, { depth: 8 })
       Object.keys(data.file.changes).forEach(uid => {
         const s3key = data.file.changes[uid].s3key
+        console.log('s3key for uid', uid, s3key, data.file.changes[uid])
         const downloadedFile = path.join(downloadRoot, `${uid}.diff`)
         promises.push(
           CAWAPI.axiosAPI
@@ -576,7 +588,8 @@ const nextPeer = (block: TContribBlock) => fpath => {
   // const blocks = await Config.repoStore.get('blocks')
   // const peer = await Config.repoStore.get('currentPeer')
   const relPath = shell.getRelativePath(block.fpath, project)
-  const changes = project.changes[relPath]
+  const cpPath = crossPlatform(relPath)
+  const changes = project.changes[cpPath]
   const { users } = changes
   let i = peers[project.origin]
   if (i === undefined) {
@@ -587,7 +600,7 @@ const nextPeer = (block: TContribBlock) => fpath => {
   if (i >= users.length) peers[project.origin] = 0
   if (i < 0) peers[project.origin] = users.length - 1
   const uid = users[peers[project.origin]]._id
-  const { sha, s3key } = project.changes[relPath].file.changes[uid]
+  const { sha, s3key } = project.changes[cpPath].file.changes[uid]
   return  {
     _id: uid,
     changes: { sha, s3key },
@@ -643,7 +656,8 @@ function applyDiffs({ cid, fpath, doc }) {
   const tmpDir = CAWStore.uTmpDir[cid]
   const project = CAWStore.activeProjects[cid]
   const wsFolder = project.root
-  const changes = project.changes[fpath]?.file?.changes
+  const cpPath = crossPlatform(fpath)
+  const changes = project.changes[cpPath]?.file?.changes
   const downloadRoot = path.join(tmpDir, Config.EXTRACT_DOWNLOAD_DIR)
 
   if (!changes) return
@@ -651,8 +665,8 @@ function applyDiffs({ cid, fpath, doc }) {
   // The response from the server contains all users, including current user, which we don't need to process here.
   const { _id } = CAWStore.user
   delete changes[_id]
-  const index = project.changes[fpath].users.findIndex(el => el._id === _id)
-  if (index !== -1) project.changes[fpath].users.splice(index, 1)
+  const index = project.changes[cpPath].users.findIndex(el => el._id === _id)
+  if (index !== -1) project.changes[cpPath].users.splice(index, 1)
 
   return Promise.all(Object.keys(changes).map(applyUserChanges))
     .then(aggregateLines)
@@ -667,7 +681,7 @@ function applyDiffs({ cid, fpath, doc }) {
       // nothing
     }
 
-    const localFName = fpath.replace(/[\/\\]/g, '')
+    const localFName = formatLocalFile(fpath)
     const downloadedFile = path.join(downloadRoot, `${uid}.diff`)
     /* archiveFile: we use git archive to extract the active file from the cSHA commit */
     const archiveFile = path.join(archiveDir, `${localFName}-${sha}.tar`)
@@ -710,19 +724,18 @@ function applyDiffs({ cid, fpath, doc }) {
       changes[uid].diffs = diffs
     }
 
+    const untar = () => git.command(extractDir, `tar xvf ${localFName}-${sha}.tar`)
+
     const createArchive = () => {
+      logger.info('DIFFS: createArchive: (ct, fpath, extractDir)', changes[uid], fpath, extractDir)
       return git
         .command(wsFolder, `git archive --format=tar -o ${archiveFile} ${sha} ${fpath}`)
         .then(archiveExists)
         .catch(logger.error)
     }
 
-    const archiveExists = (data) => {
+    const archiveExists = () => {
       logger.info('DIFFS: archiveExists: (ct, fpath, extractDir)', changes[uid], fpath, extractDir)
-      const untar = () => {
-        return git.command(extractDir, `tar xvf ${localFName}-${sha}.tar`)
-      }
-
       return untar()
         .then(diffDoc)
         .then(parseDiffFile)
@@ -749,7 +762,7 @@ function applyDiffs({ cid, fpath, doc }) {
         for (let i=0; i<diff.range.len; i++) alines[diff.range.line + i] = 1
       })
     })
-    project.changes[fpath].alines = Object.keys(alines)?.map(l => parseInt(l, 10))
+    project.changes[cpPath].alines = Object.keys(alines)?.map(l => parseInt(l, 10))
   }
 }
 

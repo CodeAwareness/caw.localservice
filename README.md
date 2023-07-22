@@ -12,7 +12,7 @@ We're using a unix pipe (or windows named pipes) for communication with editor p
 
 ### Installation
 
-Note: at this time I don't have a clean install that just works out-of-the-box. Instead you'll need a nodeJS environment, and you'll be running the local service in dev mode.
+Note: at this time I don't have a clean install that just works out-of-the-box. Instead you'll need a nodeJS environment, Git, and you'll be running the local service in dev mode.
 
 Clone the repo, install the dependencies.
 

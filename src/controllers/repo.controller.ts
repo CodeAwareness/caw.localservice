@@ -27,8 +27,8 @@ type TRepoActivateReq = {
 
 // TODO: group CAWStore projects by cid value
 
-async function activatePath(data: any): Promise<any> {
-  const { fpath, cid, doc }: TRepoActivateReq = data
+async function activatePath(data: TRepoActivateReq): Promise<any> {
+  const { fpath, cid, doc } = data
   if (!fpath) return
   logger.log('REPO: activate path (fpath, cid)', fpath, cid)
   if (fpath.toLowerCase().includes(CAWStore.tmpDir.toLowerCase())) return Promise.resolve() // active file is the temporary diff file
@@ -217,7 +217,7 @@ type TBranchDiffInfo = {
 }
 
 /**
- * @param info object { fpath, branch, origin, cid }
+ * @param info object { branch, cid }
  */
 function diffWithBranch(info: TBranchDiffInfo) {
   return CAWDiffs
@@ -247,6 +247,7 @@ function readFile({ fpath }) {
 }
 
 function vscodeDiff({ wsFolder, fpath, uid, cid }) {
+
   const absPath = path.join(wsFolder, fpath)
   try {
     fs.accessSync(absPath, fs.constants.R_OK)
