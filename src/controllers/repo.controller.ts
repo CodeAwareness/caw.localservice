@@ -10,6 +10,7 @@ import logger from '@/logger'
 import config from '@/config/config'
 
 import git from '@/services/git'
+import shell from '@/services/shell'
 import CAWStore from '@/services/store'
 import CAWDiffs from '@/services/diffs'
 
@@ -34,7 +35,7 @@ async function activatePath(data: any): Promise<any> {
 
   /* select the project corresponding to the activated path; if there is no project matching, we add as new project */
   const project = await selectProject(fpath, cid, this)
-  project.activePath = fpath
+  project.activePath = shell.getRelativePath(fpath, project)
   logger.log('REPO: activatePath project selected', fpath, project)
 
   if (!project.cSHA) {
