@@ -118,8 +118,8 @@ function extractPeer({ peer, fpath, cid, doc }): Promise<TPeerFile> {
   const project = CAWStore.activeProjects[cid]
   const origin = project.origin
   const wsFolder = project.root
-  const relPath = shell.getRelativePath(fpath, project)
-  const cpPath = shell.crossPlatform(relPath)
+  const relPath = fpath // already relative from activeProject.activePath
+  const cpPath = shell.crossPlatform(fpath)
   const localFName = formatLocalFile(relPath) // TODO: is there a way to guarantee absolutely zero name collision? (do it for all `localFName` in this file)
   const archiveDir = path.join(tmpDir, Config.EXTRACT_PEER_DIR, peer._id)
   /* downloadedFile: we save the diffs received from the server to TMP/active.diffs */
@@ -130,7 +130,6 @@ function extractPeer({ peer, fpath, cid, doc }): Promise<TPeerFile> {
   /* extractDir: we extract the active file from the archive in this folder, so we can run git apply on it */
   const extractDir = path.join(tmpDir, Config.EXTRACT_PEER_DIR, peer._id)
   const fdir = path.dirname(relPath)
-  console.log('EXTRACT PEER', fdir, relPath, fpath, project.root)
   rimraf.sync(path.join(extractDir, fdir))
   mkdirp.sync(path.join(extractDir, fdir))
   /* peerFile: we finally instruct VSCode to open a diff window between the active file and the extracted file, which now has applied diffs to it */
@@ -206,7 +205,6 @@ function sendCommitLog(project: any): Promise<string> {
       { method: 'GET', responseType: 'json' }
     )
       .then(res => {
-        console.log('cSHA response', res.data)
         project.cSHA = res.data?.sha
         logger.info('DIFFS: getCommonSHA for (origin, cSHA, head)', project.origin, project.cSHA, project.head)
         return project.cSHA
@@ -506,10 +504,8 @@ function downloadChanges(project: any, fpath: string, cid: string): Promise<void
         rimraf(downloadRoot) // TODO: on windows we should be using `rimraf.windows.sync(...)
           .then(() => fs.mkdir(downloadRoot))
       )
-      console.log(data, { depth: 8 })
       Object.keys(data.file.changes).forEach(uid => {
         const s3key = data.file.changes[uid].s3key
-        console.log('s3key for uid', uid, s3key, data.file.changes[uid])
         const downloadedFile = path.join(downloadRoot, `${uid}.diff`)
         promises.push(
           CAWAPI.axiosAPI
@@ -522,7 +518,6 @@ function downloadChanges(project: any, fpath: string, cid: string): Promise<void
       return Promise.allSettled(promises)
     })
     .catch(err => {
-      console.trace()
       logger.info('DIFFS: no peers for this file.', err.core, err.config?.url, err.data, err)
     })
 }
@@ -667,7 +662,8 @@ function applyDiffs({ cid, fpath, doc }) {
   const index = project.changes[cpPath].users.findIndex(el => el._id === _id)
   if (index !== -1) project.changes[cpPath].users.splice(index, 1)
 
-  return Promise.all(Object.keys(changes).map(applyUserChanges))
+  return Promise
+    .all(Object.keys(changes).map(applyUserChanges))
     .then(aggregateLines)
 
   async function applyUserChanges(uid) {
