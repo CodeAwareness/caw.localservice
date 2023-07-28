@@ -131,36 +131,19 @@ describe('Download changes', () => {
     await CAWDiffs.applyDiffs({ doc, fpath, cid })
 
     // TEST
-    expect(project.changes[fpath].file.changes[uidHana].diffs[0]).toEqual({ range: { line: 0, len: 0, content: [] }, replaceLen: 0 })
-    expect(project.changes[fpath].file.changes[uidUno].diffs[0]).toEqual({ range: { line: 10, len: 1, content: [] }, replaceLen: 0 })
-    expect(project.changes[fpath].file.changes[uidUno].diffs[1]).toEqual({ range: { line: 30, len: 1, content: ['    console.debug('] }, replaceLen: 1 })
-    expect(project.changes[fpath].file.changes[uidUno].diffs[15]).toEqual({
-      range: {
-        line: 298,
-        len: 3,
-        content: [
-          "      if (debug) console.log('INSERT MANY', '\\x1b[33m')",
-          '      if (debug) console.dir(mongoFilter, { depth: null })',
-          "      if (debug) console.log('\\x1b[0m')"
-        ]
-      },
-      replaceLen: 3,
-    })
-    expect(project.changes[fpath].file.changes[uidUno].diffs[18]).toEqual({
-      range: {
-        line: 326,
-        len: 1,
-        content: [
-          "      if (debug) console.log('UPDATE MANY', '\\x1b[33m', mongoFilter, '\\x1b[0m\\n', '\\x1b[33m', mongoUpdate, options || '', '\\x1b[0m')",
-        ]
-      },
-      replaceLen: 1,
-    })
+    expect(project.changes[fpath].file.changes[uidHana].diffs[0]).toEqual({ range: { line: 3, len: 3, content: [
+      'This project is a lightweight alternative to Mongoose. The main reasons are:',
+      '- it has become incredibly easy to corrupt my data using mongoose; things like `deleteMany(filter)` actually deleting all data; things like `update(filter, cmd)` updating all documents, not just the ones in the filter, because the contributors have decided to go against MongoDB and apply commands to ALL documents when a field does not exist in the schema (mongo will apply to NONE). Note: this may be solved soon, from what I\'ve read.',
+    ] }, replaceLen: 2 })
+    expect(project.changes[fpath].file.changes[uidUno].diffs[0]).toEqual({ range: { line: 10, len: 0, content: [
+      '- ORMs and ODMs have been the source of many project disasters, especially when it comes to performance.',
+    ] }, replaceLen: 1 })
+    expect(project.changes[fpath].file.changes[uidUno].diffs[1]).toEqual({ range: { line: 20, len: 1, content: [
+      'Note: this package adds 38kb to your project. Consequently, it does not provide any of the following features (use mongoose if you need them):'
+    ] }, replaceLen: 1 })
     expect(project.changes[fpath].alines).toEqual([
-      0, 10, 30, 44, 45, 60, 61,
-      65, 75, 182, 241, 250, 254, 260,
-      266, 272, 279, 291, 298, 299, 300,
-      308, 317, 326
+      3, 4, 5, 10, 20, 40, 41, 42,
+      43, 62, 63, 71, 177, 237, 245,
     ])
   })
 })

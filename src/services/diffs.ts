@@ -11,7 +11,6 @@ import { pipeline } from 'stream'
 // import { AxiosResponse } from 'axios'
 // import replaceStream from 'replacestream' // doesn't work (!
 
-import { crossPlatform } from '@/utils/path'
 import Config from '@/config/config'
 import logger from '@/logger'
 
@@ -120,7 +119,7 @@ function extractPeer({ peer, fpath, cid, doc }): Promise<TPeerFile> {
   const origin = project.origin
   const wsFolder = project.root
   const relPath = shell.getRelativePath(fpath, project)
-  const cpPath = crossPlatform(relPath)
+  const cpPath = shell.crossPlatform(relPath)
   const localFName = formatLocalFile(relPath) // TODO: is there a way to guarantee absolutely zero name collision? (do it for all `localFName` in this file)
   const archiveDir = path.join(tmpDir, Config.EXTRACT_PEER_DIR, peer._id)
   /* downloadedFile: we save the diffs received from the server to TMP/active.diffs */
@@ -478,7 +477,7 @@ function downloadChanges(project: any, fpath: string, cid: string): Promise<void
   const uri = encodeURIComponent(project.origin)
   const tmpDir = CAWStore.uTmpDir[cid]
   const downloadRoot = path.join(tmpDir, Config.EXTRACT_DOWNLOAD_DIR)
-  const cpPath = crossPlatform(fpath)
+  const cpPath = shell.crossPlatform(fpath)
 
   return CAWAPI.axiosAPI
     .get(`${API_REPO_PEERS}?origin=${uri}&fpath=${cpPath}&clientId=${cid}`)
@@ -588,7 +587,7 @@ const nextPeer = (block: TContribBlock) => fpath => {
   // const blocks = await Config.repoStore.get('blocks')
   // const peer = await Config.repoStore.get('currentPeer')
   const relPath = shell.getRelativePath(block.fpath, project)
-  const cpPath = crossPlatform(relPath)
+  const cpPath = shell.crossPlatform(relPath)
   const changes = project.changes[cpPath]
   const { users } = changes
   let i = peers[project.origin]
@@ -656,7 +655,7 @@ function applyDiffs({ cid, fpath, doc }) {
   const tmpDir = CAWStore.uTmpDir[cid]
   const project = CAWStore.activeProjects[cid]
   const wsFolder = project.root
-  const cpPath = crossPlatform(fpath)
+  const cpPath = shell.crossPlatform(fpath)
   const changes = project.changes[cpPath]?.file?.changes
   const downloadRoot = path.join(tmpDir, Config.EXTRACT_DOWNLOAD_DIR)
 

@@ -4,10 +4,15 @@ import * as child from 'child_process'
 import * as fs from 'fs/promises'
 import { PowerShell } from 'node-powershell'
 import logger from '@/logger'
+import os from 'os'
+
+export const isWindows = os.platform() === 'win32'
 
 const exec = util.promisify(child.exec)
 
-const isWindows = !!process.env.ProgramFiles
+function crossPlatform(fpath) {
+  return fpath?.replace(/\\/g, '/')
+}
 
 async function cmd(command: string, dir: string = undefined): Promise<string> {
   // TODO: maybe use spawn instead of exec (more efficient since it doesn't spin up any shell)
@@ -73,6 +78,7 @@ const getRelativePath = (fpath: string, project: any) => {
 
 const Shell = {
   copyFile,
+  crossPlatform,
   getRelativePath,
   rmFile,
   unzip,

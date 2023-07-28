@@ -10,7 +10,7 @@ import logger from '@/logger'
 import config from '@/config/config'
 
 import git from '@/services/git'
-import { getRelativePath } from '@/utils/path'
+import shell from '@/services/shell'
 import CAWStore from '@/services/store'
 import CAWDiffs from '@/services/diffs'
 
@@ -35,6 +35,7 @@ async function activatePath(data: TRepoActivateReq): Promise<any> {
 
   /* select the project corresponding to the activated path; if there is no project matching, we add as new project */
   const project = await selectProject(fpath, cid, this)
+  project.activePath = shell.getRelativePath(fpath, project)
   logger.log('REPO: activatePath project selected', fpath, project)
 
   if (!project.cSHA) {
@@ -58,7 +59,7 @@ function getProjectFromPath(fpath: string) {
     if (p.root.length > len) project = p
     len = p.root.length
   })
-  if (project) project.activePath = getRelativePath(project.root, fpath)
+  if (project) project.activePath = shell.getRelativePath(fpath, project)
   return project
 }
 
@@ -77,7 +78,7 @@ function selectProject(fpath: string, cid: string, socket: Socket): Promise<any>
       .then(folder => add({ folder, cid }, socket))
       .then(newProject => {
         project = newProject
-        project.activePath = getRelativePath(project.root, fpath)
+        project.activePath = shell.getRelativePath(fpath, project)
         console.log('NEW PROJECT', newProject)
         logger.info('REPO: the relative active path is', project.activePath)
         CAWStore.projects.push(project) // TODO: used for SCM, but we need to also use socket id, cid
