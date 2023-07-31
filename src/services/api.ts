@@ -156,8 +156,8 @@ function sendLatestSHA({ wsFolder, origin }: any): Promise<any> {
   let branch: string
   return git.command(wsFolder, 'git branch -a --sort=committerdate')
     .then(out => {
-      branch = out.split('\n')[0].replace('remotes/origin/', '').replace(/ /g, '')
-      return git.command(wsFolder, `git fetch origin ${branch}:${branch}`)
+      branch = out.split('\n')[0].replace('remotes/origin/', '').replace(/[\s*]/g, '')
+      return git.command(wsFolder, `git fetch -u origin ${branch}:${branch}`)
     })
     .then(() => {
       return git.command(wsFolder, 'git for-each-ref --sort="-committerdate" --count=1 refs/remotes')

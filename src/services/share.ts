@@ -29,7 +29,7 @@ function generateWSFolder() {
  * scope: GIT
  * desc : updates repo diffs and sends them to CodeAwareness
  */
-async function refreshDiffs({ wsFolder, fpath, caw }) {
+async function refreshDiffs({ wsFolder, fpath /* , caw */ }) {
   logger.log('File has been saved, refreshing diffs.')
   const extractDir = path.join(wsFolder, Config.EXTRACT_LOCAL_DIR)
   await copyToWorkspace({ fpath, extractDir })
@@ -55,11 +55,11 @@ const cwatchers = {}
  * desc : monitor a path for changes in the file
  *        this is necessary, because we don't have a good enough file change event system in PPT
  */
-function monitorFile({ origin, fpath, wsFolder, caw }): void {
+function monitorFile({ origin, fpath, wsFolder }): void {
   logger.log('will monitor file', fpath, origin, wsFolder)
   cwatchers[origin] = chokidar.watch(fpath)
     .on('change', () => {
-      refreshDiffs({ fpath, wsFolder, caw })
+      refreshDiffs({ fpath, wsFolder })
     })
 }
 
@@ -176,7 +176,7 @@ function setupReceived({ fpath, origin, wsFolder, caw }: any): Promise<any> {
       return diffs.initGit({ extractDir, origin })
     })
     .then(() =>  {
-      monitorFile({ origin, fpath, wsFolder, caw })
+      monitorFile({ origin, fpath, wsFolder })
       return { fpath, wsFolder }
     })
 }
@@ -233,7 +233,7 @@ async function uploadOriginal({ fpath, origin, caw }): Promise<TWebSocket> {
       // return diffs.sendAdhocDiffs(wsFolder, caw)
     })
     .then(() => {
-      monitorFile({ origin, wsFolder, fpath, caw })
+      monitorFile({ origin, wsFolder, fpath })
     })
     .then(() => {
       return { wsFolder, origin }

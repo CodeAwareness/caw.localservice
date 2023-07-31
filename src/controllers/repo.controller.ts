@@ -83,7 +83,7 @@ function selectProject(fpath: string, cid: string, socket: Socket): Promise<any>
         logger.info('REPO: the relative active path is', project.activePath)
         CAWStore.projects.push(project) // TODO: used for SCM, but we need to also use socket id, cid
         CAWStore.activeProjects[cid] = project
-        setupClientSync(cid, project, socket)
+        setupClientSync(cid, project)
         return git.command(wsFolder, 'git branch --no-color')
       })
       .then(stdout => {
@@ -93,21 +93,21 @@ function selectProject(fpath: string, cid: string, socket: Socket): Promise<any>
         return project
       })
   } else {
-    setupClientSync(cid, project, socket)
+    setupClientSync(cid, project)
   }
   CAWStore.activeProjects[cid] = project
   // TODO: send diffs on a timer? (for example when more than 5 minutes have passed)
   return Promise.resolve(project)
 }
 
-function setupClientSync(cid, project, socket) {
+function setupClientSync(cid, project) {
   if (!CAWStore.timers[cid]) CAWStore.timers[cid] = {}
   const timer = CAWStore.timers[cid][project.root]
   if (!timer) {
     // some other client may have already setup a sync process for the same project
     const exists = Object.keys(CAWStore.timers).map(cid => CAWStore.timers[cid][project.root]).filter(r => r !== undefined)[0]
     if (!exists) {
-      CAWStore.timers[cid][project.root] = setupPeriodicSync(project, cid, socket)
+      CAWStore.timers[cid][project.root] = setupPeriodicSync(project, cid)
     } else {
       return setInterval(() => {
         CAWStore.wsStation[cid].emit('res:sync:setup', { action: 'refresh', root: project.root })
@@ -116,7 +116,7 @@ function setupClientSync(cid, project, socket) {
   }
 }
 
-function setupPeriodicSync(project: any, cid: string, socket: Socket): ReturnType<typeof setInterval> {
+function setupPeriodicSync(project: any, cid: string): ReturnType<typeof setInterval> {
   logger.log(`IPC: setting up sync for ${cid}`)
   return setInterval(() => {
     CAWDiffs.sendDiffs(project, cid)

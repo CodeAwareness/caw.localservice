@@ -37,8 +37,9 @@ const unexpectedErrorHandler = (...args) => {
         data: req.response.data,
       }
     }
+    console.error(axiosErr)
   } else {
-    console.log(args)
+    console.error(args)
   }
 }
 

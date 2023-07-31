@@ -1,4 +1,3 @@
-import path from 'node:path'
 import os from 'os'
 import fs from 'fs'
 import net, { Socket } from 'net'
@@ -95,7 +94,7 @@ class IPC {
     const events = this.ipcBuffer.split(delimiter)
     events.pop()
     events.map(event => {
-      const { action, data, err } = JSON.parse(event)
+      const { action, data /*, err */ } = JSON.parse(event)
       logger.log('IPC: Detected event', action, this.handlers)
       if (!this.handlers[`res:${action}`]) {
         this.pubsub.on(`res:${action}`, body => handler(action, body))

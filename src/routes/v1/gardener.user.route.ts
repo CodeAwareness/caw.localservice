@@ -1,5 +1,6 @@
 const router = {
   init: (): void => {
+    // TODO: user communication
   },
 }
 

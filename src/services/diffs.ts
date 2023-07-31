@@ -142,7 +142,7 @@ function extractPeer({ peer, fpath, cid, doc }): Promise<TPeerFile> {
     .then(saveDownloaded(downloadedFile))
     .then(gitArchive)
     .then(untar)
-    .then(applyDiffs)
+    .then(applyPeerDiffs)
     .then(assembleFiles)
 
   function gitArchive() {
@@ -154,7 +154,7 @@ function extractPeer({ peer, fpath, cid, doc }): Promise<TPeerFile> {
     return tar.x({ file: archiveFile, cwd: extractDir })
   }
 
-  function applyDiffs() {
+  function applyPeerDiffs() {
     // return git.command(extractDir, `git apply --whitespace=nowarn ${downloadedFile}`) // TODO: would be nice if this worked
     const cmd = isWindows ? '"C:\\Program Files\\Git\\usr\\bin\\patch.exe"' : 'patch'
     return git.command(extractDir, `${cmd} -p1 < ${downloadedFile}`)
@@ -432,7 +432,7 @@ function refreshChanges(project: any, filePath: string, doc: string, cid: string
   const docFile = path.join(tmpDir, Config.EXTRACT_LOCAL_DIR, 'active-doc')
   const retPromise = fs.writeFile(docFile, doc)
   let tailPromise: Promise<any> = retPromise
-  // @ts-ignore
+  // @ts-ignore Typescript too perfect for its own good
   if (lastDownloadDiff[wsFolder] && new Date() - lastDownloadDiff[wsFolder] < Config.SYNC_THRESHOLD) {
     logger.info('DIFFS: still fresh (lastDownloadDiff, now)', lastDownloadDiff[wsFolder], new Date())
   } else {
@@ -454,7 +454,10 @@ function refreshChanges(project: any, filePath: string, doc: string, cid: string
   return tailPromise
 }
 
-const saveDownloaded = fpath => res => fs.writeFile(fpath, res.data + '\n')
+const saveDownloaded = fpath => res => {
+  console.log('saveDownloaded', fpath)
+  return fs.writeFile(fpath, res.data + '\n')
+}
 
 /************************************************************************************
  * We download the list of peers for the active file,
@@ -479,47 +482,50 @@ function downloadChanges(project: any, fpath: string, cid: string): Promise<void
 
   return CAWAPI.axiosAPI
     .get(`${API_REPO_PEERS}?origin=${uri}&fpath=${cpPath}&clientId=${cid}`)
-    .then((res) => {
-      logger.info('DIFFS: downloadDiffs peers (origin, res.status, fpath, res.data)', project.origin, res.status, fpath, res.data.tree?.length + ' files', Object.keys(res.data.file?.changes).length + ' peers')
-      const { data } = res
-      if (!data) return
-      // merge peers
-      if (!project.peers) project.peers = {}
-      data.users.filter(u => u._id !== currentUserId).forEach(u => (project.peers[u._id] = u))
-      if (!project.changes) project.changes = {}
-      // Setup file tree for this repository. When asking for changes on a file, we take the opportunity to refresh the peer file tree as well.
-      data.tree?.forEach(f => (project.changes[f.file] || (project.changes[f.file] = {}))) // We don't overwrite the existing File tree (VSCode left panel)
-      /**
-       * data.file.changes: {
-       *   uid1: { sha: sha, lines: lines, s3key: s3key }
-       *   uid2: { sha: sha, lines: lines, s3key: s3key }
-       *   ...
-       * }
-       */
-      project.changes[cpPath] = { users: data.users, file: data.file }
-
-      const promises = []
-      promises.push(
-        // TODO: this has the potential of crashing when the user shuffles through files quickly
-        rimraf(downloadRoot) // TODO: on windows we should be using `rimraf.windows.sync(...)
-          .then(() => fs.mkdir(downloadRoot))
-      )
-      Object.keys(data.file.changes).forEach(uid => {
-        const s3key = data.file.changes[uid].s3key
-        const downloadedFile = path.join(downloadRoot, `${uid}.diff`)
-        promises.push(
-          CAWAPI.axiosAPI
-            .get(`${API_REPO_DIFF_FILE}?origin=${uri}&fpath=${s3key}`)
-            .then(saveDownloaded(downloadedFile))
-        )
-      })
-
-      /* eslint-disable-next-line @typescript-eslint/no-empty-function */
-      return Promise.allSettled(promises)
-    })
+    .then(downloadPeers)
     .catch(err => {
       logger.info('DIFFS: no peers for this file.', err.core, err.config?.url, err.data, err)
     })
+
+  function downloadPeers(res) {
+    logger.info('DIFFS: downloadDiffs peers (origin, res.status, fpath, res.data)', project.origin, res.status, fpath, res.data.tree?.length + ' files', Object.keys(res.data.file?.changes).length + ' peers')
+    const { data } = res
+    if (!data) return
+    // merge peers
+    if (!project.peers) project.peers = {}
+    data.users.filter(u => u._id !== currentUserId).forEach(u => (project.peers[u._id] = u))
+    if (!project.changes) project.changes = {}
+    // Setup file tree for this repository. When asking for changes on a file, we take the opportunity to refresh the peer file tree as well.
+    data.tree?.forEach(f => (project.changes[f.file] || (project.changes[f.file] = {}))) // We don't overwrite the existing File tree (VSCode left panel)
+    /**
+     * data.file.changes: {
+     *   uid1: { sha: sha, lines: lines, s3key: s3key }
+     *   uid2: { sha: sha, lines: lines, s3key: s3key }
+     *   ...
+     * }
+     */
+    project.changes[cpPath] = { users: data.users, file: data.file }
+
+    const promises = []
+    promises.push(
+      // TODO: this has the potential of crashing when the user shuffles through files quickly
+      rimraf(downloadRoot) // TODO: on windows we should be using `rimraf.windows.sync(...)
+        .then(() => fs.mkdir(downloadRoot))
+    )
+    Object.keys(data.file.changes).forEach(uid => {
+      const s3key = data.file.changes[uid].s3key
+      const downloadedFile = path.join(downloadRoot, `${uid}.diff`)
+      console.log('Downloading diffs for UID', uid, s3key)
+      promises.push(
+        CAWAPI.axiosAPI
+          .get(`${API_REPO_DIFF_FILE}?origin=${uri}&fpath=${s3key}`)
+          .then(saveDownloaded(downloadedFile))
+      )
+    })
+
+    /* eslint-disable-next-line @typescript-eslint/no-empty-function */
+    return Promise.allSettled(promises)
+  }
 }
 
 function parseDiffFile(diffs: string): Array<TDiffBlock> {
@@ -678,6 +684,7 @@ function applyDiffs({ cid, fpath, doc }) {
 
     const localFName = formatLocalFile(fpath)
     const downloadedFile = path.join(downloadRoot, `${uid}.diff`)
+    console.log('Apply diffs for UID', uid)
     /* archiveFile: we use git archive to extract the active file from the cSHA commit */
     const archiveFile = path.join(archiveDir, `${localFName}-${sha}.tar`)
     /* peerFile: this is the peer version of `fpath` diffs applied */

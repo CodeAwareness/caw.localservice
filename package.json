@@ -9,8 +9,9 @@
     "author": "Mark Vasile",
     "license": "MIT",
     "scripts": {
-        "build-ts": "tsc --build tsconfig.json",
-        "build": "npm run build-ts && tsc-alias && npm run lint",
+        "build-ts": "tsc --build tsconfig.build.json",
+        "build": "rm -rf dist && npm run build-ts && tsc-alias && npm run lint:build",
+        "lint:build": "eslint \"src/**/*.{js,ts}\" --fix",
         "lint": "eslint \"src/**/*.{js,ts}\" \"tests/integration/*.{js,ts}\" \"tests/unit/*.{js,ts}\" \"tests/utils/*.{js,ts}\" --fix",
         "docs": "typedoc src/index.ts",
         "dev": "cross-env NODE_ENV=development DEBUG='socket.io:client*,socket.io:namespace*' nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/index.ts",
