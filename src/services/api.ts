@@ -28,6 +28,15 @@ export const API_REPO_COMMON_SHA     = '/repos/common-sha'
 export const API_REPO_PEERS          = '/repos/peers'
 export const API_REPO_DIFF_FILE      = '/repos/diffs'
 
+export const API_SHARE_ACCEPT   = '/share/accept'
+export const API_SHARE_FINFO    = '/share/file-info'
+export const API_SHARE_OINFO    = '/share/origin-info'
+export const API_SHARE_UPLOAD   = '/share/upload'
+export const API_SHARE_FILEID   = '/share/file-id'
+export const API_SHARE_DOWNLOAD = '/share/download'
+export const API_SHARE_CONTRIB  = '/share/contrib'
+export const API_SHARE_START    = '/share/start'
+
 // axios.defaults.adapter = require('axios/lib/adapters/http')
 export const axiosAPI = axios.create({ baseURL: Config.API_URL })
 
@@ -205,7 +214,7 @@ const CAWAPI = {
   sendLatestSHA,
   submitAuthBranch,
 
-  // API routes
+  // repo API routes
   API_AUTH_LOGIN,
   API_AUTH_SIGNUP,
   API_AUTH_REFRESH_TOKENS,
@@ -216,6 +225,16 @@ const CAWAPI = {
   API_REPO_COMMON_SHA,
   API_REPO_PEERS,
   API_REPO_DIFF_FILE,
+
+  // share API routes
+  API_SHARE_ACCEPT,
+  API_SHARE_FINFO,
+  API_SHARE_OINFO,
+  API_SHARE_UPLOAD,
+  API_SHARE_FILEID,
+  API_SHARE_DOWNLOAD,
+  API_SHARE_CONTRIB,
+  API_SHARE_START,
 }
 
 export default CAWAPI

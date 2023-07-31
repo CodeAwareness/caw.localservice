@@ -248,7 +248,6 @@ function readFile({ fpath }) {
 }
 
 function vscodeDiff({ wsFolder, fpath, uid, cid }) {
-
   const absPath = path.join(wsFolder, fpath)
   try {
     fs.accessSync(absPath, fs.constants.R_OK)

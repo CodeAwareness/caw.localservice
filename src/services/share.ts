@@ -34,7 +34,7 @@ async function refreshDiffs({ wsFolder, fpath, caw }) {
   const extractDir = path.join(wsFolder, Config.EXTRACT_LOCAL_DIR)
   await copyToWorkspace({ fpath, extractDir })
   await diffs.updateGit()
-  await diffs.sendAdhocDiffs(wsFolder, caw)
+  // await diffs.sendAdhocDiffs(wsFolder, caw)
 }
 
 async function copyToWorkspace({ fpath, extractDir }) {
@@ -230,7 +230,7 @@ async function uploadOriginal({ fpath, origin, caw }): Promise<TWebSocket> {
       return diffs.initGit({ extractDir, origin })
     })
     .then(() => {
-      return diffs.sendAdhocDiffs(wsFolder, caw)
+      // return diffs.sendAdhocDiffs(wsFolder, caw)
     })
     .then(() => {
       monitorFile({ origin, wsFolder, fpath, caw })

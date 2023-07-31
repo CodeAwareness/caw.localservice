@@ -28,9 +28,9 @@ const cwatchers = {}
 
 /**
  * monitorFile
- * scope: PPT
+ * scope: SHARE
  * desc : monitor a path for changes in the file
- *        this is necessary, because we don't have a good enough file change event system in PPT
+ *        this is necessary, because we don't have a good enough file change event system in SHARE
  */
 function monitorFile({ origin, fpath, wsFolder, caw }): void {
   logger.log('will monitor file', fpath, origin, wsFolder)
@@ -42,12 +42,12 @@ function monitorFile({ origin, fpath, wsFolder, caw }): void {
 
 /**
  * unmonitorOrigin
- * scope: PPT
- * desc : removes the PPT file from monitoring system
+ * scope: SHARE
+ * desc : removes the SHARE file from monitoring system
  */
 function unmonitorOrigin(origin: string): void {
   cwatchers[origin]?.unwatch('*')
-  // TODO: verify that when we're closing the PPT, we always sync latest changes from file system
+  // TODO: verify that when we're closing the SHARE, we always sync latest changes from file system
 }
 
 const ShareService = {

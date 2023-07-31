@@ -53,7 +53,7 @@ export type TPeerFile = {
 }
 
 function formatLocalFile(f: string) {
-  return f.replace(/[\/\\]/g, '-')
+  return f.replace(/[/\\]/g, '-')
 }
 
 /************************************************************************************
@@ -577,7 +577,7 @@ async function unzip({ extractDir, zipFile }): Promise<void> {
 
 const peers = {}
 
-const nextPeer = (block: TContribBlock) => fpath => {
+const nextPeer = (block: TContribBlock) => () => {
   const project = CAWStore.activeProjects[block.cid]
   // const blocks = await Config.repoStore.get('blocks')
   // const peer = await Config.repoStore.get('currentPeer')

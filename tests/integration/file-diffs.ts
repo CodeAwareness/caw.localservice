@@ -131,16 +131,37 @@ describe('Download changes', () => {
     await CAWDiffs.applyDiffs({ doc, fpath, cid })
 
     // TEST
-    expect(project.changes[fpath].file.changes[uidHana].diffs[0]).toEqual({ range: { line: 3, len: 3, content: [
-      'This project is a lightweight alternative to Mongoose. The main reasons are:',
-      '- it has become incredibly easy to corrupt my data using mongoose; things like `deleteMany(filter)` actually deleting all data; things like `update(filter, cmd)` updating all documents, not just the ones in the filter, because the contributors have decided to go against MongoDB and apply commands to ALL documents when a field does not exist in the schema (mongo will apply to NONE). Note: this may be solved soon, from what I\'ve read.',
-    ] }, replaceLen: 2 })
-    expect(project.changes[fpath].file.changes[uidUno].diffs[0]).toEqual({ range: { line: 10, len: 0, content: [
-      '- ORMs and ODMs have been the source of many project disasters, especially when it comes to performance.',
-    ] }, replaceLen: 1 })
-    expect(project.changes[fpath].file.changes[uidUno].diffs[1]).toEqual({ range: { line: 20, len: 1, content: [
-      'Note: this package adds 38kb to your project. Consequently, it does not provide any of the following features (use mongoose if you need them):'
-    ] }, replaceLen: 1 })
+    expect(project.changes[fpath].file.changes[uidHana].diffs[0]).toEqual({
+      range: {
+        line: 3,
+        len: 3,
+        content: [
+          'This project is a lightweight alternative to Mongoose. The main reasons are:',
+          '- it has become incredibly easy to corrupt my data using mongoose; things like `deleteMany(filter)` actually deleting all data; things like `update(filter, cmd)` updating all documents, not just the ones in the filter, because the contributors have decided to go against MongoDB and apply commands to ALL documents when a field does not exist in the schema (mongo will apply to NONE). Note: this may be solved soon, from what I\'ve read.',
+        ]
+      },
+      replaceLen: 2
+    })
+    expect(project.changes[fpath].file.changes[uidUno].diffs[0]).toEqual({
+      range: {
+        line: 10,
+        len: 0,
+        content: [
+          '- ORMs and ODMs have been the source of many project disasters, especially when it comes to performance.',
+        ]
+      },
+      replaceLen: 1
+    })
+    expect(project.changes[fpath].file.changes[uidUno].diffs[1]).toEqual({
+      range: {
+        line: 20,
+        len: 1,
+        content: [
+          'Note: this package adds 38kb to your project. Consequently, it does not provide any of the following features (use mongoose if you need them):'
+        ]
+      },
+      replaceLen: 1
+    })
     expect(project.changes[fpath].alines).toEqual([
       3, 4, 5, 10, 20, 40, 41, 42,
       43, 62, 63, 71, 177, 237, 245,

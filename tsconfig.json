@@ -13,12 +13,19 @@
     "sourceMap": true,
     "declaration": true,
     "declarationMap": true,
+    "skipLibCheck": true,
     "paths": {
       "@/*": [ "src/*" ]
     }
   },
+  "include": [
+    "tests",
+    "src"
+  ],
   "exclude": [
-    "tests/fixtures"
+    "./tests/fixtures/**/*",
+    "./dist",
+    "node_modules"
   ],
   "types": [ "node", "jest" ],
   "ts-node": {
