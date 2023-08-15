@@ -110,11 +110,17 @@ const loggerConsole = {
     console.error(args)
     console.log('\n')
   },
-  time: function(label) {
-    console.time(label)
+  time: function(...args: any[]): void {
+    try {
+      if (!trains.includes(args[0]?.toLowerCase().split(':')[0]) && !trains.includes('all')) return
+    } catch (err) {}
+    console.time(args[0])
   },
-  timeEnd: function(label) {
-    console.timeEnd(label)
+  timeEnd: function(...args: any[]): void {
+    try {
+      if (!trains.includes(args[0]?.toLowerCase().split(':')[0]) && !trains.includes('all')) return
+    } catch (err) {}
+    console.timeEnd(args[0])
   }
 }
 

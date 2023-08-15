@@ -9,7 +9,10 @@ import CAWAPI from '@/services/api'
 import CAWStore from '@/services/store'
 import CAWDiffs from '@/services/diffs'
 import repoController from '@/controllers/repo.controller'
+import shell from '@/services/shell'
 
+import REPO_CHANGES from '../fixtures/repo-changes.res'
+// TODO:
 import treeMock from '../fixtures/tree'
 import usersMock from '../fixtures/users'
 import contribMock from '../fixtures/contrib-file'
@@ -39,8 +42,8 @@ jest.mock('@/logger', () => ({
   log: () => {},
   info: () => {},
   debug: () => {},
-  time: console.time,
-  timeEnd: console.timeEnd,
+  time: () => {},
+  timeEnd: () => {},
 }))
 jest.mock('tar')
 
@@ -74,40 +77,24 @@ describe('Download changes', () => {
     CAWAPI.clearAuth()
     await repoController.getTmpDir.bind(mockEmitter)(cid)
 
-    const contribBody = { users: usersMock, file: contribMock, tree: treeMock }
     const project = { root: '/home/mark/projects/codeawareness', origin: 'https://github.com/CodeAwareness/mongo-alias' }
     const uriOrigin = encodeURIComponent(project.origin)
     const fpath = 'src/mongo.service.ts'
+    const cpPath = shell.crossPlatform(fpath)
+    const docFile = path.join(CAWStore.uTmpDir[cid], config.EXTRACT_LOCAL_DIR, 'active-doc')
 
     nock(config.API_URL, { reqheaders: { authorization: `Bearer ${CAWStore.tokens.access.token}` } })
-      .get(`${CAWAPI.API_REPO_PEERS}?origin=${uriOrigin}&fpath=${fpath}&clientId=${cid}`, () => true)
-      .reply(200, contribBody)
+      .get(`${CAWAPI.API_REPO_CHANGES}?origin=${uriOrigin}&fpath=${fpath}&clientId=${cid}`, () => true)
+      .reply(200, REPO_CHANGES)
 
-    nock(config.API_URL, { reqheaders: { authorization: `Bearer ${CAWStore.tokens.access.token}` } })
-      .get(`${CAWAPI.API_REPO_DIFF_FILE}?origin=${uriOrigin}&fpath=diffs/${uidHana}/CodeAwareness/mongo-alias/src/mongo.service.ts`, () => true)
-      .reply(200, hanaDiffs)
-
-    nock(config.API_URL, { reqheaders: { authorization: `Bearer ${CAWStore.tokens.access.token}` } })
-      .get(`${CAWAPI.API_REPO_DIFF_FILE}?origin=${uriOrigin}&fpath=diffs/${uidUno}/CodeAwareness/mongo-alias/src/mongo.service.ts`, () => true)
-      .reply(200, unoDiffs)
-
-    await CAWDiffs.downloadChanges(project, fpath, cid)
-
-    const tmpDir = CAWStore.uTmpDir[cid]
-    const downloadRoot = path.join(tmpDir, config.EXTRACT_DOWNLOAD_DIR)
-
-    let denied = false
-    try {
-      await fs.access(path.join(downloadRoot, `${uidHana}.diff`))
-      await fs.access(path.join(downloadRoot, `${uidUno}.diff`))
-    } catch (err) {
-      console.log('ERROR ACCESS')
-      console.dir(err)
-      denied = true
-    }
+    const context = { project, cpPath, fpath, docFile, cid }
+    const res = await CAWDiffs.downloadChanges(context) as any
 
     // TEST
-    expect(denied).toBe(false)
+    expect(res?.agg).toEqual({ e154e445d3f10e9ee95436f43a6d1bd2f3783220: [3, 4, 9, 10, 19] })
+    expect(res?.users).toHaveLength(2)
+    expect(res?.file.file).toEqual('README.md')
+    expect(res?.tree).toHaveLength(2)
   })
 
   test('apply diffs', async () => {
@@ -116,55 +103,52 @@ describe('Download changes', () => {
     await repoController.getTmpDir.bind(mockEmitter)(cid)
     const tmpDir = CAWStore.uTmpDir[cid]
     const downloadRoot = path.join(tmpDir, config.EXTRACT_DOWNLOAD_DIR)
+    const fpath = 'src/mongo.service.ts'
+    const cpPath = shell.crossPlatform(fpath)
+    const docFile = path.join(CAWStore.uTmpDir[cid], config.EXTRACT_LOCAL_DIR, 'active-doc')
+
     await fs.writeFile(path.join(downloadRoot, `${uidHana}.diff`), hanaDiffs)
     await fs.writeFile(path.join(downloadRoot, `${uidUno}.diff`), unoDiffs)
+    await fs.copyFile(path.join(__dirname, '../fixtures/mongo-alias/src/mongo.service.ts'), docFile)
 
-    const fpath = 'src/mongo.service.ts'
     const project = CAWStore.activeProjects[cid] = {
       root: path.join(__dirname, '../fixtures/mongo-alias'),
       origin: 'https://github.com/CodeAwareness/mongo-alias',
-      changes: {}
+      agg: {
+        ec989dc1fea23ef69ec37ba3a556d04f117cf835: [3, 9, 11],
+        e154e445d3f10e9ee95436f43a6d1bd2f3783220: [4, 9, 20],
+      },
     }
-    project.changes[fpath] = { users: usersMock, file: contribMock }
-    const doc = path.join(__dirname, '../fixtures/src/mongo.service.ts')
+    const context = { project, cpPath, fpath, docFile, cid }
 
-    await CAWDiffs.applyDiffs({ doc, fpath, cid })
+    const res = await CAWDiffs.applyDiffs(context)
 
-    // TEST
-    expect(project.changes[fpath].file.changes[uidHana].diffs[0]).toEqual({
-      range: {
-        line: 3,
-        len: 3,
-        content: [
-          'This project is a lightweight alternative to Mongoose. The main reasons are:',
-          '- it has become incredibly easy to corrupt my data using mongoose; things like `deleteMany(filter)` actually deleting all data; things like `update(filter, cmd)` updating all documents, not just the ones in the filter, because the contributors have decided to go against MongoDB and apply commands to ALL documents when a field does not exist in the schema (mongo will apply to NONE). Note: this may be solved soon, from what I\'ve read.',
-        ]
-      },
-      replaceLen: 2
-    })
-    expect(project.changes[fpath].file.changes[uidUno].diffs[0]).toEqual({
-      range: {
-        line: 10,
-        len: 0,
-        content: [
-          '- ORMs and ODMs have been the source of many project disasters, especially when it comes to performance.',
-        ]
-      },
-      replaceLen: 1
-    })
-    expect(project.changes[fpath].file.changes[uidUno].diffs[1]).toEqual({
-      range: {
-        line: 20,
-        len: 1,
-        content: [
-          'Note: this package adds 38kb to your project. Consequently, it does not provide any of the following features (use mongoose if you need them):'
-        ]
-      },
-      replaceLen: 1
-    })
-    expect(project.changes[fpath].alines).toEqual([
-      3, 4, 5, 10, 20, 40, 41, 42,
-      43, 62, 63, 71, 177, 237, 245,
-    ])
+    expect(res).toEqual([3, 4, 9, 10, 19])
+  })
+
+  test('refresh changes', async () => {
+    helpers.makeTokens({ store: true })
+    CAWAPI.clearAuth()
+    await repoController.getTmpDir.bind(mockEmitter)(cid)
+    const fpath = 'src/mongo.service.ts'
+    const uriOrigin = 'https://github.com/CodeAwareness/mongo-alias'
+
+    nock(config.API_URL, { reqheaders: { authorization: `Bearer ${CAWStore.tokens.access.token}` } })
+      .get(`${CAWAPI.API_REPO_CHANGES}?origin=${uriOrigin}&fpath=${fpath}&clientId=${cid}`, () => true)
+      .reply(200, REPO_CHANGES)
+
+    const project = CAWStore.activeProjects[cid] = {
+      root: path.join(__dirname, '../fixtures/mongo-alias'),
+      origin: uriOrigin,
+      cSHA: 'e154e445d3f10e9ee95436f43a6d1bd2f3783220',
+    }
+    const doc = await fs.readFile(path.join(__dirname, '../fixtures/src/mongo.service.ts'), { encoding: 'utf-8' })
+
+    const res = await CAWDiffs.refreshChanges(project, fpath, doc, cid) as any
+
+    expect(res.cSHA).toEqual(project.cSHA)
+    expect(res.origin).toEqual(project.origin)
+    expect(res.root).toEqual(project.root)
+    expect(res.hl).toEqual([3, 4, 9, 18])
   })
 })

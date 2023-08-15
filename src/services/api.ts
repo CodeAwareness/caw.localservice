@@ -26,6 +26,8 @@ export const API_REPO_SWARM_AUTH     = '/repos/swarm-auth'
 export const API_REPO_COMMITS        = '/repos/commits'
 export const API_REPO_COMMON_SHA     = '/repos/common-sha'
 export const API_REPO_PEERS          = '/repos/peers'
+export const API_REPO_AGGREGATE      = '/repos/aggregate'
+export const API_REPO_CHANGES        = '/repos/changes'
 export const API_REPO_DIFF_FILE      = '/repos/diffs'
 
 export const API_SHARE_ACCEPT   = '/share/accept'
@@ -207,6 +209,7 @@ const CAWAPI = {
   // common
   axiosAPI,
   post,
+  reAuthorize,
   refreshToken,
 
   // code repo
@@ -219,6 +222,8 @@ const CAWAPI = {
   API_AUTH_SIGNUP,
   API_AUTH_REFRESH_TOKENS,
   API_LOG,
+  API_REPO_AGGREGATE,
+  API_REPO_CHANGES,
   API_REPO_GET_INFO,
   API_REPO_SWARM_AUTH,
   API_REPO_COMMITS,

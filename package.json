@@ -19,8 +19,8 @@
         "dev:win": "$env:NODE_ENV='development' & npm run dev",
         "start": "NODE_ENV=production node dist/src/index.js",
         "start:win": "cross-env NODE_ENV='production' node dist/index.js",
-        "test": "NODE_ENV=test jest --watchAll --verbose",
-        "test:once": "NODE_ENV=test jest --verbose",
+        "test": "NODE_ENV=test jest --verbose",
+        "test:watch": "NODE_ENV=test jest --verbose --watchAll",
         "test:coverage": "NODE_ENV=test jest --forceExit --coverage --verbose",
         "test:build:watch": "concurrently --raw -k -n \"TypeScript,Node\" \"npm:dev\" \"npm:test\" ",
         "watch:ts": "tsc -w --pretty"

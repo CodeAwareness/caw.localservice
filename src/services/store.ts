@@ -37,6 +37,7 @@ const CAWStore = {
    *   team, // the team name, i.e. a team of peers with whom to share visibility (TODO)
    *   head, // the current commit (HEAD)
    *   cSHA, // the common SHA against which we diff all peers
+   *   agg, // the aggregate changes (line numbers)
    *   peers, // comments, code peers
    *   pendingGitDiff, // true / false - the local git diff operation is pending
    *   activePath, // currently opened file, relative path
@@ -62,14 +63,6 @@ const CAWStore = {
    *     ],
    *     ...
    *   },
-   *   changes: {
-   *     'src/index.js': {
-   *       uid1: { l: [1, 4, 5, 10], s: sha1, k: s3key1 },
-   *       uid2: { l: [1, 3, 4, 5], s: sha1, k: s3key2 },
-   *       ...
-   *     },
-   *     ...
-   *   }
    *   selectedPeer, // currently selected peer for diffs
    *   }, ...]
    */

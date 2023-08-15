@@ -11,7 +11,7 @@ function gitExec(command: string, options = {}): Promise<string> {
   // also allows larger data to be returned, but we have to handle streaming data instead of a simple assignment)
   // however, git execution context may be affected...
   let data
-  const label = `Git Command ${labelIndex++}`
+  const label = `Git: Command ${labelIndex++}`
   logger.time(label)
   try {
     logger.timeEnd(label)
@@ -51,7 +51,7 @@ function command(wsFolder: string, cmd: string): Promise<string> {
     options.cwd = isWindows && ['\\', '/'].includes(wsFolder[0]) ? wsFolder.substr(1).replace(/\//g, '\\') : wsFolder
   }
 
-  logger.info('GIT:', cmd, 'in folder', options.cwd)
+  logger.info('GIT: ', cmd, 'in folder', options.cwd)
   // TODO: timeout or better handling; the patch command, for example, will ask for user input if no files are present in the cwd.
   return gitExec(cmd, options)
 }
@@ -60,12 +60,12 @@ async function getRemotes(wsFolder: string): Promise<string | void> {
   return command(wsFolder, 'git remote -v')
     .then((stdout: string) => {
       const outLines = stdout.split('\n')
-      if (!outLines.length) return logger.info('no output from git remote -v')
+      if (!outLines.length) return logger.info('GIT: no output from git remote -v')
       const reOrigin = /[@/]+([^.]+.com[:/][^\s]+)?(\s)?/.exec(
         outLines.filter(line => /^origin/.test(line))[0],
       )
       if (!reOrigin) {
-        return logger.info('GIT Not a cloud repository', wsFolder, stdout)
+        return logger.info('GIT: not a cloud repository', wsFolder, stdout)
       }
       const origin = reOrigin[1].trim().replace(/.git$/, '')
 
