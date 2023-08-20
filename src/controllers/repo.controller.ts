@@ -46,7 +46,7 @@ async function activatePath(data: TRepoActivateReq): Promise<any> {
   return CAWDiffs
     .refreshChanges(project, project.activePath, doc, cid)
     .then(() => {
-      this.emit('res:repo:active-path', project)
+      this.emit('res:repo:active-path', _.omit(project, ['dl']))
     })
 }
 
@@ -137,8 +137,6 @@ function add(requested: TRepoAddReq, socket?: Socket): Promise<any> {
   }
   // TODO: pull changes to local workspace
   // Setup project origins
-  const peers = {}
-  const changes = {}
   const ws = socket || this
   return git.getRemotes(folder)
     .then(origin => {
@@ -153,7 +151,7 @@ function add(requested: TRepoAddReq, socket?: Socket): Promise<any> {
       const root = folder
       const name = path.basename(root)
       // TODO: cleanup CAWStore.projects with a timeout of inactivity or something
-      const project = { name, origin, root, changes, peers }
+      const project = { name, origin, root }
       logger.log('REPO: adding new project', project)
       ws.emit('res:repo:add', { project })
       return project

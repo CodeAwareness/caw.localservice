@@ -28,7 +28,7 @@ export const API_REPO_COMMON_SHA     = '/repos/common-sha'
 export const API_REPO_PEERS          = '/repos/peers'
 export const API_REPO_AGGREGATE      = '/repos/aggregate'
 export const API_REPO_CHANGES        = '/repos/changes'
-export const API_REPO_DIFF_FILE      = '/repos/diffs'
+export const API_REPO_DIFF_FILE      = '/repos/diff-file'
 
 export const API_SHARE_ACCEPT   = '/share/accept'
 export const API_SHARE_FINFO    = '/share/file-info'

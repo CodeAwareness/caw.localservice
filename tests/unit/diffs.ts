@@ -1,4 +1,5 @@
 import CAWDiffs from '@/services/diffs'
+import { A, B1, B2, C } from '../fixtures/unit-diff'
 
 describe('Diff methods', () => {
   test('should return the correct highlights for peer and local', async () => {

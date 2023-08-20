@@ -17,60 +17,48 @@ const REPO_CHANGES = {
       avatar: 'https://picsum.photos/seed/q9LP1Tf/640/480',
       lang: 'tri',
       createdAt: '2023 -08 - 15T03: 17:00.804Z',
+    },
+    {
+      _id: '64daee2568bf0d1a930faea7',
+      name: 'User Three',
+      alias: 'Morpheus',
+      email: 'morpheus@gmail.com',
+      avatar: 'https://picsum.photos/seed/q9LP1Tf/640/480',
+      lang: 'phe',
+      createdAt: '2023 -08 - 15T03: 17:00.804Z',
     }
   ],
   file: {
     _id: '64daee2d0c4dbe0dd50332d1',
-    file: 'README.md',
+    file: 'package.json',
     repo: '64daee2568bf0d1a930faea7',
     updatedAt: '2023 -08 - 15T03: 17:00.934Z',
     changes: {
       '64daee2568bf0d1a930faea5': {
-        sha: 'e154e445d3f10e9ee95436f43a6d1bd2f3783220',
-        lines: [[12, 0, 1]],
-        s3key: '64daee2568bf0d1a930faea5/github.com:home/user/dir/README.md'
+        sha: 'ec989dc1fea23ef69ec37ba3a556d04f117cf835',
+        lines: [[3, 0, 1]],
+        s3key: '64daee2568bf0d1a930faea5/github.com:home/user1/dir/package.json'
       },
       '64daee2568bf0d1a930faea6': {
-        sha: 'e154e445d3f10e9ee95436f43a6d1bd2f3783220',
-        lines: [[1, -1, 0], [3, -1, 3], [6, 0, 1]],
-        s3key: '64daee2568bf0d1a930faea6/github.com:home/user/dir/README.md'
+        sha: 'ec989dc1fea23ef69ec37ba3a556d04f117cf835',
+        lines: [[1, -1, 1], [3, -1, 3], [7, -1, 1]],
+        s3key: '64daee2568bf0d1a930faea6/github.com:home/user2/dir/package.json'
+      },
+      '64daee2568bf0d1a930faea7': {
+        sha: '414e625fd283ac36e86ac8c972e698496b8e2c6d',
+        lines: [[2, -1, 1], [4, -2, 3]],
+        s3key: '64daee2568bf0d1a930faea6/github.com:home/user3/dir/package.json'
       }
     }
   },
   tree: [
-    {
-      _id: '64daee2d0c4dbe0dd50332d1',
-      file: 'README.md',
-      repo: '64daee2568bf0d1a930faea7',
-      updatedAt: '2023 -08 - 15T03: 17:00.934Z',
-      changes: {
-        '64daee2568bf0d1a930faea5': {
-          sha: 'e154e445d3f10e9ee95436f43a6d1bd2f3783220',
-          lines: [[12, 0, 1]],
-          s3key: '64daee2568bf0d1a930faea5/github.com:home/user/dir/README.md'
-        },
-        '64daee2568bf0d1a930faea6': {
-          sha: 'e154e445d3f10e9ee95436f43a6d1bd2f3783220',
-          lines: [[1, -1, 0], [3, -1, 3], [6, 0, 1]],
-          s3key: '64daee2568bf0d1a930faea6/github.com:home/user/dir/README.md'
-        }
-      }
-    },
-    {
-      _id: '64daee2d0c4dbe0dd50332d4',
-      file: 'src/stores/app.store.js',
-      repo: '64daee2568bf0d1a930faea7',
-      updatedAt: '2023 -08 - 15T03: 17:01.201Z',
-      changes: {
-        '64daee2568bf0d1a930faea5': {
-          sha: 'e154e445d3f10e9ee95436f43a6d1bd2f3783220',
-          lines: [[4, -1, 1], [7, -2, 6], [14, -1, 2]],
-          s3key: '64daee2568bf0d1a930faea5/github.com:home/user/dir/src/stores/app.store.js'
-        }
-      }
-    },
+    'package.json',
+    'src/stores/app.store.js',
   ],
-  agg: { e154e445d3f10e9ee95436f43a6d1bd2f3783220: [3, 4, 9, 10, 19] }
+  agg: {
+    'ec989dc1fea23ef69ec37ba3a556d04f117cf835': [1, 3, 7],
+    '414e625fd283ac36e86ac8c972e698496b8e2c6d': [2, 4, 5],
+  }
 }
 
 export default REPO_CHANGES

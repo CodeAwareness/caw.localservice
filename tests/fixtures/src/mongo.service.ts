@@ -1,8 +1,6 @@
 import { MongoClient, ObjectId } from 'mongodb'
 
-/**
- * TODO: normally we could type all our Models, to enable fancy autocomplete
- */
+/* TODO: normally we could type all our Models, to enable fancy autocomplete */
 export interface Database {
   [col: string]: (a: string) => any
 }

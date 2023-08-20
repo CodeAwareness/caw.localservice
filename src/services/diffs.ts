@@ -44,6 +44,9 @@ export type TPeerFile = {
   fpath: string
 }
 
+let lastDownloadDiff = {}
+let lastSendDiff = {}
+
 function formatLocalFile(f: string) {
   return f.replace(/[/\\]/g, '-')
 }
@@ -116,7 +119,7 @@ function extractPeer({ peer, fpath, cid, doc }): Promise<TPeerFile> {
   const archiveDir = path.join(tmpDir, Config.EXTRACT_PEER_DIR, peer._id)
   /* downloadedFile: we save the diffs received from the server to TMP/active.diffs */
   const downloadedFile = path.join(archiveDir, '_caw.active.diffs')
-  const changes = project.changes[cpPath].file.changes[peer._id]
+  const changes = project.file.changes[peer._id]
   /* archiveFile: we use git archive to extract the active file from the cSHA commit */
   const archiveFile = path.join(archiveDir, `${localFName}-${changes.sha}.tar`) // TODO: we should retrieve a fresh copy to ensure that the downloaded diff is still corresponding to the SHA
   /* extractDir: we extract the active file from the archive in this folder, so we can run git apply on it */
@@ -264,7 +267,6 @@ function createEmpty(file) {
  * @param Object - CAWStore project
  * @param string - the app unique ID (cid)
  ************************************************************************************/
-const lastSendDiff = []
 function sendDiffs(project: any, cid: string): Promise<void> {
   if (!project) return Promise.resolve()
   const wsFolder = project.root
@@ -394,8 +396,6 @@ async function updateGit(/* extractDir: string */): Promise<void> {
   // await git.command(extractDir, 'git commit -am "updated"') // We'll keep the original commit for now.
 }
 
-const lastDownloadDiff = []
-
 /************************************************************************************
  * Refresh the peer changes for the active file.
  * 1. Download the diffs from the server (once per SYNC_THRESHOLD)
@@ -410,11 +410,13 @@ const lastDownloadDiff = []
  * @param doc string - the file contents
  * @param cid string - the client ID
  ************************************************************************************/
-function refreshChanges(project: any, fpath: string, doc: string, cid: string): Promise<void> {
+function refreshChanges(project: any, fpath: string, doc: string, cid: string): Promise<any> {
   /* TODO: add caching (so we don't keep on asking for the same file when the user mad-clicks the same peer) */
   if (!project.cSHA || !fpath) return Promise.resolve()
+  if (!project.dl) project.dl = {}
   const cpPath = shell.crossPlatform(fpath)
   const wsFolder = project.root
+  const fullPath = path.join(wsFolder, fpath)
   // Windows and VSCode on Windows have upper and lower case C:/ c:/ or even /c:/ in various versions and contexts.
   logger.log('DIFFS: refreshChanges (origin, fpath, user)', project.origin, fpath, CAWStore.user?.email)
   PENDING_DIFFS[fpath] = true // this operation can take a while, so we don't want to start it several times per second
@@ -423,14 +425,20 @@ function refreshChanges(project: any, fpath: string, doc: string, cid: string): 
   const context = { project, cpPath, fpath, docFile, cid }
   let tailPromise: Promise<any> = fs.writeFile(docFile, doc)
   // @ts-ignore Typescript too perfect for its own good
-  if (lastDownloadDiff[wsFolder] && new Date() - lastDownloadDiff[wsFolder] < Config.SYNC_THRESHOLD) {
-    logger.info('DIFFS: still fresh (lastDownloadDiff, now)', lastDownloadDiff[wsFolder], new Date())
+  if (lastDownloadDiff[fullPath] && new Date() - lastDownloadDiff[fullPath] < Config.SYNC_THRESHOLD) {
+    logger.info('DIFFS: still fresh (lastDownloadDiff, now)', lastDownloadDiff[fullPath], new Date())
   } else {
-    lastDownloadDiff[wsFolder] = new Date()
+    lastDownloadDiff[fullPath] = new Date()
     tailPromise = tailPromise.then(() => downloadChanges(context))
   }
 
   return tailPromise
+    .then(() => {
+      project.agg   = project.dl[fpath].agg
+      project.users = project.dl[fpath].users
+      project.file  = project.dl[fpath].file
+      project.tree  = project.dl[fpath].tree
+    })
     .then(() => applyDiffs(context))
     .then(() => project)
     .catch(logger.error)
@@ -461,11 +469,7 @@ function downloadChanges(context): Promise<void | AxiosResponse<any, any>> {
   return CAWAPI.axiosAPI
     .get(`${CAWAPI.API_REPO_CHANGES}?origin=${uriOrigin}&fpath=${fpath}&clientId=${cid}`)
     .then(res => {
-      project.agg = res?.data.agg
-      project.users = res?.data.users
-      project.file = res?.data.file
-      project.tree = res?.data.tree
-
+      project.dl[fpath] = res?.data
       return project
     })
     .catch(err => {
@@ -529,26 +533,23 @@ async function unzip({ extractDir, zipFile }): Promise<void> {
   await shell.rmFile(zipFile)
 }
 
-const peers = {}
+const peerIndex = {}
 
 const nextPeer = (block: TContribBlock) => () => {
   const project = CAWStore.activeProjects[block.cid]
   // const blocks = await Config.repoStore.get('blocks')
   // const peer = await Config.repoStore.get('currentPeer')
-  const relPath = shell.getRelativePath(block.fpath, project)
-  const cpPath = shell.crossPlatform(relPath)
-  const changes = project.changes[cpPath]
-  const { users } = changes
-  let i = peers[project.origin]
+  const { users } = project.users
+  let i = peerIndex[project.origin]
   if (i === undefined) {
-    i = peers[project.origin] = 0
+    i = peerIndex[project.origin] = 0
   } else {
-    i = peers[project.origin] += block.direction > 0 ? 1 : -1
+    i = peerIndex[project.origin] += block.direction > 0 ? 1 : -1
   }
-  if (i >= users.length) peers[project.origin] = 0
-  if (i < 0) peers[project.origin] = users.length - 1
-  const uid = users[peers[project.origin]]._id
-  const { sha, s3key } = project.changes[cpPath].file.changes[uid]
+  if (i >= users.length) peerIndex[project.origin] = 0
+  if (i < 0) peerIndex[project.origin] = users.length - 1
+  const uid = users[peerIndex[project.origin]]._id
+  const { sha, s3key } = project.file.changes[uid]
   return  {
     _id: uid,
     changes: { sha, s3key },
@@ -602,9 +603,11 @@ async function cycleBlock(block: TContribBlock, start?: number) {
  * TODO: benchmark performance test
  */
 async function applyDiffs(context) {
-  console.log('APPLY DIFFS')
-  console.dir(context, { depth: 10 })
   const { project, fpath, docFile, cid } = context
+  project.hl = []
+  if (!project.agg) {
+    return []
+  }
   const tmpDir = CAWStore.uTmpDir[cid]
   const wsFolder = project.root
   const extractDir = path.join(tmpDir, Config.EXTRACT_PEER_DIR, cid)
@@ -618,7 +621,7 @@ async function applyDiffs(context) {
 
   if (!shas.length) return
 
-  const diffDoc = (shaFile) => git.command(wsFolder, `git diff -b -U0 --no-color --diff-algorithm=patience ${docFile} ${shaFile}`)
+  const diffDoc = (shaFile) => git.command(wsFolder, `git diff -b -U0 --no-color --diff-algorithm=patience ${shaFile} ${docFile}`)
   const untar = (sha) => git.command(extractDir, `tar xvf archive-${sha}.tar`)
   const createArchive = (sha) => {
     logger.info('DIFFS: createArchive for ', fpath, 'in folder', extractDir)
@@ -643,13 +646,18 @@ async function applyDiffs(context) {
 
   const fullList = agg.reduce((acc, list) => _.concat(acc, list), []).sort((a, b) => a - b)
   project.hl = _.sortedUniq(fullList)
+  delete project.agg
 
   return project.hl
 }
 
 // TODO: a better use of generators here?
+// Rules:
+// - local == peer : hl all local
+// - local < peer : don't highlight, compute new carry
+// - local > peer : highlight with carry
 function* extractFromLocalAndPeer(peer, local, carry = 0) {
-  let hl = 0
+  let hl: number | number[] = 0
   while (peer[0] !== undefined) {
     if (local[0] === undefined) {
       hl = peer.shift() + carry
@@ -663,8 +671,15 @@ function* extractFromLocalAndPeer(peer, local, carry = 0) {
       yield* extractFromLocalAndPeer(peer, local, carry)
     } else { // peer line === local line
       const lnr = local.shift()
+      if (lnr[1]) {
+        // replacement
+        hl = Array.from({ length: lnr[2] }, (u, n) => n + lnr[0] + carry)
+      } else {
+        // insertion
+        hl = lnr[0] + carry
+      }
       carry += lnr[1] + lnr[2]
-      hl = peer.shift() + carry
+      peer.shift()
       yield hl
     }
   }
@@ -675,7 +690,9 @@ async function zipAgg(peer, local) {
   const res = []
   let c
   while ((c = it.next().value) !== undefined) {
-    res.push(c)
+    if (c === undefined) return
+    if (c instanceof Object) c.forEach(i => res.push(i))
+    else res.push(c)
   }
 
   return res
@@ -702,6 +719,11 @@ async function diffWithPeer({ peer, fpath, cid }) {
   })
 }
 
+function reset() {
+  lastDownloadDiff = {}
+  lastSendDiff = {}
+}
+
 const CAWDiffs = {
   applyDiffs,
   clear,
@@ -712,6 +734,7 @@ const CAWDiffs = {
   downloadChanges,
   initGit,
   refreshChanges,
+  reset,
   sendCommitLog,
   sendDiffs,
   unzip,
