@@ -2,6 +2,9 @@
     "name": "code-awareness-local-service",
     "version": "0.1.0",
     "description": "Local service to run at login, or perhaps manually started. This is required in order to sync the diffs between different clients and the codeAwareness server.",
+    "type": "commonjs",
+    "main": "./dist/index.js",
+    "bin": "codeAwareness",
     "repository": {
         "type": "git",
         "url": "https://github.com/CodeAwareness/cA.local"
@@ -10,20 +13,24 @@
     "license": "MIT",
     "scripts": {
         "build-ts": "tsc --build tsconfig.build.json",
-        "build": "rm -rf dist && npm run build-ts && tsc-alias && npm run lint:build",
+        "build": "rm -rf dist && npm run build-ts && tsc-alias",
+        "build:exe": "rm -rf dist-exe && ncc build -o dist-exe ./src/index.ts && pkg --target node18-darwin-arm64 -o code-awareness ./dist-exe/index.js",
         "lint:build": "eslint \"src/**/*.{js,ts}\" --fix",
         "lint": "eslint \"src/**/*.{js,ts}\" \"tests/integration/*.{js,ts}\" \"tests/unit/*.{js,ts}\" \"tests/utils/*.{js,ts}\" --fix",
         "docs": "typedoc src/index.ts",
         "dev": "cross-env NODE_ENV=development DEBUG='socket.io:client*,socket.io:namespace*' nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/index.ts",
         "dev:pm2": "NODE_ENV=development DEBUG='socket.io:client*,socket.io:namespace*' pm2-dev start --interpreter none 'ts-node src/index.ts'",
         "dev:win": "$env:NODE_ENV='development' & npm run dev",
-        "start": "NODE_ENV=production node dist/src/index.js",
+        "start": "NODE_ENV=production node dist/index.js",
         "start:win": "cross-env NODE_ENV='production' node dist/index.js",
         "test": "NODE_ENV=test jest --verbose",
         "test:watch": "NODE_ENV=test jest --verbose --watchAll",
         "test:coverage": "NODE_ENV=test jest --forceExit --coverage --verbose",
         "test:build:watch": "concurrently --raw -k -n \"TypeScript,Node\" \"npm:dev\" \"npm:test\" ",
         "watch:ts": "tsc -w --pretty"
+    },
+    "pkg": {
+      "output": "dist-exe"
     },
     "dependencies": {
         "@hapi/joi": "^17.1.1",

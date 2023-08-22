@@ -7,6 +7,18 @@ flow-typed
 package-lock.json
 yarn.lock
 
+# executable distro
+dist-exe
+
+# local storage
+.storage.caw
+
+# bin export folder
+bin
+
+# macOS Finder indexes
+.DS_Store
+
 # yarn error logs
 yarn-error.log
 

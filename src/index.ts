@@ -7,8 +7,8 @@ import logger from './logger'
 restoreAuthInfo() // TODO: this is not resolving async, but it should be ok
 
 async function restoreAuthInfo() {
-  CAWStore.user = await config.authStore.get('user')
-  CAWStore.tokens = await config.authStore.get('tokens')
+  CAWStore.user = config.localStore.auth.user
+  CAWStore.tokens = config.localStore.auth.tokens
 }
 */
 

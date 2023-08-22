@@ -183,6 +183,7 @@ function sendCommitLog(project: any): Promise<string> {
   return git.command(wsFolder, 'git rev-list HEAD -n1') // get the latest commit sha for the current branch
     .then(sha => {
       const head = sha.trim()
+      logger.info('DIFFS: rev-list HEAD', head, project.head)
       if (project.head === head) {
         // we've already sent this HEAD value, just fetch the common SHA value, in case it's changed
         return fetchCommonSHA()
@@ -537,8 +538,8 @@ const peerIndex = {}
 
 const nextPeer = (block: TContribBlock) => () => {
   const project = CAWStore.activeProjects[block.cid]
-  // const blocks = await Config.repoStore.get('blocks')
-  // const peer = await Config.repoStore.get('currentPeer')
+  // const blocks = await Config.localStore.repo?.blocks
+  // const peer = await Config.localStore.repo?.currentPeer
   const { users } = project.users
   let i = peerIndex[project.origin]
   if (i === undefined) {

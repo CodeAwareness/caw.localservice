@@ -153,8 +153,11 @@ const CAWStore = {
   setAuth: async ({ user, tokens }) => {
     CAWStore.user = user
     CAWStore.tokens = tokens
-    await config.authStore.set('user', CAWStore.user)
-    await config.authStore.set('tokens', CAWStore.tokens)
+    config.localStore.auth = {
+      user: CAWStore.user,
+      tokens: CAWStore.tokens,
+    }
+    config.saveStore()
   }
 }
 

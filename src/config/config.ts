@@ -1,25 +1,37 @@
 import dotenv from 'dotenv'
+import fs from 'node:fs'
 import path   from 'path'
 import tmp from 'tmp'
-import Keyv from 'keyv'
 
 import Joi from '@hapi/joi'
 import CAWStore from '@/services/store'
 import logger from '@/logger'
 
-const dbpath = path.join(process.cwd(), 'storage.sqlite')
+const dbpath = path.join(process.cwd(), '.storage.caw')
+
+const localStore = {
+  auth: {},
+  repo: {},
+  share: {},
+}
 
 /* Local storage for repos */
-export const repoStore = new Keyv(`sqlite://${dbpath}`, { namespace: 'repo' })
-repoStore.on('error', err => console.error('SQLite storage: connection error', err))
+fs.readFile(dbpath, 'utf-8', (err, data) => {
+  if (err) {
+    saveStore()
+    return
+  }
+  const info = JSON.parse(data)
+  localStore.auth = info.auth
+  localStore.repo = info.repo
+  localStore.share = info.share
+})
 
-/* Local storage for sharing files */
-export const shareStore = new Keyv(`sqlite://${dbpath}`, { namespace: 'share' })
-shareStore.on('error', err => console.error('SQLite storage: connection error', err))
-
-/* Local storage for authorization tokens */
-export const authStore = new Keyv(`sqlite://${dbpath}`, { namespace: 'auth' })
-authStore.on('error', err => console.error('SQLite storage: connection error', err))
+function saveStore() {
+  fs.writeFile(dbpath, JSON.stringify(localStore), err => {
+    if (err) console.error('Could not save local store')
+  })
+}
 
 /* Setting up a temporary folder to work in */
 CAWStore.tmpDir = tmp.dirSync({ prefix: 'caw', keep: true, unsafeCleanup: true }).name
@@ -37,7 +49,7 @@ const envVarsSchema = Joi.object()
     /* CAW_DEBUG: a list of DEBUG categories you wish to log in the console */
     CAW_DEBUG: Joi.string().default('all'),
     /* NODE_ENV: self explanatory really */
-    NODE_ENV: Joi.string().valid('production', 'development', 'test').required(),
+    NODE_ENV: Joi.string().valid('production', 'development', 'test').default('production'),
   })
   .unknown()
 
@@ -108,12 +120,11 @@ const Config = {
   SYNC_INTERVAL,
   SYNC_THRESHOLD,
   WSS_NAMESPACE,
-  authStore,
+  localStore,
   env: envVars.NODE_ENV,
   host: '127.0.0.1',
   port: envVars.PORT,
-  repoStore,
-  shareStore,
+  saveStore,
 }
 
 export default Config

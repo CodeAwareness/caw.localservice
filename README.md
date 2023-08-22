@@ -12,9 +12,10 @@ We're using a unix pipe (or windows named pipes) for communication with editor p
 
 ### Installation
 
-Note: at this time I don't have a clean install that just works out-of-the-box. Instead you'll need a nodeJS environment, Git, and you'll be running the local service in dev mode.
+There is no installer at the moment, just an executable that you can download and run in a command prompt (terminal) window. This executable is the workhorse for the entire system, allowing multiple clients, such as Visual Studio Code, to connect.
+Once the Code Awareness service is running, you can then download and install the Visual Studio Code extension from our website and start working as you would usually. The VSCode statusbar will show a CodeAwareness link which you can click to bring up the interface. You can register for an account directly from VSCode, and start seeing the benefits. Close the Code Awareness panel to remove the code highlights from your editors. With the panel closed, you'll only be seeing the orange markers on the right-side gutter, that indicate lines changed by your team members.
 
-Clone the repo, install the dependencies.
+You could also install the source code for both the service and the extension. Just clone the repo, install the dependencies and follow the Deelopment setup section below. You'll need a functional nodeJS environment (16 or greater) to do this.
 
 ```bash
 yarn
@@ -58,7 +59,6 @@ CAW_CATALOG=catalog2 DEBUG=ipc,diffs yarn dev
 
 # Test
 
-NOTE: Tests don't yet work. We're currently working on porting tests from an older version of this project.
 ```bash
 # run all tests
 yarn test
@@ -82,4 +82,6 @@ yarn lint:fix
 
 # TODO
 
-- reconnect existing pipes upon restart (if it's even possible...). Currently, if you restart the local service you'll have to re-login on every client app.
+- lots and lots of todo items sprinkled throughout the code and in my personal notes. If anyone wants to help out or partner with me, please contact me:
+
+mark@codeawareness.com
