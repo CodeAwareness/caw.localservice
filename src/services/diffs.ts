@@ -317,6 +317,9 @@ function sendDiffs(project: any, cid: string): Promise<void> {
       const { cSHA } = project
       return uploadDiffs({ origin, diffDir, cSHA, activePath })
     })
+    .catch(err => {
+      console.log('error in diff upload', err)
+    })
 
   function gatherUntrackedFiles(files) {
     logger.info('DIFFS: gatherUntrackedFiles (files)', files)
@@ -657,7 +660,7 @@ async function applyDiffs(context) {
 // - local == peer : hl all local
 // - local < peer : don't highlight, compute new carry
 // - local > peer : highlight with carry
-function* extractFromLocalAndPeer(peer, local, carry = 0) {
+function * extractFromLocalAndPeer(peer, local, carry = 0) {
   let hl: number | number[] = 0
   while (peer[0] !== undefined) {
     if (local[0] === undefined) {
@@ -669,7 +672,7 @@ function* extractFromLocalAndPeer(peer, local, carry = 0) {
     } else if (peer[0] > local[0][0]) {
       const lnr = local.shift()
       carry += lnr[1] + lnr[2]
-      yield* extractFromLocalAndPeer(peer, local, carry)
+      yield * extractFromLocalAndPeer(peer, local, carry)
     } else { // peer line === local line
       const lnr = local.shift()
       if (lnr[1]) {

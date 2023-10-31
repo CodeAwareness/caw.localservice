@@ -30,6 +30,9 @@ export const API_REPO_AGGREGATE      = '/repos/aggregate'
 export const API_REPO_CHANGES        = '/repos/changes'
 export const API_REPO_DIFF_FILE      = '/repos/diff-file'
 
+export const API_CONTEXT_LINES       = '/context/select-lines'
+export const API_CONTEXT_NEW         = '/context/apply'
+
 export const API_SHARE_ACCEPT   = '/share/accept'
 export const API_SHARE_FINFO    = '/share/file-info'
 export const API_SHARE_OINFO    = '/share/origin-info'

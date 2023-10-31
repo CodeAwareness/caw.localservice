@@ -7,7 +7,11 @@ import Joi from '@hapi/joi'
 import CAWStore from '@/services/store'
 import logger from '@/logger'
 
-const dbpath = path.join(process.cwd(), '.storage.caw')
+/* Setting up a temporary folder to work in */
+CAWStore.tmpDir = tmp.dirSync({ prefix: 'caw', keep: true, unsafeCleanup: true }).name
+CAWStore.uTmpDir = {} // instance based temp dir
+
+const dbpath = path.join(CAWStore.tmpDir, '.storage.caw')
 
 const localStore = {
   auth: {},
@@ -32,10 +36,6 @@ function saveStore() {
     if (err) console.error('Could not save local store')
   })
 }
-
-/* Setting up a temporary folder to work in */
-CAWStore.tmpDir = tmp.dirSync({ prefix: 'caw', keep: true, unsafeCleanup: true }).name
-CAWStore.uTmpDir = {} // instance based temp dir
 
 const LS_ROOT = path.join(__dirname, '../../')
 

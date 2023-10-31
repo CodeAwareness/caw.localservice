@@ -2,6 +2,7 @@ import * as path from 'path'
 import * as chokidar from 'chokidar'
 
 import Config from '@/config/config'
+import CAWStore from '@/services/store'
 import shell from '@/services/shell'
 import diffs from '@/services/diffs'
 import logger from '@/logger'
@@ -48,6 +49,19 @@ function monitorFile({ origin, fpath, wsFolder }): void {
 function unmonitorOrigin(origin: string): void {
   cwatchers[origin]?.unwatch('*')
   // TODO: verify that when we're closing the SHARE, we always sync latest changes from file system
+}
+
+export function getProjectFromPath(fpath: string) {
+  const plist = CAWStore.projects.filter(p => fpath.includes(p.root))
+  let project: any
+  let len = 0
+  // select longest path to guarantee working properly even on git submodules
+  plist.map(p => {
+    if (p.root.length > len) project = p
+    len = p.root.length
+  })
+  if (project) project.activePath = shell.getRelativePath(fpath, project)
+  return project
 }
 
 const ShareService = {

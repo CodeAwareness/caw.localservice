@@ -13,6 +13,7 @@ import git from '@/services/git'
 import shell from '@/services/shell'
 import CAWStore from '@/services/store'
 import CAWDiffs from '@/services/diffs'
+import { getProjectFromPath } from '@/services/repo'
 
 type TRepoAddReq = {
   folder: string
@@ -48,19 +49,6 @@ async function activatePath(data: TRepoActivateReq): Promise<any> {
     .then(() => {
       this.emit('res:repo:active-path', _.omit(project, ['dl']))
     })
-}
-
-function getProjectFromPath(fpath: string) {
-  const plist = CAWStore.projects.filter(p => fpath.includes(p.root))
-  let project: any
-  let len = 0
-  // select longest path to guarantee working properly even on git submodules
-  plist.map(p => {
-    if (p.root.length > len) project = p
-    len = p.root.length
-  })
-  if (project) project.activePath = shell.getRelativePath(fpath, project)
-  return project
 }
 
 /**
@@ -281,6 +269,7 @@ function sendDiffs(data: TSendDiff) {
   return CAWDiffs.sendDiffs(project, cid)
     .then(() => CAWDiffs.refreshChanges(project, project.activePath, doc, cid))
     .then(() => this.emit('res:repo:file-saved', project))
+    .catch(() => this.emit('res:repo:file-saved', project))
 }
 
 function cycleBlock(data: TContribBlock) {

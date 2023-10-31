@@ -94,7 +94,7 @@ describe('Download changes', () => {
 
     // TEST
     expect(res?.dl[fpath].agg).toEqual({
-      'ec989dc1fea23ef69ec37ba3a556d04f117cf835': [1, 3, 7],
+      ec989dc1fea23ef69ec37ba3a556d04f117cf835: [1, 3, 7],
       '414e625fd283ac36e86ac8c972e698496b8e2c6d': [2, 4, 5],
     })
     expect(res?.dl[fpath].users).toHaveLength(3)
@@ -170,7 +170,7 @@ describe('Walking the SHA', () => {
       .reply(200, {
         agg: {
           '4c6a9aca464d85d16d53199a338792ad09b4996f': [1, 3, 7],
-          'd62e969db1d8bd808040846a083c39c012c915d5': [2, 4],
+          d62e969db1d8bd808040846a083c39c012c915d5: [2, 4],
         }
       })
 
@@ -201,7 +201,7 @@ describe('Walking the SHA', () => {
       .get(`${CAWAPI.API_REPO_CHANGES}?origin=${uriOrigin}&fpath=${fpath}&clientId=${cid}`, () => true)
       .reply(200, {
         agg: {
-          '4c6a9aca464d85d16d53199a338792ad09b4996f': [ 1, 3, 7, 9 ],
+          '4c6a9aca464d85d16d53199a338792ad09b4996f': [1, 3, 7, 9],
         }
       })
 
@@ -239,8 +239,8 @@ describe('Subsequent requests', () => {
       .get(CAWAPI.API_REPO_CHANGES, () => true)
       .query({ fpath: fpath1, clientId: cid, origin: uriOrigin })
       .reply(200, {
-        users: [ userOne, userTwo ],
-        tree: [ 'test1.md', 'test2.md' ],
+        users: [userOne, userTwo],
+        tree: ['test1.md', 'test2.md'],
         file: { file: fpath1, changes: {} },
         agg: {
           '880b67f2f587d7af5c3037478de7c46e52c71ebd': [5, 9, 13],
@@ -251,8 +251,8 @@ describe('Subsequent requests', () => {
       .get(CAWAPI.API_REPO_CHANGES, () => true)
       .query({ fpath: fpath2, clientId: cid, origin: uriOrigin })
       .reply(200, {
-        users: [ userThree, userFour ],
-        tree: [ 'test1.md', 'test2.md'],
+        users: [userThree, userFour],
+        tree: ['test1.md', 'test2.md'],
         file: { file: fpath2, changes: {} },
         agg: {
           '880b67f2f587d7af5c3037478de7c46e52c71ebd': [1, 3, 7],
