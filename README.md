@@ -19,6 +19,10 @@ You could also install the source code for both the service and the extension. J
 
 ```bash
 yarn
+
+or
+
+npm install
 ```
 
 # Development setup
