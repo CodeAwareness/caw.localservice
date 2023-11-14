@@ -46,6 +46,7 @@ async function activatePath(data: TRepoActivateReq): Promise<any> {
   /* next up: download changes from peers */
   return CAWDiffs
     .refreshChanges(project, project.activePath, doc, cid)
+    // TODO: insert Context fetching here
     .then(() => {
       this.emit('res:repo:active-path', _.omit(project, ['dl']))
     })
